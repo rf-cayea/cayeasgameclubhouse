@@ -122,6 +122,10 @@ level. No remote deployment or database migration is required to play locally.
 
 ## Connecting Supabase
 
+The selected project is `https://spjxaghfxomgafgbrnkr.supabase.co`.
+See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for this project’s configuration,
+auth redirects, read-only schema inspection, and activation steps.
+
 Copy `.env.example` to `.env.local`, or set the variables in cloud environment
 settings, then restart Vite. Add the actual project URL as
 `VITE_SUPABASE_URL` and the browser-safe publishable key as
@@ -267,9 +271,9 @@ Local Spades gameplay and browser previews work now. Live purchases, equipment,
 and rewards require the actual Supabase project and all four migrations.
 After the original three, `20261102000000_spades_partnership_unlock.sql` adds
 the 800-point mode unlock; apply it before enabling partnership purchases. The
-current environment is still missing the project URL and server reward key; no live
-project schema was changed or live wallet credited. The public Lovable frontend
-URL is not a substitute for the project’s `VITE_SUPABASE_URL`.
+project URL has been supplied and added to the environment draft. Runtime access,
+the key/project match, schema setup, and the server reward key remain unverified;
+no live project schema was changed or live wallet credited.
 
 ## Rummy games, persistence, and hosting
 
@@ -339,8 +343,8 @@ The first creates the initial tables; the second adds verified rewards and
 conversions; the third adds Spades points, its collection, equipment, and team
 rewards; the fourth adds the 800-point partnership unlock. For an existing
 project, reconcile its schema and data first rather than applying table creation blindly. No remote migration
-or production action was executed during development. The project URL and
-server reward key are currently missing in this cloud environment.
+or production database action was executed during development. The project URL
+is now configured locally; live access and the server reward key still require activation.
 
 The migration creates zero-balance wallets and neutral `Player` profiles for
 existing and future authenticated users. It grants no staff roles automatically.
@@ -440,7 +444,8 @@ The backend intentionally does **not** provide arbitrary client-driven
 No live rewards were minted in development. Activation requires the actual
 project URL, its public key, the server-only reward key, and all reviewed
 migrations applied to that project. The current environment has a public key
-binding but lacks the project URL and server reward key.
+binding and the supplied project URL. Runtime network access, matching-key
+validation, live migrations, and the server reward key remain prerequisites.
 
 ## Backend and member UI tests
 
