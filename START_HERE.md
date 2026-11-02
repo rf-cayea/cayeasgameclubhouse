@@ -2,8 +2,8 @@
 
 ## Open it in your browser
 
-1. Open https://codespaces.new/rf-cayea/cayeasgameclubhouse while signed into your GitHub account.
-2. Choose **Create codespace**. GitHub installs the project and starts the games.
+1. Open https://github.com/rf-cayea/cayeasgameclubhouse/tree/clubhouse-ready-to-run while signed into your GitHub account.
+2. Choose **Code → Codespaces → Create codespace** on the `clubhouse-ready-to-run` branch. GitHub installs the project and starts the games.
 3. The Clubhouse should open automatically. If it does not, open the **Ports** tab and use **Open in Browser** beside port **5173**.
 
 This runs the actual project, including the card-game server. Your Codespace's
@@ -19,8 +19,8 @@ node .devcontainer/start.mjs
 
 ## Get the ZIP
 
-Open https://github.com/rf-cayea/cayeasgameclubhouse and choose
-**Code → Download ZIP**. These are ordinary GitHub files, rather than chat
+Download https://github.com/rf-cayea/cayeasgameclubhouse/archive/refs/heads/clubhouse-ready-to-run.zip
+or open the project branch above and choose **Code → Download ZIP**. These are ordinary GitHub files, rather than chat
 preview links. Sign in with the account that has access to the repository.
 
 ## Play on your own computer
