@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Faith 3 tile artwork</title><desc id="desc">Decorative gold tiles and olive branches under a sun, on a forest green background.</desc>
+  <defs><radialGradient id="bg"><stop stop-color="#41634a"/><stop offset="1" stop-color="#142b25"/></radialGradient><linearGradient id="tile" x2="0.8" y2="1"><stop stop-color="#fbefcb"/><stop offset="1" stop-color="#cfac65"/></linearGradient></defs>
+  <path fill="url(#bg)" d="M0 0h768v1024H0z"/><rect x="32" y="32" width="704" height="960" rx="320" fill="none" stroke="#e9c77d" opacity=".4"/>
+  <circle cx="384" cy="290" r="113" fill="#e9c77d" opacity=".12"/><circle cx="384" cy="290" r="80" fill="none" stroke="#e9c77d" stroke-width="2"/>
+  <g fill="none" stroke="#e9c77d" stroke-width="3"><path d="M384 172v-28m0 292v-28M266 290h-28m292 0h-28M301 207l-20-20m206 206l-20-20m-166 0l-20 20m206-206l-20 20"/><path d="M160 745c-80-180-20-340 66-400m382 400c80-180 20-340-66-400"/></g>
+  <g fill="#8fa378"><ellipse cx="151" cy="628" rx="16" ry="43" transform="rotate(-35 151 628)"/><ellipse cx="169" cy="536" rx="16" ry="43" transform="rotate(40 169 536)"/><ellipse cx="176" cy="446" rx="16" ry="38" transform="rotate(-25 176 446)"/><ellipse cx="617" cy="628" rx="16" ry="43" transform="rotate(35 617 628)"/><ellipse cx="599" cy="536" rx="16" ry="43" transform="rotate(-40 599 536)"/><ellipse cx="592" cy="446" rx="16" ry="38" transform="rotate(25 592 446)"/></g>
+  <g fill="#0b1e18" opacity=".5"><rect x="265" y="451" width="128" height="167" rx="18" transform="rotate(-16 329 534)"/><rect x="393" y="451" width="128" height="167" rx="18" transform="rotate(16 457 534)"/><rect x="326" y="550" width="128" height="167" rx="18"/></g>
+  <g fill="url(#tile)" stroke="#b7904f" stroke-width="3"><rect x="253" y="435" width="128" height="167" rx="18" transform="rotate(-16 317 518)"/><rect x="381" y="435" width="128" height="167" rx="18" transform="rotate(16 445 518)"/><rect x="314" y="534" width="128" height="167" rx="18"/></g>
+  <g fill="none" stroke="#425e41" stroke-width="6"><path d="M311 484c-35 30-35 44 0 65 35-21 35-35 0-65zM443 480v70m-25-45h50"/><circle cx="378" cy="612" r="28"/><path d="m378 583 0 58m-27-28h54"/></g>
+  <text x="384" y="820" text-anchor="middle" fill="#e9c77d" font-family="Georgia,serif" font-size="62">Faith 3</text><text x="384" y="863" text-anchor="middle" fill="#d6dfcf" font-family="sans-serif" font-size="18" letter-spacing="6">TILE MATCH</text>
+</svg>

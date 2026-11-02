@@ -1,0 +1,16 @@
+{
+  "name": "Cayea's Game Clubhouse",
+  "image": "node:24-bookworm",
+  "remoteUser": "node",
+  "postCreateCommand": "npm ci",
+  "postStartCommand": "node .devcontainer/start.mjs",
+  "waitFor": "postCreateCommand",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Cayea's Game Clubhouse",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "otherPortsAttributes": { "onAutoForward": "ignore" }
+}

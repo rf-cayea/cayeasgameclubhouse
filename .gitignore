@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.local
+.tanstack/
+coverage/
+test-results/
+__pycache__/
+.data/
+
+# Temporary local project download page
+/download-project.html
+/cayeas-game-clubhouse-project.zip
+/project.zip

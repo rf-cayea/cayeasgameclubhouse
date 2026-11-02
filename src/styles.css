@@ -1,0 +1,92 @@
+@import "tailwindcss";
+@import "./styles/card-games.css";
+@import "./styles/gems.css";
+
+@theme {
+  --color-background: #101e1c;
+  --color-foreground: #f3eee2;
+  --color-muted-foreground: #b9c5bb;
+  --color-gold: #e9c77d;
+  --color-border: #3d5148;
+  --color-secondary: #23372f;
+  --color-primary: #e9c77d;
+  --color-primary-foreground: #18291f;
+  --color-destructive: #ffb2ab;
+  --font-display: Georgia, 'Times New Roman', serif;
+}
+
+@layer base {
+  html { color-scheme: dark; }
+  body { margin: 0; min-width: 320px; background: radial-gradient(ellipse at 90% 5%, #253c32 0, transparent 45%), var(--color-background); color: var(--color-foreground); font-family: 'Trebuchet MS', system-ui, sans-serif; line-height: 1.6; }
+  button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: .55; }
+  :focus-visible { outline: 2px solid var(--color-gold); outline-offset: 4px; }
+  input, textarea { color: var(--color-foreground); }
+}
+
+@layer components {
+  .spades-scene { min-height: 100vh; background-color: #101f1b; background-size: cover; background-position: center; background-attachment: fixed; }
+  .spades-eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .23em; color: var(--spades-accent, var(--color-gold)); }
+  .spades-mode-tabs { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .8rem; }
+  .spades-table { min-width: 0; border: 10px solid var(--spades-rail, #68452c); border-radius: 2.8rem; background: radial-gradient(ellipse at 50% 35%, #ffffff10, #00000028), var(--spades-felt, #175644); outline: 1px solid var(--spades-accent, #d6b477); outline-offset: -5px; box-shadow: 0 18px 50px #0007, inset 0 0 40px #0004; }
+  .spades-room-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: #101e1cd9; border-radius: 1rem; padding: 1rem; font-size: .8rem; }
+  .spades-side-panel { border: 1px solid #d6b47740; border-radius: 1.5rem; background: #101e1ce6; padding: 1.6rem; }
+  .spades-seat { min-width: 0; background: #061f1c77; border: 1px solid #ffffff25; border-radius: 1rem; padding: .75rem 1rem; }
+  .spades-seat-active { border-color: var(--spades-accent, #e9c77d); box-shadow: 0 0 0 2px #e9c77d22; }
+  .spades-card-art { width: 100%; height: 100%; display: block; border-radius: .6rem; overflow: hidden; }
+  .spades-display-card { width: 76px; height: 106px; flex-shrink: 0; filter: drop-shadow(0 5px 5px #0005); }
+  .spades-mini-card { width: 54px; height: 76px; flex-shrink: 0; }
+  .spades-trick-grid { display: grid; grid-template-columns: repeat(3, minmax(70px, 1fr)); grid-template-rows: repeat(3, auto); gap: .4rem; max-width: 450px; margin: 1.3rem auto; }
+  .spades-trick-centre { grid-row: 2; grid-column: 2; align-self: center; text-align: center; }
+  .spades-trick-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; grid-row: var(--spades-card-row); grid-column: var(--spades-card-column); }
+  .spades-trick-card { width: 68px; height: 95px; border-radius: .6rem; display: grid; place-items: center; box-shadow: 0 4px 10px #0003; }
+  .spades-bid-panel { border: 1px solid #ffffff30; border-radius: 1.2rem; background: #061c1b99; padding: 1.2rem; }
+  .spades-preview-room { padding: 2rem 1rem; border: 1px solid var(--color-border); border-radius: 1.5rem; background-size: cover; background-position: center; }
+  .spades-preview-table { max-width: 520px; margin: auto; padding: 1.5rem; border: 10px solid; border-radius: 3rem; text-align: center; box-shadow: 0 10px 30px #0008, inset 0 0 30px #0003; }
+  .spades-collection-item { min-width: 0; border: 1px solid var(--color-border); border-radius: 1.2rem; background: #101e1ce8; padding: 1rem; }
+  .spades-venue-swatch { border-radius: .7rem; padding: 1.2rem; background-size: cover; background-position: center; }
+  .spades-venue-swatch > div { border: 6px solid; border-radius: 50%; text-align: center; font-size: 2rem; color: var(--color-gold); }
+  .spades-dialog { margin: auto; width: calc(100% - 2rem); max-width: 480px; border: 1px solid var(--color-gold); border-radius: 1.4rem; padding: 1.5rem; background: var(--color-background); color: var(--color-foreground); }
+  .spades-dialog::backdrop { background: #000b; }
+  .spades-action-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1rem; }
+  .spades-mobile-scoreboard, .spades-mobile-bid { display: none; }
+  @media (max-width: 640px) {
+    .spades-scene button, .spades-scene select, .spades-scene input { min-height: 44px; }
+    .spades-scene select, .spades-scene input { font-size: 16px; }
+    .spades-scene header nav { padding-top: .8rem; padding-bottom: .8rem; gap: .6rem; }
+    .spades-mode-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: .4rem; }
+    .spades-mode-tabs > button { min-width: 0; padding: .55rem .3rem; font-size: .75rem; }
+    .spades-table { border-width: 8px; border-radius: 1.8rem; }
+    .spades-seat { padding: .65rem; }
+    .spades-action-bar { position: sticky; bottom: 0; z-index: 5; padding: .75rem; margin-inline: -.25rem; border: 1px solid #e9c77d55; border-radius: 1rem; background: #10221af2; backdrop-filter: blur(10px); }
+    .spades-action-bar > button { width: 100%; }
+    .spades-action-bar > p { font-size: .75rem; }
+    .spades-bid-panel { padding: .9rem; }
+  }
+  .rummy-scene { min-height: 100vh; background: var(--rummy-room-background, transparent); background-size: cover; background-position: center; background-attachment: fixed; }
+  .rummy-table { background: var(--rummy-table-background, radial-gradient(ellipse at 50% 40%, #ffffff09, #00000030), var(--rummy-felt, #18513f)); background-size: cover; background-position: center; border: 10px solid #6e482d; border-radius: 3rem; outline: 2px solid #a37b4f; outline-offset: -5px; box-shadow: 0 16px 45px #0007, inset 0 0 28px #0004; }
+  .rummy-input { display: block; width: 100%; border: 1px solid var(--color-border); border-radius: .65rem; background: #101e1cd9; color: var(--color-foreground); padding: .6rem .75rem; }
+  .btn-gold { display: inline-flex; align-items: center; justify-content: center; border-radius: .7rem; background: var(--color-gold); color: var(--color-primary-foreground); padding: .7rem 1.15rem; font-weight: 700; text-decoration: none; transition: background .15s, transform .15s; }
+  .btn-gold:hover { background: #f5d99e; }
+  .btn-ghost-gold { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--color-gold); border-radius: .7rem; color: var(--color-gold); padding: .7rem 1.15rem; font-weight: 700; text-decoration: none; }
+  .btn-ghost-gold:hover { background: #e9c77d12; }
+  .card-hub { border: 1px solid var(--color-border); border-radius: 1.2rem; padding: 1.5rem; background: linear-gradient(135deg, #23372fcc, #182b24cc); box-shadow: 0 10px 30px #00000013; }
+  .chip { border: 1px solid var(--color-border); border-radius: 999px; padding: .3rem .75rem; color: var(--color-gold); background: #101e1c88; }
+  .art-frame { border: 1px solid #e9c77d88; border-radius: 9rem 9rem 1.2rem 1.2rem; box-shadow: 0 0 0 8px #e9c77d09, 0 22px 60px #0005; }
+  .skip-link { position: fixed; z-index: 50; top: -5rem; left: 1rem; background: var(--color-gold); color: var(--color-background); padding: .5rem 1rem; }
+  .skip-link:focus { top: 1rem; }
+}
+
+@media (max-width: 640px) {
+  .spades-active-heading > div:first-child > a, .spades-active-heading > div:first-child > p { display: none; }
+  .spades-active-heading h1 { font-size: 2.5rem; }
+  .spades-desktop-seats { display: none; }
+  .spades-mobile-scoreboard { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem; margin-top: 1rem; font-size: .75rem; }
+  .spades-mobile-bid { display: block; font-size: .65rem; color: #dfd7bd; }
+  .spades-trick-card { width: 52px; height: 73px; }
+  .spades-trick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto; max-width: 400px; margin-block: 1rem; }
+  .spades-trick-centre { display: none; }
+  .spades-trick-slot { grid-row: auto; grid-column: auto; min-width: 0; }
+  .spades-trick-slot > p { max-width: 100%; width: 100%; text-align: center; }
+}
