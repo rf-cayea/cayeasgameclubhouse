@@ -1,7 +1,8 @@
 # Cayea’s Game Clubhouse
 
-**Start here:** [open the games in your browser or download the ZIP](START_HERE.md).
-The repository includes automatic GitHub Codespaces setup for the complete app.
+**Start here:** [put the games online for free, or play them locally](START_HERE.md).
+The repository includes a free Render deployment, automatic GitHub Codespaces
+setup for the complete app, and a downloadable ZIP.
 
 React + TypeScript + Vite application scaffolded from the supplied hub, wallet,
 and lounge source, plus Faith 3, full Rummy, four-player Spades, and 3 Gems of
@@ -63,6 +64,57 @@ settings and keep TLS verification enabled.
 manually. `npm ci` uses the project lockfile. No global package install is
 needed. This cloud task already has an isolated checkout; use it directly
 without creating another Git worktree.
+
+## Free public hosting
+
+`render.yaml` describes one free Render web service that builds the app and runs
+the Node card-game service on a single HTTPS origin, so online rooms, guest
+cookies, and the SSE push all work from one address. Push this branch to GitHub,
+then in Render choose **New → Blueprint**, select the repository, and apply.
+Render installs Node 24.19.0, runs `npm ci && npm run build`, starts `npm start`,
+and passes its own `PORT`, which the game service now reads. The free plan needs
+no card, includes 750 instance hours a month, and sleeps after 15 minutes idle;
+the first visit afterwards takes about a minute to wake.
+
+Pair that with a free Supabase project and the $0 setup is complete: accounts,
+wallets, points, purchases, the lounge, moderation, and match rewards live in
+Supabase, so nothing that matters depends on the server's disk.
+[SUPABASE_SETUP.md](SUPABASE_SETUP.md) is the full walkthrough — create the
+project, run `supabase/migrations` in the SQL editor, allow the live address for
+sign-in, and set the three environment variables.
+
+The free plan also has an ephemeral disk: `.data/rummy.sqlite` is recreated on
+every deploy or restart, so open rooms, saved seats, and queued reward deliveries
+do not survive it (a table is a live session, not saved progress). Run exactly
+one instance; a static-only host cannot run the card tables. For sign-in,
+wallets, the store, and moderation, add `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY` to the service's environment before it builds,
+and add the server-only `CLUBHOUSE_REWARD_KEY` for verified match rewards. Set
+the app's Render URL as an allowed Supabase auth redirect.
+
+Any other host that runs a long-lived Node process works the same way: bind
+`RUMMY_HOST=0.0.0.0`, listen on the provider's `PORT` (or `RUMMY_API_PORT`), and
+set `RUMMY_COOKIE_SECURE=true` behind HTTPS.
+
+### Hosted Worker version (no server to keep awake)
+
+`server/worker.ts` runs the same game service as a Cloudflare Worker: it answers
+`/api/*` from a D1 database and serves the built app for every other path, so the
+solo games and online tables work with no long-lived process. `server/sql.ts` is
+the storage seam — `server/sqlite.ts` backs local play and `server/d1.ts` backs
+the Worker, both sticking to the same room documents guarded by a revision
+compare-and-set, so a racing move is rejected instead of overwriting the table.
+
+```sh
+npm run build          # app bundle in dist/
+npm run build:worker   # worker-build/index.js plus worker.manifest.json
+npm run smoke:worker   # runs the bundle against a SQLite-backed D1 stand-in
+```
+
+Deploy the manifest with a `DB` D1 binding attached. Guest rooms and tables live
+in D1 and survive restarts; sign-in, wallets, the store, and match rewards still
+need the Supabase values from `.env.example` present at build time, so a bundle
+built without them is guest-only.
 
 ## 3 Gems of Buddhism
 

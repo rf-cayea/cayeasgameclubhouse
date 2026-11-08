@@ -1,15 +1,21 @@
+import { CARD_WIN_POINTS } from './reward-rates';
 export type Variant = "classic" | "gin" | "r500";
 export type Card = string;
 export type Level = "easy" | "normal" | "hard";
 export interface Player { id: string; name: string; bot: boolean; level?: Level }
 export const LEVELS: Record<Level, string> = { easy: "Easy", normal: "Normal", hard: "Hard" };
-export const WIN_POINTS = { humans: 150, hard: 120, normal: 70, easy: 40 } as const;
+export const WIN_POINTS = CARD_WIN_POINTS;
 export function winTier(players: Player[]): keyof typeof WIN_POINTS {
   if (players.filter(p => !p.bot).length >= 2) return "humans";
   const levels = players.filter(p => p.bot).map(p => p.level ?? "normal");
   return levels.includes("hard") ? "hard" : levels.includes("normal") ? "normal" : "easy";
 }
 export interface Meld { cards: { c: Card; by: number }[] }
+/** Only face-up cards belong here. Stock draws never include the drawn card. */
+export interface PublicPlay {
+  id: number; seat: number; kind: 'stock' | 'pickup' | 'meld' | 'layoff' | 'discard' | 'pass';
+  cards: Card[]; meld?: number;
+}
 export type Phase = "draw" | "play" | "roundOver" | "gameOver";
 export interface RoundResult { winner: number | null; points: number[]; note: string }
 export interface State {
@@ -20,6 +26,7 @@ export interface State {
   scores: number[]; roundResult: RoundResult | null; winner: number | null; log: string[];
   opening?: "first" | "dealer" | "stock" | null;
   turns?: number;
+  activity?: PublicPlay[];
 }
 export type Move =
   | { t: "draw"; from: "stock" } | { t: "draw"; from: "discard"; index?: number }
@@ -28,9 +35,9 @@ export type Move =
 export const RANKS = "A23456789TJQK";
 export const SUITS = "SHDC";
 export const VARIANTS: Record<Variant, { name: string; target: number; min: number; max: number; summary: string }> = {
-  classic: { name: "Classic Rummy", target: 100, min: 2, max: 4, summary: "Make sets and runs, lay off on any meld. First to empty hand scores opponent cards. First to 100 wins." },
-  gin: { name: "Gin Rummy", target: 100, min: 2, max: 2, summary: "Two players, 10 cards. Melds stay in hand. Knock with <=10 deadwood, or go Gin." },
-  r500: { name: "Rummy 500", target: 500, min: 2, max: 4, summary: "Score every card you meld minus cards left in hand. First to 500 wins." },
+  classic: { name: "Classic Rummy", target: 100, min: 2, max: 4, summary: "Make sets and same-suit runs. Aces can be low (A-2-3) or high (Q-K-A), but runs cannot wrap (K-A-2). Lay off on any meld. First to empty hand scores opponent cards. First to 100 wins." },
+  gin: { name: "Gin Rummy", target: 100, min: 2, max: 2, summary: "Two players, 10 cards. Runs use one suit; aces are low only (A-2-3). Melds stay in hand. Knock with <=10 deadwood, or go Gin." },
+  r500: { name: "Rummy 500", target: 500, min: 2, max: 4, summary: "Score every card you meld minus cards left in hand. Runs use one suit; aces can be low (A-2-3) or high (Q-K-A), without wrapping (K-A-2). First to 500 wins." },
 };
 export const JOKERS: Card[] = ["X1", "X2"];
 export const isCard = (card: Card) => /^(?:[A23456789TJQK][SHDC]|X[12])$/.test(card);
@@ -73,7 +80,8 @@ export function isRun(cards: Card[], aceHigh: boolean) {
   if (fits(ranks)) return true;
   return aceHigh && ranks[0] === 1 && fits([...ranks.slice(1), 14]);
 }
-export const isMeld = (cards: Card[], variant: Variant) => validCards(cards) && (isSet(cards) || isRun(cards, variant === "r500"));
+export const allowsHighAce = (variant: Variant) => variant === "classic" || variant === "r500";
+export const isMeld = (cards: Card[], variant: Variant) => validCards(cards) && (isSet(cards) || isRun(cards, allowsHighAce(variant)));
 function assertHand(hand: Card[]) {
   if (!validCards(hand)) throw new Error("A hand must contain valid, distinct physical cards.");
 }
@@ -113,7 +121,7 @@ function orderMeld(cards: Card[], variant: Variant): Card[] {
   if (isSet(cards)) return [...cards].sort(compareCards);
   const natural = cards.filter(card => !isJoker(card));
   const jokers = cards.filter(isJoker).sort();
-  const lastRank = variant === "r500" ? 14 : 13;
+  const lastRank = allowsHighAce(variant) ? 14 : 13;
   for (let start = 1; start <= lastRank - cards.length + 1; start++) {
     const positions = new Map(natural.map(card => [rankOf(card) === 1 && start > 1 ? 14 : rankOf(card), card]));
     if (positions.size !== natural.length || [...positions.keys()].some(rank => rank < start || rank >= start + cards.length)) continue;
@@ -162,8 +170,8 @@ export function bestArrangement(hand: Card[], variant: Variant): { melds: Card[]
   // natural card for another meld by filling its position with a joker.
   for (const suit of SUITS) {
     const natural = new Map(cards.flatMap((card, index) => !isJoker(card) && suitOf(card) === suit ? [[rankOf(card), index] as const] : []));
-    if (variant === "r500" && natural.has(1)) natural.set(14, natural.get(1)!);
-    const lastRank = variant === "r500" ? 14 : 13;
+    if (allowsHighAce(variant) && natural.has(1)) natural.set(14, natural.get(1)!);
+    const lastRank = allowsHighAce(variant) ? 14 : 13;
     for (let length = 3; length <= 13; length++) {
       for (let start = 1; start <= lastRank - length + 1; start++) {
         const available: number[] = [];

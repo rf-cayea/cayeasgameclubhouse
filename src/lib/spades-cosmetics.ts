@@ -1,25 +1,18 @@
-export interface SpadesVenue { id: string; name: string; price: number; description: string; felt: string; rail: string; accent: string; room: string }
-export interface SpadesDeck { id: string; name: string; price: number; description: string; paper: string; ink: string; red: string; back: string; accent: string; motif: 'classic' | 'stars' | 'crown' | 'leaves' | 'deco' }
-const svg = (body: string, background: string) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000"><rect width="1400" height="1000" fill="${background}"/>${body}</svg>`)}")`;
-export const CLASSIC_VENUE: SpadesVenue = { id: 'spades-table-classic', name: 'Clubhouse Green', price: 0, description: 'Your complimentary green felt and walnut room.', felt: '#175644', rail: '#68452c', accent: '#d6b477',
-  room: svg('<path d="M0 0H1400V1000H0Z" fill="none" stroke="#bd9b5b" stroke-width="2"/><path d="M50 0V1000M350 0V1000M1050 0V1000M1350 0V1000" stroke="#345247" stroke-width="2"/>', '#101f1b') };
+import { SHARED_DECKS, playingDeck, canonicalDeckId, type PlayingDeck } from './playing-decks';
+import { CARD_TABLE_THEMES } from './card-table-themes';
+export interface SpadesVenue { id: string; name: string; price: number; description: string; felt: string; rail: string; accent: string; room: string; surface: string; backgroundSize?: string }
+export type SpadesDeck = PlayingDeck;
+const surface = (image: string) => `linear-gradient(#10231d18, #10231d18), url("${image}")`;
+export const CLASSIC_VENUE: SpadesVenue = { id: 'spades-table-classic', name: 'Clubhouse Green', price: 0, description: 'Emerald felt, polished walnut rails for full-screen play.', felt: '#175644', rail: '#76502e', accent: '#d6b477', room: '', surface: surface('/rummy-art/table-classic.webp') };
 export const SPADES_VENUES: SpadesVenue[] = [
-  { id: 'spades-table-atlas', name: 'Moonlit Observatory', price: 500, description: 'Indigo velvet, brass rails, and an original constellation room.', felt: '#233864', rail: '#725932', accent: '#b4d5ff',
-    room: svg('<path d="M0 700Q700 -450 1400 700M0 850Q700 -300 1400 850" fill="none" stroke="#435881" stroke-width="2"/><path d="M70 210L270 140L400 300L650 180L800 350L1100 170L1300 300M200 750L400 600L580 780L1000 650L1200 850" fill="none" stroke="#9cb8db" opacity=".3"/><g fill="#d6e6ff"><circle cx="70" cy="210" r="4"/><circle cx="270" cy="140" r="5"/><circle cx="400" cy="300" r="3"/><circle cx="650" cy="180" r="5"/><circle cx="1100" cy="170" r="5"/><circle cx="1300" cy="300" r="3"/><circle cx="200" cy="750" r="5"/><circle cx="1200" cy="850" r="5"/></g>', '#0c152e') },
-  { id: 'spades-table-ember', name: 'Rosewood Parlour', price: 650, description: 'Burgundy felt in a warm, carved rosewood salon.', felt: '#682f3f', rail: '#603025', accent: '#f5c88d',
-    room: svg('<g fill="none" stroke="#704536" stroke-width="4"><path d="M70 1000V320Q70 80 280 80Q490 80 490 320V1000M910 1000V320Q910 80 1120 80Q1330 80 1330 320V1000"/><path d="M100 1000V330Q100 120 280 120Q460 120 460 330V1000M940 1000V330Q940 120 1120 120Q1300 120 1300 330V1000"/></g><path d="M0 890H1400M0 910H1400" stroke="#b88555" opacity=".5"/>', '#2a181d') },
-  { id: 'spades-table-grove', name: 'Emerald Conservatory', price: 800, description: 'Deep teal felt with a leafy glasshouse background.', felt: '#125456', rail: '#4b4730', accent: '#b9dbaa',
-    room: svg('<path d="M0 0L700 350L1400 0M0 1000L700 350L1400 1000M700 0V1000M0 350H1400" fill="none" stroke="#37685b" stroke-width="3"/><g fill="#33644b" opacity=".45"><path d="M0 700Q300 200 160 80Q-40 350 0 700M80 800Q350 500 250 320Q50 400 80 800M1400 780Q1100 240 1230 60Q1450 300 1400 780M1320 900Q1000 600 1130 390Q1340 430 1320 900"/></g>', '#0b2624') },
-  { id: 'spades-table-deco', name: 'Gilded Grand Hall', price: 950, description: 'A plum table, gold edges, and geometric Art Deco walls.', felt: '#493454', rail: '#706043', accent: '#f0d79b',
-    room: svg('<g fill="none" stroke="#9f8556" opacity=".35"><path d="M0 1000L700 0L1400 1000M80 1000L700 100L1320 1000M160 1000L700 200L1240 1000M240 1000L700 300L1160 1000"/><path d="M0 0L700 1000L1400 0M80 0L700 900L1320 0M160 0L700 800L1240 0"/></g><path d="M40 40H1360V960H40Z" fill="none" stroke="#c2a366" opacity=".5"/>', '#201a29') },
+  ...CARD_TABLE_THEMES.map(theme => ({ id: `spades-table-${theme.key}`, name: theme.name, price: 100, description: 'A full-screen artist table surface with matching rails.', felt: theme.felt, rail: theme.rail, accent: theme.accent, room: '', surface: theme.surface, backgroundSize: theme.size })),
+  { id: 'spades-table-atlas', name: 'Moonlit Observatory', price: 100, description: 'Sapphire felt and brass-trimmed walnut with celestial blue felt.', felt: '#233864', rail: '#725932', accent: '#b4d5ff', room: '', surface: surface('/rummy-art/table-sapphire.webp') },
+  { id: 'spades-table-ember', name: 'Rosewood Parlour', price: 100, description: 'Burgundy felt and carved rosewood with richly woven velvet.', felt: '#682f3f', rail: '#753d27', accent: '#f5c88d', room: '', surface: surface('/rummy-art/table-burgundy.webp') },
+  { id: 'spades-table-grove', name: 'Emerald Conservatory', price: 100, description: 'Teal felt, olivewood rails and a sunlit painted botanical glasshouse.', felt: '#125456', rail: '#6d633b', accent: '#b9dbaa', room: '', surface: surface('/rummy-art/table-riviera.webp') },
+  { id: 'spades-table-deco', name: 'Gilded Grand Hall', price: 100, description: 'Plum velvet and gilded rails with an Art Deco finish.', felt: '#493454', rail: '#8c7141', accent: '#f0d79b', room: '', surface: `linear-gradient(#35254870, #35254870), url("/rummy-art/table-burgundy.webp")` },
 ];
-export const CLASSIC_DECK: SpadesDeck = { id: 'spades-deck-classic', name: 'Clubhouse Standard', price: 0, description: 'A crisp, complimentary 52-card deck.', paper: '#fff8e8', ink: '#18342d', red: '#a62b3b', back: '#174b3c', accent: '#e9c77d', motif: 'classic' };
-export const SPADES_DECKS: SpadesDeck[] = [
-  { id: 'spades-deck-atlas', name: 'Midnight Atlas', price: 350, description: 'Constellation backs, blue-white faces, and celestial court crowns.', paper: '#e9f0ff', ink: '#203c6c', red: '#81446d', back: '#12264f', accent: '#9edbff', motif: 'stars' },
-  { id: 'spades-deck-ember', name: 'Ember Crown', price: 500, description: 'Radiant copper backs, warm ivory faces, and ruby suit marks.', paper: '#fff0d5', ink: '#4a2525', red: '#ab253c', back: '#622137', accent: '#efbd72', motif: 'crown' },
-  { id: 'spades-deck-grove', name: 'Verdant Grove', price: 650, description: 'Botanical backs, sage faces, and leaf-framed court artwork.', paper: '#ecf4df', ink: '#174d40', red: '#9b4540', back: '#133f35', accent: '#b8d497', motif: 'leaves' },
-  { id: 'spades-deck-deco', name: 'Ivory Deco', price: 800, description: 'Black-and-gold fan backs with sculpted geometric face cards.', paper: '#fff9ed', ink: '#292631', red: '#9e3549', back: '#24202e', accent: '#e8c77f', motif: 'deco' },
-];
+export const CLASSIC_DECK: SpadesDeck = { id: 'spades-deck-classic', name: 'Clubhouse Standard', price: 0, description: 'Illuminated ivory faces, painted royal courts and an ornate Heritage back.', paper: '#fff8e8', ink: '#18342d', red: '#a62b3b', back: '#174b3c', accent: '#e9c77d', motif: 'classic' };
+export const SPADES_DECKS = SHARED_DECKS;
 export const spadesVenue = (id?: string) => SPADES_VENUES.find(item => item.id === id) ?? CLASSIC_VENUE;
-export const spadesDeck = (id?: string) => SPADES_DECKS.find(item => item.id === id) ?? CLASSIC_DECK;
-export const spadesCosmetic = (id: string) => [...SPADES_VENUES, ...SPADES_DECKS].find(item => item.id === id);
+export const spadesDeck = (id?: string) => playingDeck(id) ?? CLASSIC_DECK;
+export const spadesCosmetic = (id: string) => [...SPADES_VENUES, ...SPADES_DECKS].find(item => item.id === canonicalDeckId(id));

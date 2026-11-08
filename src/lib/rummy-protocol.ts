@@ -1,4 +1,4 @@
-import type { Card, Level, Meld, Move, Phase, RoundResult, Variant } from './rummy';
+import type { Card, Level, Meld, Move, Phase, PublicPlay, RoundResult, Variant } from './rummy';
 import type { RewardView } from './rummy-rewards';
 
 export type GameMode = 'bot' | 'local' | 'online';
@@ -11,6 +11,7 @@ export interface RoomView {
   turn: number; dealer: number; round: number; target: number; roundResult: RoundResult | null; winner: number | null;
   mustUse: Card | null; drewDiscard: Card | null; opening: 'first' | 'dealer' | 'stock' | null;
   jokers: boolean; log: string[]; revealedHands: Card[][] | null;
+  activity?: PublicPlay[];
   reward: RewardView;
 }
 export type RoomCommand =

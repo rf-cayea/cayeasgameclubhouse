@@ -1,3 +1,4 @@
+import { CARD_WIN_POINTS } from './reward-rates';
 import type { Card, Level } from './rummy';
 
 export type SpadesMode = 'solo' | 'teams';
@@ -16,7 +17,7 @@ export type SpadesMove = { t: 'bid'; bid: number } | { t: 'play'; card: Card } |
 export const SPADES_RANKS = '23456789TJQKA';
 export const SPADES_SUITS = 'CDHS';
 export const SPADES_TARGETS = [100, 250, 500, 1000] as const;
-export const SPADES_POINTS = { easy: 40, normal: 70, hard: 120, humans: 150 } as const;
+export const SPADES_POINTS = CARD_WIN_POINTS;
 export const spadesRank = (card: Card) => SPADES_RANKS.indexOf(card[0]!) + 2;
 export const spadesSuit = (card: Card) => card[1]!;
 export const unitFor = (mode: SpadesMode, seat: number) => mode === 'teams' ? seat % 2 : seat;

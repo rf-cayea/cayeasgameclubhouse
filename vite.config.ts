@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   return {
   plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  server: { proxy: { '/api/rummy': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/spades': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 } } },
-  preview: { proxy: { '/api/rummy': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/spades': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 } } },
+  server: { proxy: { '/api/five-dice': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/economy': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/puzzles': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/social': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/rummy': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/spades': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 } } },
+  preview: { proxy: { '/api/five-dice': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/economy': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/puzzles': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/social': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/rummy': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 }, '/api/spades': { target: `http://127.0.0.1:${port}`, timeout: 0, proxyTimeout: 0 } } },
   };
 });

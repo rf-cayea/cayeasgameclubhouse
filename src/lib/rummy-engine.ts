@@ -1,4 +1,4 @@
-import { bestArrangement, cardValue, isJoker, isMeld, isSet, newGame, rankOf, suitOf, type Card, type Level, type Meld, type Move, type State, type Variant } from './rummy';
+import { allowsHighAce, bestArrangement, cardValue, isJoker, isMeld, isSet, newGame, rankOf, suitOf, type Card, type Level, type Meld, type Move, type PublicPlay, type State, type Variant } from './rummy';
 
 const points = (cards: Card[], variant: Variant) => cards.reduce((total, card) => total + cardValue(card, variant), 0);
 const pick = <T,>(values: T[], count: number): T[][] => count === 0 ? [[]] : values.flatMap((value, i) => pick(values.slice(i + 1), count - 1).map(rest => [value, ...rest]));
@@ -19,8 +19,8 @@ export function legalMelds(hand: Card[], variant: Variant): Card[][] {
   }
   for (const suit of 'SHDC') {
     const natural = new Map(hand.filter(card => !isJoker(card) && suitOf(card) === suit).map(card => [rankOf(card), card]));
-    if (variant === 'r500' && natural.has(1)) natural.set(14, natural.get(1)!);
-    const max = variant === 'r500' ? 14 : 13;
+    if (allowsHighAce(variant) && natural.has(1)) natural.set(14, natural.get(1)!);
+    const max = allowsHighAce(variant) ? 14 : 13;
     for (let length = 3; length <= 13; length++) for (let start = 1; start <= max - length + 1; start++) {
       const available: Card[] = [];
       for (let rank = start; rank < start + length; rank++) if (natural.has(rank)) available.push(natural.get(rank)!);
@@ -146,11 +146,16 @@ export function applyMove(original: State, actor: number, input: Move, random = 
   const state = structuredClone(original);
   const hand = state.hands[actor]!;
   const log = (message: string) => { state.log = [...state.log.slice(-39), `${state.players[actor]!.name} ${message}`]; };
+  const record = (kind: PublicPlay['kind'], cards: Card[] = [], meld?: number) => {
+    const activity = state.activity ?? [];
+    state.activity = [...activity.slice(-39), { id: (activity.at(-1)?.id ?? 0) + 1, seat: actor, kind, cards: [...cards], ...(meld === undefined ? {} : { meld }) }];
+  };
   if (move.t === 'pass') {
     if (state.variant !== 'gin' || state.phase !== 'draw' || !['first', 'dealer'].includes(state.opening ?? '')) return null;
     state.opening = state.opening === 'first' ? 'dealer' : 'stock';
     state.turn = (actor + 1) % 2;
     log('passed the opening upcard.');
+    record('pass');
     return state;
   }
   if (move.t === 'draw') {
@@ -163,6 +168,7 @@ export function applyMove(original: State, actor: number, input: Move, random = 
       state.mustUse = state.variant === 'r500' ? cards[0]! : null;
       hand.push(...cards);
       log(`picked up ${cards.length === 1 ? 'the discard' : `${cards.length} discards`}.`);
+      record('pickup', cards);
     } else {
       if (state.variant === 'gin' && ['first', 'dealer'].includes(state.opening ?? '')) return null;
       if (state.variant === 'gin' && state.deck.length <= 2) return finishRound(state, null, [0, 0], 'Only two stock cards remain. No points this round.');
@@ -178,6 +184,7 @@ export function applyMove(original: State, actor: number, input: Move, random = 
       state.drewDiscard = null;
       state.mustUse = null;
       log('drew from the stock.');
+      record('stock');
     }
     state.opening = null;
     state.phase = 'play';
@@ -191,6 +198,7 @@ export function applyMove(original: State, actor: number, input: Move, random = 
     state.laid[actor]! += points(move.cards, state.variant);
     if (state.mustUse && move.cards.includes(state.mustUse)) state.mustUse = null;
     log(`melded ${move.cards.length} cards.`);
+    record('meld', move.cards, state.melds.length - 1);
   } else if (move.t === 'layoff') {
     const meld = state.melds[move.meld];
     if (state.variant === 'gin' || !hand.includes(move.card) || !meld || !canLayOff(move.card, meld, state.variant)) return null;
@@ -199,6 +207,7 @@ export function applyMove(original: State, actor: number, input: Move, random = 
     state.laid[actor]! += cardValue(move.card, state.variant);
     if (state.mustUse === move.card) state.mustUse = null;
     log('laid off one card.');
+    record('layoff', [move.card], move.meld);
   } else if (move.t === 'discard') {
     if (!hand.includes(move.card) || state.drewDiscard === move.card || state.mustUse) return null;
     const remaining = hand.filter(card => card !== move.card);
@@ -208,6 +217,7 @@ export function applyMove(original: State, actor: number, input: Move, random = 
     state.drewDiscard = null;
     state.turns = (state.turns ?? 0) + 1;
     log('discarded a card.');
+    record('discard', [move.card]);
     if (state.variant === 'gin' && move.knock) return scoreKnock(state, actor);
     if (remaining.length === 0) return scoreOut(state, actor);
     if (state.turns >= 500) return state.variant === 'r500' ? scoreOut(state, null, true) : finishRound(state, null, state.players.map(() => 0), 'Round ended after 500 turns without a winner.');

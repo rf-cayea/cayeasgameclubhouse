@@ -1,0 +1,31 @@
+# Free public deployment for Cayea's Game Clubhouse.
+# Render → New → Blueprint → pick this repository, then apply.
+# The service builds the Vite app and runs the Node card-game API on one HTTPS origin.
+# Pair it with the free Supabase project described in SUPABASE_SETUP.md so accounts,
+# wallets, points, and the store survive restarts.
+services:
+  - type: web
+    name: cayeas-game-clubhouse
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/rummy/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      # Render injects PORT; the game service listens on it and binds publicly.
+      - key: RUMMY_HOST
+        value: 0.0.0.0
+      - key: RUMMY_COOKIE_SECURE
+        value: 'true'
+      # Public browser configuration. Render asks for these on first apply, and
+      # Vite inlines them at build time, so changing one needs a rebuild.
+      - key: VITE_SUPABASE_URL
+        value: https://spjxaghfxomgafgbrnkr.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      # Server-only reward writer: the Supabase secret/service-role key.
+      # Never expose it to the browser and never prefix it with VITE_.
+      - key: CLUBHOUSE_REWARD_KEY
+        sync: false

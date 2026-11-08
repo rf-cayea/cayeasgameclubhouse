@@ -10,7 +10,11 @@ import uuid
 parser = argparse.ArgumentParser()
 parser.add_argument('--container', required=True)
 parser.add_argument('--database', default='clubhouse_test')
+parser.add_argument('--faith-skin', action='store_true')
 args = parser.parse_args()
+item = 'faith3-skin-celestial' if args.faith_skin else 'rummy-jokers'
+currency = 'points' if args.faith_skin else 'rummy_points'
+price = 300 if args.faith_skin else 800
 environment = dict(os.environ)
 for selector in ('DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH'):
     environment.pop(selector, None)
@@ -28,13 +32,13 @@ def query(sql):
 first = second = None
 try:
     query(f"insert into auth.users(id) values ('{user_id}'); "
-          f"update public.wallets set rummy_points=1600 where user_id='{user_id}';")
+          f"update public.wallets set {currency}={price * 2} where user_id='{user_id}';")
     first_sql = f"""
 set application_name='{application}-first';
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','{user_id}',true);
-select public.purchase_store_item('rummy-jokers');
+select public.purchase_store_item('{item}');
 select pg_sleep(4);
 commit;
 """
@@ -54,7 +58,7 @@ set application_name='{application}-second';
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','{user_id}',true);
-select public.purchase_store_item('rummy-jokers');
+select public.purchase_store_item('{item}');
 commit;
 """
     second = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -71,11 +75,11 @@ commit;
     assert first.returncode == second.returncode == 0, (first.stderr.read(), second.stderr.read())
     first_result = next(json.loads(line) for line in first.stdout.read().splitlines() if line.startswith('{'))
     second_result = next(json.loads(line) for line in second.stdout.read().splitlines() if line.startswith('{'))
-    assert first_result['already_owned'] is False and first_result['balance'] == 800
-    assert second_result['already_owned'] is True and second_result['balance'] == 800
-    assert query(f"select rummy_points=800 and owned=array['rummy-jokers']::text[] from public.wallets where user_id='{user_id}';") == 't'
+    assert first_result['already_owned'] is False and first_result['balance'] == price
+    assert second_result['already_owned'] is True and second_result['balance'] == price
+    assert query(f"select {currency}={price} and owned=array['{item}']::text[] from public.wallets where user_id='{user_id}';") == 't'
     assert query(f"select count(*) from public.store_purchases where user_id='{user_id}';") == '1'
-    print('PASS: 5 concurrency assertions; overlapping duplicate purchases serialize on wallet lock, debit 800 once, and create one ownership record')
+    print(f'PASS: 5 concurrency assertions; overlapping {item} purchases serialize, debit {price} {currency} once, and create one ownership record')
 finally:
     for process in (first, second):
         if process and process.poll() is None:

@@ -1,3 +1,5 @@
+import { validCardRewardAmount } from '../src/lib/reward-rates';
+import { canonicalDeckId } from '../src/lib/playing-decks';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, randomInt, randomUUID, createHash } from 'node:crypto';
 import { chmodSync, mkdirSync } from 'node:fs';
@@ -8,8 +10,9 @@ import { containsProfanity } from '../src/lib/moderation';
 import { RummyError, type GameOptions, type RoomCommand, type RoomView } from '../src/lib/rummy-protocol';
 import { completedReward, memberId, rewardParticipants, rewardTier, type MatchReward, type RewardReceipt, type RewardView } from '../src/lib/rummy-rewards';
 import { WIN_POINTS } from '../src/lib/rummy';
+import { RUMMY_DESIGNS, rummyAppearanceView, type RummyAppearanceView } from '../src/lib/rummy-cosmetics';
 
-export interface Identity { principal: string; jokers: boolean; owned?: string[] }
+export interface Identity { principal: string; jokers: boolean; owned?: string[]; nameFlagged?: boolean }
 interface Member { principal: string; id: string; name: string; ready: boolean }
 interface Room { code: string; owner: string; options: GameOptions; members: Member[]; state: State | null; status: RoomView['status']; revision: number; matchId?: string }
 const secureRandom = () => randomInt(0, 0x100000000) / 0x100000000;
@@ -56,7 +59,10 @@ export class RoomStore {
       CREATE TABLE IF NOT EXISTS requests(code TEXT NOT NULL, actor TEXT NOT NULL, id TEXT NOT NULL, fingerprint TEXT NOT NULL, PRIMARY KEY(code,actor,id));
       CREATE TABLE IF NOT EXISTS sessions(hash TEXT PRIMARY KEY, seen INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS reward_outbox(match_id TEXT PRIMARY KEY,room_code TEXT NOT NULL,user_id TEXT NOT NULL,payload TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,lease TEXT,lease_until INTEGER NOT NULL DEFAULT 0,receipt TEXT);`);
+        status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,lease TEXT,lease_until INTEGER NOT NULL DEFAULT 0,receipt TEXT);
+      CREATE INDEX IF NOT EXISTS rummy_wins_by_user ON reward_outbox(user_id);
+      CREATE TABLE IF NOT EXISTS rummy_appearance(principal TEXT PRIMARY KEY,background TEXT NOT NULL,table_id TEXT NOT NULL,deck_id TEXT NOT NULL DEFAULT 'rummy-standard',updated_at INTEGER NOT NULL);`);
+    if (!this.db.prepare('PRAGMA table_info(rummy_appearance)').all().some(column => column.name === 'deck_id')) this.db.exec("ALTER TABLE rummy_appearance ADD COLUMN deck_id TEXT NOT NULL DEFAULT 'rummy-standard'");
   }
   close() { this.db.close(); }
   guest(token: string | undefined): { principal: string; cookie?: string } {
@@ -69,6 +75,27 @@ export class RoomStore {
     const next = createHash('sha256').update(cookie).digest('hex');
     this.db.prepare('INSERT INTO sessions(hash,seen) VALUES(?,?)').run(next, Date.now());
     return { principal: `guest:${next}`, cookie };
+  }
+  appearance(principal: string, purchased: readonly string[] = []): RummyAppearanceView {
+    const userId = memberId(principal);
+    if (!userId) return rummyAppearanceView(false, 0);
+    // Each outbox row is a unique, server-verified full-match win. Cosmetic
+    // unlocks do not depend on point delivery, spending or browser storage.
+    const count = this.db.prepare('SELECT count(*) AS n FROM reward_outbox WHERE user_id=?').get(userId);
+    const saved = this.db.prepare('SELECT background,table_id,deck_id FROM rummy_appearance WHERE principal=?').get(principal);
+    return rummyAppearanceView(true, Number(count?.n ?? 0), saved, purchased);
+  }
+  equipAppearance(principal: string, input: unknown, purchased: readonly string[] = []): RummyAppearanceView {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new RummyError('Choose a background and table.');
+    const value = input as Record<string, unknown>, current = this.appearance(principal, purchased);
+    const selected = { background: value.background, table: value.table, deck: typeof value.deck === 'string' ? canonicalDeckId(value.deck) : value.deck ?? current.equipped.deck };
+    for (const slot of ['background', 'table', 'deck'] as const) {
+      if (!RUMMY_DESIGNS.some(item => item.id === selected[slot] && item.slot === slot)) throw new RummyError('Choose a valid Rummy+ design.');
+      if (!current.owned.includes(String(selected[slot]))) throw new RummyError('Earn this design through Rummy+ wins or collect it in the store.', 403, 'design_locked');
+    }
+    if (current.member) this.db.prepare('INSERT INTO rummy_appearance(principal,background,table_id,deck_id,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(principal) DO UPDATE SET background=excluded.background,table_id=excluded.table_id,deck_id=excluded.deck_id,updated_at=excluded.updated_at')
+      .run(principal, String(selected.background), String(selected.table), String(selected.deck), Date.now());
+    return { ...current, equipped: { background: String(selected.background), table: String(selected.table), deck: String(selected.deck) } };
   }
   private load(code: string): Room {
     if (!/^[A-F0-9]{8}$/.test(code)) throw new RummyError('Enter an eight-character room code.');
@@ -97,7 +124,8 @@ export class RoomStore {
     if (row && row.user_id === userId) {
       const result = JSON.parse(String(row.payload)) as MatchReward;
       const tier = rewardTier(result.mode, result.participants)!;
-      const amount = WIN_POINTS[tier];
+      const paid = row.status === 'credited' && row.receipt ? JSON.parse(String(row.receipt)) as { amount: number } : null;
+      const amount = paid && validCardRewardAmount(tier, paid.amount) ? paid.amount : WIN_POINTS[tier];
       return row.status === 'credited' ? { status: 'credited', tier, amount, source: `rummy:win:${room.matchId}`, message: `${amount} Rummy+ points credited to your wallet.` }
         : { status: 'pending', tier, amount, message: `Your win is verified. ${amount} Rummy+ points are queued and will sync automatically.` };
     }
@@ -144,6 +172,7 @@ export class RoomStore {
       target: state?.target ?? VARIANTS[room.options.variant].target, roundResult: state?.roundResult ?? null, winner: state?.winner ?? null,
       mustUse: state && mySeat === state.turn ? state.mustUse : null, drewDiscard: state && mySeat === state.turn ? state.drewDiscard : null,
       opening: state?.opening ?? null, jokers: room.options.jokers, log: state?.log.slice(-12) ?? [],
+      activity: structuredClone(state?.activity ?? []),
       reward: this.rewardView(room, principal),
       revealedHands: state && ['roundOver', 'gameOver'].includes(state.phase) ? structuredClone(state.hands) : null,
     };
@@ -157,7 +186,7 @@ export class RoomStore {
       let room: Room;
       if (command.operation === 'create') {
         const settings = options(command.options);
-        if (settings.jokers && !identity.jokers) throw new RummyError('Unlock Joker Mode in the store for 800 Rummy+ points first.', 403, 'jokers_locked');
+        if (settings.jokers && !identity.jokers) throw new RummyError('Unlock Joker Mode in the store for 400 Rummy+ points first.', 403, 'jokers_locked');
         const recent = this.db.prepare('SELECT count(*) AS n FROM rooms WHERE updated_at>?').get(Date.now() - 1000 * 60 * 60 * 24);
         if (Number(recent?.n) > 5000) throw new RummyError('The game service is busy. Try again later.', 503);
         let code: string;

@@ -48,7 +48,7 @@ run_sql() {
   if local_docker exec -i "$container_name" psql -X -q -U postgres -d clubhouse_test -v ON_ERROR_STOP=1 \
       < "$sql_file" > "$log_directory/sql.log" 2>&1; then
     # Only the assertions print PASS lines; setup/migration success is silent.
-    if [[ "$sql_file" == *'/moderation_store.sql' || "$sql_file" == *'/rewards.sql' || "$sql_file" == *'/spades.sql' || "$sql_file" == *'/spades_partnerships.sql' ]]; then
+    if [[ "$sql_file" == *'/moderation_store.sql' || "$sql_file" == *'/rewards.sql' || "$sql_file" == *'/spades.sql' || "$sql_file" == *'/spades_partnerships.sql' || "$sql_file" == *'/faith_skins.sql' ]]; then
       rg '^PASS:' "$log_directory/sql.log"
     fi
   else
@@ -66,5 +66,9 @@ run_sql "$test_root/supabase/tests/moderation_store.sql"
 run_sql "$test_root/supabase/tests/rewards.sql"
 run_sql "$test_root/supabase/tests/spades.sql"
 run_sql "$test_root/supabase/tests/spades_partnerships.sql"
+run_sql "$test_root/supabase/tests/faith_skins.sql"
+# This upgrade is safe to retry after a successful deployment.
+run_sql "$test_root/supabase/migrations/20261102010000_faith3_skins.sql"
 python3 "$test_root/supabase/tests/purchase_concurrency.py" --container "$container_name"
+python3 "$test_root/supabase/tests/purchase_concurrency.py" --container "$container_name" --faith-skin
 python3 "$test_root/supabase/tests/reward_concurrency.py" --container "$container_name"

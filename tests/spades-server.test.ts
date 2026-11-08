@@ -42,7 +42,7 @@ describe('private four-seat Spades rooms', () => {
     const store = open();
     for (const actor of [{ principal: 'guest:no-account', jokers: false, owned: [SPADES_PARTNERSHIPS.id] }, { ...identities[0]!, owned: [] }]) {
       for (const mode of ['bot', 'online'] as const) {
-        expect(() => store.command(actor, { operation: 'create', name: 'Player', options: { ...options, mode }, owned: [SPADES_PARTNERSHIPS.id], unlocked: true })).toThrow('800 Spades points');
+        expect(() => store.command(actor, { operation: 'create', name: 'Player', options: { ...options, mode }, owned: [SPADES_PARTNERSHIPS.id], unlocked: true })).toThrow('400 Spades points');
         expect(store.command(actor, { operation: 'create', name: 'Player', options: { ...options, mode, variant: 'solo' } }).view.options.variant).toBe('solo');
       }
     }
@@ -52,13 +52,13 @@ describe('private four-seat Spades rooms', () => {
     const store = open();
     let view = store.command(identities[0]!, { operation: 'create', name: 'Host', options }).view;
     expect(() => store.command({ ...identities[1]!, owned: [] }, { operation: 'join', code: view.code, name: 'Locked' })).toThrow('permanent unlock');
-    expect(() => store.command({ principal: 'guest:locked', jokers: false }, { operation: 'join', code: view.code, name: 'Guest' })).toThrow('800 Spades points');
-    expect(() => store.command({ ...identities[0]!, owned: [] }, { operation: 'start', code: view.code, revision: view.revision })).toThrow('800 Spades points');
+    expect(() => store.command({ principal: 'guest:locked', jokers: false }, { operation: 'join', code: view.code, name: 'Guest' })).toThrow('400 Spades points');
+    expect(() => store.command({ ...identities[0]!, owned: [] }, { operation: 'start', code: view.code, revision: view.revision })).toThrow('400 Spades points');
     view = started(store);
     const move = { operation: 'move', code: view.code, revision: view.revision, requestId: randomUUID(), move: { t: 'bid', bid: 3 } };
     store.command(identities[0]!, move);
-    expect(() => store.command({ ...identities[0]!, owned: [] }, move)).toThrow('800 Spades points');
-    expect(() => store.command({ ...identities[1]!, owned: [] }, { ...move, requestId: randomUUID() })).toThrow('800 Spades points');
+    expect(() => store.command({ ...identities[0]!, owned: [] }, move)).toThrow('400 Spades points');
+    expect(() => store.command({ ...identities[1]!, owned: [] }, { ...move, requestId: randomUUID() })).toThrow('400 Spades points');
     expect(store.command({ ...identities[1]!, owned: [] }, { operation: 'leave', code: view.code }).changed).toBe(true);
   });
   it('keeps all hands private, supports partner seats, and starts ready mixed tables', () => {
@@ -98,7 +98,7 @@ describe('private four-seat Spades rooms', () => {
     const owner = { ...identities[0]!, owned: [SPADES_PARTNERSHIPS.id, dressed.table, dressed.deck] };
     const view = store.command(owner, { operation: 'create', name: 'Host', options: dressed }).view;
     const peer = store.command(identities[1]!, { operation: 'join', code: view.code, name: 'Peer' }).view;
-    expect(peer.options.table).toBe(dressed.table); expect(peer.options.deck).toBe(dressed.deck);
+    expect(peer.options.table).toBe(dressed.table); expect(peer.options.deck).toBe('card-deck-deco');
     store.command(owner, { operation: 'leave', code: view.code });
     const inherited = store.get(view.code, identities[1]!.principal);
     expect(inherited.owner).toBe(true); expect(inherited.options.table).toBe(CLASSIC_VENUE.id);
@@ -134,7 +134,7 @@ describe('Spades reward outbox', () => {
   });
   it('atomically queues both human team winners and credits only those seats, once', async () => {
     const store = open(); const view = started(store); const move = prepareWin(store, view);
-    expect(store.command(identities[0]!, move).view.reward).toMatchObject({ status: 'pending', amount: 150 });
+    expect(store.command(identities[0]!, move).view.reward).toMatchObject({ status: 'pending', amount: 50 });
     expect(store.get(view.code, identities[2]!.principal).reward.status).toBe('pending');
     expect(store.get(view.code, identities[1]!.principal).reward.status).toBe('ineligible');
     store.command(identities[0]!, move);
@@ -148,6 +148,10 @@ describe('Spades reward outbox', () => {
       expect(store.get(view.code, identities[2]!.principal).reward.status).toBe('credited');
       const result = deliver.mock.calls[0]![0]; expect(validSpadesReceipt(result, { ...receipt(result), user_ids: [ids[0]!] })).toBe(false);
       expect(validSpadesReceipt(result, { ...receipt(result), amount: 999 })).toBe(false);
+      const historical={...receipt(result),amount:150,already_credited:true};
+      expect(validSpadesReceipt(result,historical)).toBe(true);
+      store.db.prepare('UPDATE spades_rewards SET receipt=? WHERE match_id=?').run(JSON.stringify(historical),result.match_id);
+      expect(store.get(view.code,identities[0]!.principal).reward).toMatchObject({status:'credited',amount:150});
     } finally { await worker.stop(); }
   });
   it('does not queue guest or mixed online wins', () => {
@@ -171,10 +175,12 @@ describe('real Spades HTTP multiplayer', () => {
       let view = await (await post(0, { operation: 'create', name: 'Owner', options: { ...options, humans: 2 } })).json() as SpadesRoomView;
       expect((await post(1, { operation: 'join', code: view.code, name: 'Peer' })).status).toBe(403);
       owners.add(ids[1]!);
+      root.db.prepare('UPDATE economy_wallets SET owned=? WHERE user_id=?').run(JSON.stringify([SPADES_PARTNERSHIPS.id]), ids[1]!);
       expect((await post(1, { operation: 'join', code: view.code, name: 'Peer' })).status).toBe(200);
       view = await (await post(1, { operation: 'ready', code: view.code, ready: true })).json() as SpadesRoomView;
       view = await (await post(0, { operation: 'start', code: view.code, revision: view.revision })).json() as SpadesRoomView;
       expect(view.hand).toHaveLength(13); owners.delete(ids[1]!);
+      root.db.prepare('UPDATE economy_wallets SET owned=? WHERE user_id=?').run('[]', ids[1]!);
       expect((await fetch(`${base}/api/spades/room/${view.code}`, { headers: headers(1) })).status).toBe(403);
       expect((await fetch(`${base}/api/spades/room/${view.code}/events`, { headers: headers(1) })).status).toBe(403);
       expect((await post(1, { operation: 'move', code: view.code, revision: view.revision, requestId: randomUUID(), move: { t: 'bid', bid: 3 } })).status).toBe(403);

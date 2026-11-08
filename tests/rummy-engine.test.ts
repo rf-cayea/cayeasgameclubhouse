@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyMove, botMove, canTakeDiscard, ginDefence, legalMelds, parseMove, analyseHand } from '../src/lib/rummy-engine';
+import { applyMove, botMove, canLayOff, canTakeDiscard, ginDefence, legalMelds, parseMove, analyseHand } from '../src/lib/rummy-engine';
 import { newGame, type Card, type State, type Variant } from '../src/lib/rummy';
 import { rng } from '../src/lib/game';
 
@@ -14,6 +14,60 @@ const move = (s: State, action: Parameters<typeof applyMove>[2]) => {
 };
 
 describe('complete Rummy turns', () => {
+  it.each(['classic', 'r500'] as const)('records public %s plays and preserves each meld contribution', variant => {
+    const original = state(variant, ['3S', '4S', '5S', '6S', 'KH']);
+    const melded = move(original, { t: 'meld', cards: ['3S', '4S', '5S'] });
+    const laid = move(melded, { t: 'layoff', card: '6S', meld: 0 });
+    const discarded = move(laid, { t: 'discard', card: 'KH' });
+    expect(discarded.activity).toEqual([
+      { id: 1, seat: 0, kind: 'meld', cards: ['3S', '4S', '5S'], meld: 0 },
+      { id: 2, seat: 0, kind: 'layoff', cards: ['6S'], meld: 0 },
+      { id: 3, seat: 0, kind: 'discard', cards: ['KH'] },
+    ]);
+    expect(original.activity).toBeUndefined();
+    const opponent = { ...melded, turn: 1, hands: [melded.hands[0]!, ['2S', '9H']] };
+    const extended = move(opponent, { t: 'layoff', card: '2S', meld: 0 });
+    expect(extended.melds[0]!.cards.at(-1)).toEqual({ c: '2S', by: 1 });
+    expect(extended.activity!.at(-1)?.seat).toBe(1);
+  });
+  it('records face-up pickups but never the identity of a stock draw, and resets next round', () => {
+    const original = { ...state('r500', ['3S', '4S', 'KH']), phase: 'draw' as const, discard: ['2H', '5S', '9C'] };
+    const pickup = move(original, { t: 'draw', from: 'discard', index: 1 });
+    expect(pickup.activity).toEqual([{ id: 1, seat: 0, kind: 'pickup', cards: ['5S', '9C'] }]);
+    const drawn = move({ ...state(), phase: 'draw' }, { t: 'draw', from: 'stock' });
+    expect(drawn.hands[0]).toContain('JC');
+    expect(drawn.activity).toEqual([{ id: 1, seat: 0, kind: 'stock', cards: [] }]);
+    const ended = move(state('classic', ['3S', '4S', '5S']), { t: 'meld', cards: ['3S', '4S', '5S'] });
+    expect(move(ended, { t: 'next' }).activity ?? []).toEqual([]);
+  });
+  it('bounds public activity while keeping action IDs increasing on resumed games', () => {
+    const original = state();
+    original.activity = Array.from({ length: 40 }, (_, i) => ({ id: i + 1, seat: 1, kind: 'stock', cards: [] }));
+    const next = move(original, { t: 'discard', card: 'KH' });
+    expect(next.activity).toHaveLength(40);
+    expect(next.activity![0]!.id).toBe(2);
+    expect(next.activity!.at(-1)!.id).toBe(41);
+  });
+  it.each(['classic', 'r500'] as const)('plays ace-low and ace-high melds and layoffs through the %s turn engine', variant => {
+    for (const cards of [['AS', '2S', '3S'], ['AS', 'QS', 'KS'], ['AS', 'QS', 'X1']]) {
+      const start = state(variant, [...cards, '8H']); start.jokers = true;
+      const melded = move(start, { t: 'meld', cards });
+      expect(melded.hands[0]).toEqual(['8H']);
+      expect(melded.melds[0]!.cards.map(card => card.c)).toEqual(cards);
+      expect(legalMelds(cards, variant)).toContainEqual(expect.arrayContaining(cards));
+      for (const level of ['easy', 'normal', 'hard'] as const) expect(botMove(start, 0, level, rng(4))?.t).toBe('meld');
+    }
+    for (const ranks of ['234', 'JQK']) {
+      const start = state(variant, ['AS', '8H']);
+      start.melds = [{ cards: [...ranks].map(rank => ({ c: rank + 'S', by: 1 })) }];
+      expect(canLayOff('AS', start.melds[0]!, variant)).toBe(true);
+      const extended = move(start, { t: 'layoff', card: 'AS', meld: 0 });
+      expect(extended.hands[0]).toEqual(['8H']);
+      expect(extended.melds[0]!.cards).toContainEqual({ c: 'AS', by: 0 });
+    }
+    const wrapped = state(variant, ['KS', 'AS', '2S', '8H']);
+    expect(applyMove(wrapped, 0, { t: 'meld', cards: ['KS', 'AS', '2S'] })).toBeNull();
+  });
   it('requires exactly one draw, ownership, current turn, and a legal discard', () => {
     const start = { ...state(), phase: 'draw' as const };
     const snapshot = structuredClone(start);
@@ -141,7 +195,9 @@ describe('complete computer matches', () => {
   it.each((['classic', 'gin', 'r500'] as const).flatMap(variant => [false, true].map(jokers => ({ variant, jokers }))))('plays $variant (jokers=$jokers) to its real match target with conserved cards', ({ variant, jokers }) => {
     const random = rng(72);
     let s = newGame(variant, players, random, 1, jokers);
-    for (let actions = 0; actions < 4000 && s.phase !== 'gameOver'; actions++) {
+    // Ace-high Classic runs can leave only one-point cards to score, so a
+    // full 100-point match needs more rounds. Keep the real match target.
+    for (let actions = 0; actions < 10000 && s.phase !== 'gameOver'; actions++) {
       const action = s.phase === 'roundOver' ? { t: 'next' as const } : botMove(s, s.turn, 'hard', random);
       expect(action, `no move in ${s.phase}`).not.toBeNull();
       const next = applyMove(s, s.turn, action!, random);
@@ -153,5 +209,6 @@ describe('complete computer matches', () => {
     }
     expect(s.phase).toBe('gameOver');
     expect(s.winner).not.toBeNull();
+    expect(s.scores[s.winner!]).toBeGreaterThanOrEqual(s.target);
   }, 30_000);
 });

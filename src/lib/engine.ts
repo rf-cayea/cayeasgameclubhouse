@@ -1,10 +1,11 @@
-import { generateLevel, isBlocked, rng, TOTAL_LEVELS, TRAY_SIZE, type Tile } from "./game";
+import { generateLevel, isBlocked, levelConfig, rng, touches, TOTAL_LEVELS, TRAY_SIZE, type Tile } from "./game";
 
 export type Action = { t: "pick"; id: number } | { t: "undo" } | { t: "shuffle" } | { t: "magic" };
 interface Snapshot { board: Tile[]; tray: Tile[]; matches: number }
 export interface PlayState {
   board: Tile[];
   tray: Tile[];
+  trayCapacity: number;
   history: Snapshot[];
   matches: number;
   shuffleCount: number;
@@ -20,7 +21,7 @@ export const MAX_MAGIC_PER_WIN = 3;
 
 export function initPlay(level: number): PlayState {
   return {
-    board: generateLevel(level), tray: [], history: [], matches: 0,
+    board: generateLevel(level), tray: [], trayCapacity: levelConfig(level).traySize, history: [], matches: 0,
     shuffleCount: 0, magicUsed: 0, undoUsed: 0, helped: false, status: "play",
   };
 }
@@ -28,8 +29,17 @@ export function initPlay(level: number): PlayState {
 function settle(state: PlayState): PlayState {
   return {
     ...state,
-    status: state.board.length === 0 && state.tray.length === 0 ? "won" : state.tray.length >= TRAY_SIZE ? "lost" : "play",
+    status: state.board.length === 0 && state.tray.length === 0 ? "won" : state.tray.length >= (state.trayCapacity ?? TRAY_SIZE) ? "lost" : "play",
   };
+}
+
+/** Apply collection effects together, so undo restores every lock and ice layer. */
+function releaseObstacles(board: Tile[], collected: Tile[], matches: number) {
+  return board.map(tile => {
+    const frost = Math.max(0, (tile.frost ?? 0) - collected.filter(other => touches(tile, other)).length);
+    const seal = tile.seal && matches < tile.seal ? tile.seal : 0;
+    return frost === (tile.frost ?? 0) && seal === (tile.seal ?? 0) ? tile : { ...tile, frost, seal };
+  });
 }
 
 export function applyAction(level: number, state: PlayState, action: Action): PlayState | null {
@@ -49,6 +59,9 @@ export function applyAction(level: number, state: PlayState, action: Action): Pl
     const tile = state.board.find((candidate) => candidate.id === action.id);
     if (!tile || isBlocked(tile, state.board)) return null;
     const history = [...state.history, { board: state.board, tray: state.tray, matches: state.matches }];
+    if (tile.veiled) return {
+      ...state, history, board: state.board.map(candidate => candidate.id === tile.id ? { ...candidate, veiled: false } : candidate),
+    };
     const board = state.board.filter((candidate) => candidate.id !== tile.id);
     let tray = [...state.tray];
     const lastSame = tray.map((candidate) => candidate.type).lastIndexOf(tile.type);
@@ -58,7 +71,7 @@ export function applyAction(level: number, state: PlayState, action: Action): Pl
       tray = tray.filter((candidate) => candidate.type !== tile.type);
       matches++;
     }
-    return settle({ ...state, board, tray, history, matches });
+    return settle({ ...state, board: releaseObstacles(board, [tile], matches), tray, history, matches });
   }
 
   if (action.t === "shuffle") {
@@ -70,7 +83,7 @@ export function applyAction(level: number, state: PlayState, action: Action): Pl
       [types[i], types[j]] = [types[j]!, types[i]!];
     }
     return {
-      ...state, board: state.board.map((tile, i) => ({ ...tile, type: types[i]! })),
+      ...state, board: state.board.map((tile, i) => ({ ...tile, type: types[i]!, frost: 0, seal: 0, veiled: false })),
       shuffleCount: state.shuffleCount + 1, helped: true,
     };
   }
@@ -89,7 +102,7 @@ export function applyAction(level: number, state: PlayState, action: Action): Pl
     const removeIds = new Set(candidates.map((tile) => tile.id));
     return settle({
       ...state, helped: true, magicUsed: state.magicUsed + 1, matches: state.matches + 1,
-      board: state.board.filter((tile) => !removeIds.has(tile.id)),
+      board: releaseObstacles(state.board.filter((tile) => !removeIds.has(tile.id)), candidates, state.matches + 1),
       tray: state.tray.filter((tile) => tile.type !== type), history: [],
     });
   }

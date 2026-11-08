@@ -1,3 +1,5 @@
+import { validCardRewardAmount } from '../src/lib/reward-rates';
+import { canonicalDeckId, ownsPlayingDeck } from '../src/lib/playing-decks';
 import type { DatabaseSync } from 'node:sqlite';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { containsProfanity } from '../src/lib/moderation';
@@ -21,14 +23,15 @@ const nameFor = (input: unknown) => {
 };
 function settings(input: unknown): SpadesOptions {
   if (!input || typeof input !== 'object') throw new RummyError('Choose table settings.');
-  const value = input as SpadesOptions;
+  const raw = input as SpadesOptions;
+  const value = { ...raw, deck: typeof raw.deck === 'string' ? canonicalDeckId(raw.deck) : raw.deck };
   if (!['bot', 'online'].includes(value.mode) || !['solo', 'teams'].includes(value.variant) || !SPADES_TARGETS.includes(value.target as 500) ||
     !['easy', 'normal', 'hard'].includes(value.level) || !Number.isInteger(value.humans) || value.humans < 2 || value.humans > 4 ||
     ![CLASSIC_VENUE, ...SPADES_VENUES].some(item => item.id === value.table) || ![CLASSIC_DECK, ...SPADES_DECKS].some(item => item.id === value.deck)) throw new RummyError('Invalid Spades settings.');
   return { mode: value.mode, variant: value.variant, target: value.target, humans: value.humans, level: value.level, table: value.table, deck: value.deck };
 }
 function checkLook(identity: Identity, options: SpadesOptions) {
-  for (const id of [options.table, options.deck]) if (![CLASSIC_VENUE.id, CLASSIC_DECK.id].includes(id) && !identity.owned?.includes(id)) throw new RummyError('Collect this Spades design in the store before using it at a table.', 403);
+  for (const id of [options.table, options.deck]) if (![CLASSIC_VENUE.id, CLASSIC_DECK.id].includes(id) && !(id === options.deck ? ownsPlayingDeck(identity.owned ?? [], id) : identity.owned?.includes(id))) throw new RummyError('Collect this Spades design in the store before using it at a table.', 403);
 }
 export function checkSpadesPartnershipAccess(identity: Identity, variant: SpadesOptions['variant']) {
   if (variant === 'teams' && (!memberId(identity.principal) || !ownsSpadesPartnerships(identity.owned))) {
@@ -74,11 +77,13 @@ export class SpadesRoomStore {
     const none = (message: string): RewardView => ({ status: 'ineligible', amount: 0, tier: null, message });
     const user = memberId(principal);
     if (!user) return none('Guest Spades is free to play. Sign in before starting a reward match.');
-    const row = this.db.prepare('SELECT status,payload FROM spades_rewards WHERE match_id=?').get(room.matchId);
+    const row = this.db.prepare('SELECT status,payload,receipt FROM spades_rewards WHERE match_id=?').get(room.matchId);
     if (row) {
       const result = JSON.parse(String(row.payload)) as SpadesMatchReward;
       if (spadesWinners(result).includes(user)) {
-        const tier = spadesRewardTier(result.mode, result.players)!, amount = SPADES_POINTS[tier];
+        const tier = spadesRewardTier(result.mode, result.players)!;
+        const paid = row.status === 'credited' && row.receipt ? JSON.parse(String(row.receipt)) as { amount: number } : null;
+        const amount = paid && validCardRewardAmount(tier, paid.amount) ? paid.amount : SPADES_POINTS[tier];
         return row.status === 'credited' ? { status: 'credited', tier, amount, source: `spades:win:${room.matchId}`, message: `${amount} Spades points credited to your wallet.` }
           : { status: 'pending', tier, amount, message: `Match won! ${amount} Spades points are queued and will sync automatically.` };
       }

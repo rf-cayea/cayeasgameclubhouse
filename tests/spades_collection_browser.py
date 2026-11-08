@@ -105,10 +105,14 @@ with sync_playwright() as p:
     page.get_by_role('button', name='Game table', exact=True).click()
     expect(page.get_by_label('Spades table design', exact=True)).to_have_value('spades-table-atlas')
     expect(page.get_by_label('Spades deck design', exact=True)).to_have_value('spades-deck-atlas')
-    assert 'data:image/svg' in page.locator('.spades-scene').evaluate('node => getComputedStyle(node).backgroundImage')
-    expect(page.get_by_role('img', name='Midnight Atlas card back', exact=True)).to_be_visible()
-    checks.append('owned venue and deck equip into the next table, changing the room background and rendered card backs')
+    assert '/spades-art/room-atlas.webp' in page.locator('.spades-scene').evaluate('node => getComputedStyle(node).backgroundImage')
+    page.evaluate("""async()=>{const image=new Image();image.src='/spades-art/room-atlas.webp';await image.decode();if(!image.naturalWidth)throw new Error('Venue painting could not load')}""")
+    # Phone setup intentionally hides decorative hero cards so the controls
+    # fit; inspect the same equipped art in the collection's visible showroom.
     page.get_by_role('button', name='Collection', exact=True).click()
+    page.get_by_role('article', name='Midnight Atlas', exact=True).get_by_role('button', name='Preview Midnight Atlas', exact=True).click()
+    expect(page.get_by_role('img', name='Midnight Atlas card back', exact=True).first).to_be_visible()
+    checks.append('owned venue and deck equip into the next table, changing the room background and rendered card backs')
     fixture.fail = True
     ember = page.get_by_role('article', name='Ember Crown', exact=True)
     ember.get_by_role('button', name='Collect design', exact=True).click()

@@ -14,3 +14,6 @@ __pycache__/
 /download-project.html
 /cayeas-game-clubhouse-project.zip
 /project.zip
+worker-build/
+worker.manifest.json
+.cache/

@@ -97,7 +97,7 @@ with sync_playwright() as p:
         for i in pair:
             page.locator(f'[data-index="{i}"]').click()
         expect(page.get_by_test_id('gems-moves')).to_have_text(str(moves))
-    expect(page.get_by_text('◈ Progress kept for this visit', exact=True)).to_be_visible()
+    expect(page.locator('.gems-save-note')).to_contain_text('◈ Progress kept for this visit')
     assert page.evaluate('(key)=>localStorage.getItem(key)', KEY) is None
     checks.append('full storage plus denied locks keeps consecutive moves playable for the current visit')
     context.close()

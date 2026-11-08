@@ -18,8 +18,10 @@ try {
   if ((await response.json()).app !== 'cayea-rummy') throw new Error('Another service occupies the game port.');
   const spades = await fetch(`http://127.0.0.1:${port}/api/spades/health`, { signal: AbortSignal.timeout(700) });
   if (!spades.ok || (await spades.json()).app !== 'cayea-spades') throw new Error('The existing card-game API needs restarting with Spades support.');
+  const farkle = await fetch(`http://127.0.0.1:${port}/api/five-dice/health`, { signal: AbortSignal.timeout(700) });
+  if (!farkle.ok || (await farkle.json()).app !== 'clubhouse-five-dice') throw new Error('The existing game API needs restarting with Farkle support.');
 } catch (error) {
-  if (error.message === 'Another service occupies the game port.' || error.message === 'The existing card-game API needs restarting with Spades support.') throw error;
+  if (error.message === 'Another service occupies the game port.' || error.message === 'The existing card-game API needs restarting with Spades support.' || error.message === 'The existing game API needs restarting with Farkle support.') throw error;
   ownedServer = spawn(process.execPath, ['--watch', '--use-env-proxy', '--import', 'tsx', 'server/index.ts'], { stdio: 'inherit', env: process.env });
   ownedServer.on('exit', code => { if (!stopping) stop(code ?? 1); });
 }

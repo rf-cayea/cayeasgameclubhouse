@@ -69,9 +69,9 @@ describe('verified reward eligibility', () => {
 describe('durable match reward outbox', () => {
   it('queues only once on the winning transaction and credits only the winner view', () => {
     const store = open(); const fixture = winningPosition(store, member, { ...options, mode: 'online' });
-    expect(fixture.view.reward).toMatchObject({ status: 'eligible', amount: 150 });
+    expect(fixture.view.reward).toMatchObject({ status: 'eligible', amount: 50 });
     const won = fixture.finish();
-    expect(won).toMatchObject({ status: 'finished', reward: { status: 'pending', amount: 150 } });
+    expect(won).toMatchObject({ status: 'finished', reward: { status: 'pending', amount: 50 } });
     expect(store.get(won.code, rival.principal).reward.status).toBe('ineligible');
     expect(store.command(member, fixture.command).changed).toBe(false);
     expect(store.db.prepare('SELECT count(*) AS n FROM reward_outbox').get()!.n).toBe(1);
@@ -80,7 +80,14 @@ describe('durable match reward outbox', () => {
     store.finishReward(job.result.match_id, 'wrong-lease', receipt(job.result));
     expect(store.get(won.code, member.principal).reward.status).toBe('pending');
     store.finishReward(job.result.match_id, job.lease, receipt(job.result));
-    expect(store.get(won.code, member.principal).reward).toMatchObject({ status: 'credited', amount: 150, source: `rummy:win:${job.result.match_id}` });
+    expect(store.get(won.code, member.principal).reward).toMatchObject({ status: 'credited', amount: 50, source: `rummy:win:${job.result.match_id}` });
+  });
+  it.each([70,35])('shows an already committed %i-point reward at its original amount after the rate change', amount => {
+    const store=open(),fixture=winningPosition(store,member,options);fixture.finish();
+    const job=store.claimReward(0)!,historical={...receipt(job.result),amount,already_credited:true};
+    expect(validReceipt(job.result,historical)).toBe(true);
+    store.finishReward(job.result.match_id,job.lease,historical);
+    expect(store.get(fixture.view.code,member.principal).reward).toMatchObject({status:'credited',amount});
   });
   it.each(['guest', 'local', 'legacy', 'round', 'abandoned'])('never queues a reward for %s games', kind => {
     const store = open(); const actor = kind === 'guest' ? { principal: 'guest:opaque', jokers: false } : member;
@@ -129,7 +136,7 @@ describe('reward delivery', () => {
       const reader = live.body!.getReader(); await reader.read();
       const response = await fetch(`${base}/api/rummy`, { method: 'POST', headers, body: JSON.stringify(fixture.command) });
       const won = await response.json() as RoomView;
-      expect(won.reward).toMatchObject({ status: 'pending', amount: 70 });
+      expect(won.reward).toMatchObject({ status: 'pending', amount: 25 });
       expect(response.status).toBe(200); await reader.read();
       expect(deliver).toHaveBeenCalledTimes(1); complete(receipt(result)); await app.rewards.flush();
       expect(new TextDecoder().decode((await reader.read()).value)).toContain(`"revision":${won.revision}`);
@@ -158,7 +165,7 @@ describe('reward delivery', () => {
       await worker.flush(); expect(deliver).toHaveBeenCalledTimes(1);
       clock += 10_000; await worker.flush();
       expect(committed.size).toBe(1); expect(deliver).toHaveBeenCalledTimes(2); expect(publish).toHaveBeenCalledWith(fixture.view.code);
-      expect(store.get(fixture.view.code, member.principal).reward).toMatchObject({ status: 'credited', amount: 70 });
+      expect(store.get(fixture.view.code, member.principal).reward).toMatchObject({ status: 'credited', amount: 25 });
       await worker.flush(); expect(deliver).toHaveBeenCalledTimes(2);
     } finally { await worker.stop(); }
   });

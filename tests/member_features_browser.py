@@ -52,7 +52,7 @@ class SupabaseFixture:
     def __init__(self):
         self.roles = {ADMIN: "admin", MEMBER: None}
         self.wallets = {
-            user: {"points": 0, "f3_points": 0, "rummy_points": 1000,
+            user: {"dice_points": 0, "points": 0, "f3_points": 0, "rummy_points": 1000,
                    "lifetime_points": 1000, "owned": [], "equipped": {}, "pending_perks": {}}
             for user in (ADMIN, MEMBER)
         }
@@ -140,8 +140,14 @@ class SupabaseFixture:
         context = browser.new_context(viewport={"width": width, "height": 950})
         context.add_init_script("localStorage.setItem('sb-clubhouse-auth-token', " + json.dumps(json.dumps(session(user_id))) + ");")
         context.route("**/clubhouse.test.invalid/**", lambda route: self.http(route, user_id))
+        context.route("**/api/rummy/appearance", lambda route: self.artwork(route))
         context.route_web_socket(re.compile(r"^wss://clubhouse\.test\.invalid/"), self.websocket)
         return context
+
+    def artwork(self, route):
+        # Default earned-artwork response for Store pages. Specialized game
+        # fixtures register a later route to exercise unlocks and equipment.
+        route.fulfill(content_type="application/json", body=json.dumps({"member": bool(route.request.headers.get('authorization')), "wins": 0, "owned": ["rummy-room-classic", "rummy-table-classic", "rummy-standard"], "equipped": {"background": "rummy-room-classic", "table": "rummy-table-classic", "deck": "rummy-standard"}}))
 
     def http(self, route, user_id):
         request = route.request
@@ -167,6 +173,8 @@ class SupabaseFixture:
         elif path == "/rest/v1/store_catalog":
             if 'spades-partnerships' in request.url:
                 respond({"id": "spades-partnerships", "name": "Spades Partnerships", "price": 800, "currency": "spades_points"})
+            elif 'spades-deck-' in request.url:
+                respond([{"id": 'spades-deck-' + key, "name": name, "price": price, "currency": 'spades_points'} for key, name, price in [('atlas', 'Midnight Atlas', 350), ('ember', 'Ember Crown', 500), ('grove', 'Verdant Grove', 650), ('deco', 'Ivory Deco', 800)]])
             else:
                 respond({"id": "rummy-jokers", "name": "Joker Mode", "price": 800, "currency": "rummy_points"})
         elif path == "/rest/v1/rpc/moderation_role":

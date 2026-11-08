@@ -1,0 +1,7 @@
+/** Four table surfaces shared visually by both card games. */
+export const CARD_TABLE_THEMES = [
+  { key:'nocturne', size:'28px 28px, cover, cover', name:'Nocturne Gold', felt:'#142738', rail:'#72522b', accent:'#f4d58d', image:'/rummy-art/table-sapphire.webp', surface:'radial-gradient(circle at 20% 25%,#f5d99026 1px,transparent 2px) 0 0 / 28px 28px, linear-gradient(#101d45a0,#112640a0), url("/rummy-art/table-sapphire.webp")' },
+  { key:'amethyst', size:'cover', name:'Amethyst Velvet', felt:'#3c214b', rail:'#765235', accent:'#e4bfeb', image:'/rummy-art/table-burgundy.webp', surface:'repeating-linear-gradient(45deg,#e6bcef0c 0 1px,transparent 1px 24px), repeating-linear-gradient(-45deg,#e6bcef0c 0 1px,transparent 1px 24px), linear-gradient(#39204c9c,#39204c9c), url("/rummy-art/table-burgundy.webp")' },
+  { key:'lagoon', size:'cover', name:'Jade Lagoon', felt:'#0e4b49', rail:'#776037', accent:'#cbe8c4', image:'/rummy-art/table-riviera.webp', surface:'repeating-radial-gradient(ellipse at 50% 0,#cce9c814 0 1px,transparent 2px 20px), linear-gradient(#084c4a70,#084c4a70), url("/rummy-art/table-riviera.webp")' },
+  { key:'copper', size:'32px 32px, cover, cover', name:'Copper Mosaic', felt:'#542f26', rail:'#9a6035', accent:'#f4d09b', image:'/rummy-art/table-burgundy.webp', surface:'repeating-conic-gradient(#f5d2a00a 0 25%,transparent 0 50%) 0 0 / 32px 32px, linear-gradient(#613c267a,#613c267a), url("/rummy-art/table-burgundy.webp")' },
+] as const;
