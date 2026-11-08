@@ -1,0 +1,116 @@
+/* Reconstructed from the deployed production bundle (assets/index-69dnYAfX.css).
+   Original source unavailable; rules recovered by class family from compiled
+   output. Best-effort restoration, not a verbatim copy. */
+#main-content:has(.faith-scene)+footer{display:none}
+.faith-scene{height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:radial-gradient(at 10% 12%,#52654b24,#0000 48%),#11231e;flex-direction:column;display:flex}
+.faith-play-header{background:#10231de8;border-bottom:1px solid #c9b27a30;flex-shrink:0;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:20px;padding:10px max(16px,50% - 590px);display:grid}
+.faith-hub-link{color:#d7bf85;align-items:center;gap:8px;min-height:40px;font-size:12px;display:flex}
+.faith-play-header h1{color:#f2e5c7;letter-spacing:-.03em;font:400 27px/1.15 Georgia,serif}
+.faith-play-header h1 em{color:#d7bf85;font-weight:400}
+.faith-play-header>div{gap:8px;display:flex}
+.faith-play-header button{color:#e4d1a5;background:#1c352a;border:1px solid #ad976659;border-radius:8px;min-height:40px;padding:7px 14px;font-size:12px}
+.faith-shell{flex-direction:column;flex:1;gap:12px;width:100%;max-width:1180px;min-height:0;margin:auto;padding:12px 16px 16px;display:flex}
+.faith-controls{flex-shrink:0;justify-content:space-between;align-items:center;gap:12px;display:flex}
+.faith-level-summary{min-width:0}
+.faith-level-summary h2{color:#e8d3a3;font:400 21px/1.2 Georgia,serif}
+.faith-level-summary p{color:#b1bfb2;margin-top:3px;font-size:12px}
+.faith-round-controls{flex-shrink:0;align-items:center;gap:6px;display:flex}
+.faith-round-controls select{color:#f1e2c2;background:#182f27;border:1px solid #6a7158;border-radius:8px;width:64px;min-height:40px;padding:6px;font-size:13px}
+.faith-round-controls>button{min-height:40px;padding:8px 14px;font-size:12px}
+.faith-game-layout{flex:1;grid-template-columns:minmax(0,1fr) 290px;gap:16px;min-height:0;display:grid}
+.faith-board-panel{background:radial-gradient(#304c3a66,#10231d);border:1px solid #ad97664a;border-radius:18px;flex-direction:column;min-width:0;min-height:0;padding:10px 14px 14px;display:flex;box-shadow:inset 0 0 0 4px #10231d,inset 0 0 0 5px #ad97661c}
+.faith-board-caption{color:#c7b88f;text-transform:uppercase;letter-spacing:.18em;flex-shrink:0;justify-content:center;align-items:center;gap:14px;padding:2px 0 8px;font-size:8px;display:flex}
+.faith-board-caption span{color:var(--faith-accent)}
+.faith-board-space{flex:1;place-items:center;min-width:0;min-height:0;display:grid;container-type:size}
+.faith-board{width:min(100cqw,calc(100cqh * var(--faith-board-ratio)));aspect-ratio:var(--faith-board-ratio);isolation:isolate;position:relative}
+.faith-sidebar{flex-direction:column;gap:12px;min-width:0;min-height:0;display:flex}
+.faith-tray-panel{background:linear-gradient(145deg,#284036a8,#172e25cc);border:1px solid #7b80624d;border-radius:12px;padding:12px}
+.faith-tray-heading{justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;display:flex}
+.faith-tray-heading h2{color:#e6d1a0;font:400 19px/1.2 Georgia,serif}
+.faith-tray-heading p{color:#b1bfb2;font-size:11px}
+.faith-tray-slots{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:336px;margin-inline:auto;display:grid}
+.faith-tray-slot{aspect-ratio:2/3;color:#899a83;background:#10231c;border:1px dashed #72806677;border-radius:5px;place-items:center;min-width:0;display:grid;overflow:hidden}
+.faith-tray-filled{background:#efe1c0;border:1px solid #c9b27a;box-shadow:0 2px #685435}
+.faith-assists{gap:6px;display:grid}
+.faith-assists button{white-space:nowrap;min-height:40px;padding:7px 8px;font-size:12px}
+.faith-challenge-bar{color:#bfccb8;background:#1f372c;border:1px solid #b6ad7b3b;border-radius:10px;gap:8px;padding:10px;font-size:11px;display:grid}
+.faith-challenge-bar>div{flex-wrap:wrap;align-items:center;gap:6px 10px;display:flex}
+.faith-difficulty{color:#e6d1a0;font-weight:700}
+.faith-obstacle-counts span{white-space:nowrap}
+.faith-obstacle-counts [data-count=frost]{color:#b2d8e6}
+.faith-obstacle-counts [data-count=seal]{color:#e1b1a0}
+.faith-obstacle-counts [data-count=veil]{color:#c8bbdd}
+.faith-notice{color:#e6d1a0;min-height:4.05em;font-size:12px;line-height:1.35}
+.faith-notice-lost{color:#ffb2ab}
+.faith-practice-note{color:#a7b6a7;font-size:10px;line-height:1.3}
+.faith-eyebrow{color:var(--faith-accent,#d5bc80);letter-spacing:.2em;font-size:9px;font-weight:700}
+.faith-select-label{color:#b1bfb2;gap:5px;font-size:11px;display:grid}
+.faith-select-label select{color:#f1e2c2;background:#182f27;border:1px solid #6a7158;border-radius:8px;width:100%;min-height:42px;padding:9px 28px 9px 10px;font-size:16px}
+.faith-panel{color:#d6dece;background:#142b22;border:1px solid #ad976680;border-radius:16px;width:min(540px,100% - 24px);max-height:calc(100dvh - 24px);margin:auto;padding:0;position:fixed;inset:0;box-shadow:0 20px 80px #0007}
+.faith-panel::backdrop{background:#06100ed9}
+.faith-panel[open]{flex-direction:column;display:flex}
+.faith-panel>header{border-bottom:1px solid #ad976640;flex-shrink:0;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;display:flex}
+.faith-panel h2{color:#e6d1a0;font:400 24px/1.2 Georgia,serif}
+.faith-panel>header button{min-height:42px;padding:8px 12px;font-size:12px}
+.faith-panel-content{overscroll-behavior:contain;min-height:0;padding:20px;font-size:13px;overflow-y:auto}
+.faith-panel-content>p+p{margin-top:12px}
+.faith-panel-content h3{color:#e6d1a0;margin:18px 0 10px;font:400 21px/1.2 Georgia,serif}
+.faith-panel-settings{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px;display:grid}
+.faith-panel-settings .faith-skin-picker{align-self:start;max-width:none}
+.faith-collection-card{margin-top:24px}
+.faith-collection-preview{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;display:grid}
+.faith-collection-preview>div{aspect-ratio:2/3;background:#efe1c0;border:1px solid #9a875a;border-radius:5px;overflow:hidden;box-shadow:0 2px #625333}
+.faith-collection-card>p:last-child{color:#b0bbaa;margin-top:14px;font-size:11px}
+@media(prefers-reduced-motion:reduce){.faith-tile{transition:none}.faith-tile:not(:disabled):hover{transform:none}}
+@media(max-width:900px){.faith-game-layout{grid-template-columns:minmax(0,1fr) 250px;gap:12px}.faith-play-header{gap:12px}.faith-board-panel{padding-inline:8px}}
+@media(max-width:700px)and (min-height:541px){.faith-game-layout{grid-template-rows:minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);gap:8px}.faith-sidebar{gap:6px}.faith-tray-panel{padding:6px 10px 8px}.faith-tray-heading{margin-bottom:4px}.faith-tray-heading h2{font-size:15px}.faith-tray-heading p{font-size:10px}.faith-tray-slots{max-width:238px}.faith-assists{grid-template-columns:repeat(3,minmax(0,1fr))}.faith-assists button{padding-inline:2px;font-size:10px}.faith-challenge-bar{justify-content:space-between;gap:6px;padding:6px 10px;font-size:9px;display:flex}.faith-challenge-bar>div{justify-content:space-between;gap:6px}.faith-challenge-bar>div:first-child>span:last-child{display:none}.faith-notice{min-height:2.7em;font-size:11px}.faith-practice-note{text-align:center;font-size:9px}}
+@media(max-width:700px){.faith-play-header{gap:8px;padding:5px 8px}.faith-hub-link{justify-content:center;min-width:28px}.faith-hub-link span{display:none}.faith-play-header h1{white-space:nowrap;font-size:clamp(17px,4.8vw,23px)}.faith-play-header>div{gap:4px}.faith-play-header button{padding:6px 9px;font-size:11px}.faith-shell{gap:8px;padding:8px}.faith-controls{gap:6px}.faith-level-summary h2{font-size:15px}.faith-level-summary p{font-size:10px;line-height:1.4}.faith-round-controls{gap:4px}.faith-round-controls select{width:60px;padding-inline:4px;font-size:12px}.faith-round-controls>button{padding:7px 8px;font-size:11px}.faith-board-panel{border-radius:12px;padding:5px 6px 8px}.faith-board-caption{padding-bottom:4px;font-size:7px}.faith-tile{box-shadow:1px 2px #a78c57,1px 4px #685435,0 5px 7px #0005}}
+@media(max-height:540px){.faith-play-header{padding-block:3px}.faith-play-header h1{font-size:21px}.faith-shell{gap:6px;padding-block:6px}.faith-game-layout{grid-template-columns:minmax(0,1fr) 260px;gap:10px}.faith-sidebar{gap:5px}.faith-tray-panel{padding:5px 8px 6px}.faith-tray-heading{margin-bottom:3px}.faith-tray-heading h2{font-size:15px}.faith-tray-heading p{font-size:10px}.faith-assists{grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.25fr)}.faith-assists button{padding-inline:1px;font-size:9px}.faith-challenge-bar{gap:2px;padding:5px 8px;font-size:10px}.faith-notice{min-height:2.7em;font-size:10px}.faith-practice-note{font-size:9px}}
+@media(max-height:350px){.faith-tray-slots{max-width:210px}.faith-assists button{min-height:36px}.faith-notice{min-height:0}}
+.faith-tile{background:#efe1c0;border:1px solid #b99c61;border-radius:8%;padding:0;transition:transform .15s,filter .15s,box-shadow .15s;position:absolute;overflow:hidden;box-shadow:inset 0 1px #fff9,1px 3px #a78c57,2px 5px #685435,0 7px 10px #0006}
+.faith-tile:not(:disabled):hover{transform:translateY(-3px);box-shadow:inset 0 1px #fff9,1px 3px #c7b073,2px 5px #685435,0 12px 15px #0007}
+.faith-tile:disabled{opacity:1;filter:brightness(.64)saturate(.65);cursor:not-allowed}
+.faith-tile:focus-visible{outline-offset:3px;outline:3px solid #ffdf88;z-index:600!important}
+.faith-painted-art{border-radius:inherit;pointer-events:none;width:100%;height:100%;display:block;overflow:hidden}
+.faith-veiled-face{background:radial-gradient(#345a58,#1e333c);width:100%;height:100%;display:block}
+.faith-veiled-face rect{fill:none;stroke:#d0bc83;stroke-width:1.5px}
+.faith-veiled-face path,.faith-veiled-face circle{fill:none;stroke:#d0bc83;stroke-width:1px}
+.faith-veil-label{text-align:center;letter-spacing:.12em;color:#f3e2b0;pointer-events:none;width:100%;font-size:clamp(5px,.6vw,8px);position:absolute;bottom:9%;left:0}
+.faith-frost-overlay{pointer-events:none;border-radius:inherit;background:repeating-linear-gradient(125deg,#0000 0 12px,#c1ebf133 13px 14px,#0000 15px 25px),linear-gradient(30deg,#b4def34d,#e7f7fb66,#a7cbed33);border:3px solid #c4ecffc9;position:absolute;inset:0;box-shadow:inset 0 0 13px #c8f1ffcc}
+.faith-frost-overlay b{color:#18374b;background:#e8f7ff;border-radius:4px;padding:1px 3px;font-size:clamp(8px,.8vw,11px);line-height:1.4;position:absolute;top:3%;left:5%}
+.faith-wax-seal{aspect-ratio:1;color:#fff0cd;pointer-events:none;background:radial-gradient(circle at 40% 30%,#ca705a,#773f3b);border:1px solid #eab7a5;border-radius:50%;place-items:center;width:56%;font:700 clamp(12px,1.3vw,20px) Georgia,serif;display:grid;position:absolute;bottom:10%;left:22%;box-shadow:0 2px 3px #0005,inset 0 0 0 3px #993d3540}
+.faith-wax-seal small{color:#fff1d9;background:#553a32;border:1px solid #dab69a;border-radius:4px;min-width:14px;padding:1px 3px;font:700 10px/1.4 system-ui,sans-serif;position:absolute;bottom:-18%;right:-12%}
+.faith-tray-locked{color:#b69d86;background:repeating-linear-gradient(45deg,#704f4c22 0 5px,#0000 5px 10px),#15261e;border-color:#806c6566}
+.faith-obstacle-guide>p{color:#bec8b7;margin-top:14px;font-size:11px;line-height:1.8}
+.faith-obstacle-guide b{color:#e4d1a5;margin-bottom:3px;font-size:12px;display:block}
+.faith-painted-art[data-skin=faith3-skin-celestial] .faith-base-painting{filter:saturate(.83)brightness(.98)}
+.faith-painted-art[data-skin=faith3-skin-jade] .faith-base-painting{filter:saturate(.92)}
+.faith-painted-art[data-skin=faith3-skin-rose] .faith-base-painting{filter:saturate(.92)brightness(1.03)}
+.faith-skin-picker{align-self:end;gap:3px;max-width:180px;display:grid}
+.faith-skin-picker>a{color:#cfbb86;font-size:9px}
+.faith-skin-picker>span{color:#d5c6ab;font-size:10px}
+.faith-skin-heading{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:18px;margin-top:10px;display:flex}
+.faith-skin-heading>div{flex:340px}
+.faith-skin-heading>a{flex-shrink:0;font-size:12px}
+.faith-skin-toolbar{color:#c5ceb9;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:16px;margin:25px 0 20px;font-size:12px;display:flex}
+.faith-skin-toolbar label{gap:6px;display:grid}
+.faith-skin-toolbar select{color:#eadbb9;background:#163026;border:1px solid #69775e;border-radius:8px;padding:8px 12px}
+.faith-skin-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;display:grid}
+.faith-skin-card{background:linear-gradient(145deg,#233a3b,#10271f);border:1px solid #bba56e55;border-radius:13px;flex-direction:column;align-items:start;min-width:0;padding:18px 14px;display:flex}
+.faith-skin-card:nth-child(2){background:linear-gradient(145deg,#284b39,#122e25)}
+.faith-skin-card:nth-child(3){background:linear-gradient(145deg,#49383c,#251f26)}
+.faith-skin-samples{align-items:center;gap:6px;width:100%;margin-bottom:14px;display:flex}
+.faith-skin-samples>div{aspect-ratio:2/3;background:#e8d9b8;border-radius:7px;flex:1;min-width:0;overflow:hidden;box-shadow:0 5px 12px #0005}
+.faith-skin-card h3{color:#e6d4ae;margin:7px 0 12px;font:400 23px/1.15 Georgia,serif}
+.faith-skin-card>p:not(.faith-skin-preview-note){color:#bac4b3;flex-grow:1;margin-bottom:16px;font-size:11px;line-height:1.8}
+.faith-skin-card .faith-skin-preview-note{color:#a9baa9;letter-spacing:.13em;text-transform:uppercase;font-size:8px}
+.faith-skin-price{color:#e4d2a5;font-size:13px}
+.faith-skin-card>small{color:#aab7a1;margin:6px 0;font-size:9px;line-height:1.7}
+.faith-skin-card>.btn-gold,.faith-skin-card>.btn-ghost-gold{width:100%;margin-top:14px;padding:10px 8px;font-size:11px}
+@media(max-width:640px){.faith-skin-grid{grid-template-columns:1fr}.faith-skin-card{padding:22px}.faith-skin-samples{gap:12px;max-width:300px;margin-inline:auto}.faith-skin-card h3{font-size:27px}}
+.faith-skin-card:nth-child(4){background:linear-gradient(145deg,#69431f,#2d2019)}
+.faith-skin-card:nth-child(5){background:linear-gradient(145deg,#155965,#142c3e)}
+.faith-skin-card:nth-child(6){background:linear-gradient(145deg,#4f3271,#241b37)}
+.faith-painted-art[data-skin=faith3-skin-amber] .faith-base-painting{filter:sepia(.12)saturate(1.08)}
+.faith-painted-art[data-skin=faith3-skin-turquoise] .faith-base-painting{filter:saturate(1.07)contrast(1.03)}
+.faith-painted-art[data-skin=faith3-skin-violet] .faith-base-painting{filter:saturate(1.06)brightness(1.04)}

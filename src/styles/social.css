@@ -1,0 +1,66 @@
+/* Reconstructed from the deployed production bundle (assets/index-69dnYAfX.css).
+   Original source unavailable; rules recovered by class family from compiled
+   output. Best-effort restoration, not a verbatim copy. */
+.social-shell{width:min(1040px,100% - 32px);margin:auto;padding:36px 0}
+.social-heading{justify-content:space-between;align-items:center;gap:20px;margin-bottom:25px;display:flex}
+.social-heading h1{color:#e3c68c;margin:8px 0 12px;font:400 clamp(32px,5vw,48px)/1.15 Georgia,serif}
+.social-heading p{color:#b7c7bc}
+.social-eyebrow{letter-spacing:.2em;color:#d7b97c;font-size:10px}
+.social-section-stack,.social-player-list{gap:18px;display:grid}
+.social-profile-layout{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;display:grid}
+.social-profile-preview,.social-profile-form,.social-player-page{background:linear-gradient(135deg,#23483c,#122c25);border:1px solid #bda16c60;border-radius:20px;min-width:0;padding:28px}
+.social-profile-preview,.social-player-page{text-align:center}
+.social-profile-preview h2,.social-player-page h2{overflow-wrap:anywhere;color:#f2d899;margin:12px 0;font:400 32px Georgia,serif}
+.social-profile-bio{overflow-wrap:anywhere;max-width:550px;margin:18px auto;line-height:1.7}
+.social-profile-form h2,.social-invite-panel h3,.social-connection-group h3{color:#ebd29a;margin-bottom:16px;font:400 24px Georgia,serif}
+.social-profile-form label,.social-invite-form label,.social-search label{font-size:14px;display:block}
+.social-profile-form input:not([type=radio]),.social-profile-form textarea,.social-invite-form select,.social-search input{color:#f3eedf;width:100%;min-width:0;font:inherit;background:#0d241e;border:1px solid #aeb98d60;border-radius:8px;margin-top:7px;padding:11px;font-size:16px;display:block}
+.social-profile-form label:not(:first-child),.social-profile-form fieldset{margin-top:20px}
+.social-field-hint,.social-subtle{color:#bdcbbd;margin:8px 0 16px;font-size:12px;line-height:1.6}
+.social-profile-stats{justify-content:center;gap:32px;margin:22px 0 10px;display:flex}
+.social-profile-stats dt{color:#b8cbb9;font-size:12px}
+.social-profile-stats dd{color:#f0d99f;font:400 30px Georgia,serif}
+.player-profile-avatar{color:#ffedbf;background:radial-gradient(circle at 35% 25%,#568e70,#143c32);border:1px solid #dfc38b;border-radius:50%;flex-shrink:0;place-items:center;width:54px;height:54px;font-size:28px;display:inline-grid;box-shadow:inset 0 0 0 4px #ffffff09}
+.player-profile-avatar[data-avatar=sapphire]{background:linear-gradient(140deg,#487abb,#152e57)}
+.player-profile-avatar[data-avatar=ruby]{background:linear-gradient(140deg,#a35471,#4f1f3a)}
+.player-profile-avatar[data-avatar=amber]{background:linear-gradient(140deg,#b2934c,#5c3a22)}
+.player-profile-avatar[data-avatar=lotus]{background:linear-gradient(140deg,#9e79b8,#432d65)}
+.player-profile-avatar[data-avatar=moon]{background:linear-gradient(140deg,#667798,#20293e)}
+.player-profile-avatar-large{width:112px;height:112px;margin:8px auto 24px;font-size:60px}
+.social-avatar-picker{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 24px;display:grid}
+.social-avatar-picker label{cursor:pointer;border:1px solid #b7c29e44;border-radius:10px;justify-items:center;gap:7px;padding:10px 5px;font-size:11px;display:grid;position:relative;margin:0!important}
+.social-avatar-picker label[data-selected=true]{background:#d8ba6820;border-color:#f1ce87}
+.social-avatar-picker input{accent-color:#d8b76f;position:absolute;top:5px;left:5px}
+.social-player-identity{align-items:center;gap:14px;min-width:0;display:flex}
+.social-player-identity>div{min-width:0}
+.social-gamer-name{color:#f1d695;overflow-wrap:anywhere;font:400 21px Georgia,serif}
+.social-player-bio{color:#bfd0bf;overflow-wrap:anywhere;margin-top:6px;font-size:12px}
+.social-player-actions{flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:10px;display:flex}
+.social-player-actions button{min-height:40px;padding:8px 12px;font-size:12px}
+.social-state{color:#b5dcc2;font-size:12px}
+.social-text-button{color:#dfc38b;min-height:40px;padding:8px;font-size:12px;text-decoration:underline;display:inline-block}
+.social-notice,.social-error{border-radius:8px;margin-top:16px;padding:12px;font-size:13px;line-height:1.5}
+.social-notice{color:#e7edc9;background:#48664777}
+.social-error{color:#ffcfcc;background:#772f3d44}
+.social-search{align-items:end;gap:14px;margin:18px 0;display:flex}
+.social-search label{flex:1;min-width:0}
+.social-connection-group{margin-top:28px}
+.social-subheading{color:#efd69b;margin:22px 0 12px}
+.social-invitation{border:1px solid #b4bf8b44;border-radius:10px;margin:12px 0;padding:16px}
+.social-invitation a{color:#e7cf95}
+.social-invitation a.btn-gold{color:#182c24}
+.social-invite-panel{border-top:1px solid #c9ad7338;margin-top:24px;padding-top:24px}
+.social-invite-form{gap:16px;margin-top:16px;display:grid}
+.social-wrap{overflow-wrap:anywhere}
+.social-report{margin-top:16px}
+@media(max-width:650px){.social-profile-layout{grid-template-columns:1fr}.social-heading{flex-wrap:wrap;align-items:start}.social-player-actions{justify-content:flex-start}.social-search{flex-wrap:wrap}.social-search label{flex-basis:100%}.social-profile-form,.social-profile-preview,.social-player-page{padding:22px 16px}}
+.custom-profile-image{background:#112b2380;border:1px solid #c9ad7655;border-radius:12px;margin-block:20px;padding:18px}
+.profile-image-shapes{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px;display:grid}
+.profile-image-shapes>button{border:1px solid #bda36c66;border-radius:9px;flex-direction:column;align-items:center;gap:8px;padding:10px 3px;font-size:11px;display:flex}
+.profile-image-shapes>button[aria-pressed=true]{background:#e6bd6622;border-color:#f2d494}
+.profile-shape-example{color:#f6dfaa;background:linear-gradient(140deg,#346459,#122a25);place-items:center;width:56px;height:56px;font-size:28px;display:grid;overflow:hidden}
+.player-profile-avatar[data-image-shape]{background:#173b2c;border:2px solid #d9bd7a;padding:0;display:inline-grid;overflow:hidden}
+.player-profile-avatar img{object-fit:cover;width:100%;height:100%;display:block}
+.player-profile-avatar-large[data-image-shape=portrait]{width:90px;height:120px}
+.profile-shape-example .player-profile-avatar{width:100%;height:100%}
+@media(max-width:500px){.profile-image-shapes{grid-template-columns:repeat(2,minmax(0,1fr))}}

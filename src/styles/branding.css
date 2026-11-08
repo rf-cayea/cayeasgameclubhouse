@@ -1,0 +1,37 @@
+/* Reconstructed from the deployed production bundle (assets/index-69dnYAfX.css).
+   Original source unavailable; rules recovered by class family from compiled
+   output. Best-effort restoration, not a verbatim copy. */
+.clubhouse-player,.spades-seat{background:linear-gradient(135deg,#102d2599,#0a251e80);border:1px solid #d4e4c820;border-radius:1rem;padding:.9rem;position:relative;box-shadow:inset 0 1px #ffffff06}
+.clubhouse-player[data-active=true],.spades-seat-active{background:linear-gradient(135deg,#e3be6712,#0a251e99);border-color:#e6cc8b88;box-shadow:inset 0 1px #f6e3b320,0 0 0 2px #e6cc8b0a}
+.clubhouse-player-top,.spades-player-top{align-items:center;gap:.7rem;min-width:0;display:flex}
+.clubhouse-player-top>div,.spades-player-top>div{min-width:0}
+.clubhouse-hand details summary{color:#bfceba;font-size:.7rem}
+.clubhouse-hand details summary::marker{color:var(--table-accent)}
+.clubhouse-hand .btn-ghost-gold{padding:.5rem .85rem;font-size:.7rem}
+@media(max-width:640px){.clubhouse-player{padding:.65rem}.clubhouse-player-top{gap:.5rem}}
+.rummy-player-list .clubhouse-player,.rummy-player-list .clubhouse-player-top>div{min-width:0}
+.clubhouse-logo{object-fit:contain;flex-shrink:0;display:block}
+.clubhouse-nav-brand{align-items:center;gap:12px;max-width:100%;display:inline-flex}
+.clubhouse-nav-brand .clubhouse-logo{border-radius:8px;width:56px;height:56px}
+.clubhouse-hero-logo{border-radius:24px;width:min(100%,430px);height:auto;margin:auto;box-shadow:0 18px 60px #0005}
+.clubhouse-hero-brand{isolation:isolate;width:min(100%,430px);margin:auto;animation:.9s cubic-bezier(.2,.7,.2,1) both clubhouse-logo-arrive;position:relative}
+.clubhouse-logo-float{animation:6s ease-in-out .9s infinite clubhouse-logo-float;position:relative}
+.clubhouse-logo-aura{z-index:-1;filter:blur(28px);opacity:.45;pointer-events:none;background:radial-gradient(at 24% 32%,#45b8ff66,#0000 65%),radial-gradient(at 76% 70%,#e9c77d88,#0000 65%);border-radius:50%;animation:6s ease-in-out .9s infinite clubhouse-logo-glow;position:absolute;inset:10% 5%}
+.clubhouse-logo-surface{border-radius:24px;position:relative;overflow:hidden;box-shadow:0 18px 60px #0005}
+.clubhouse-logo-surface .clubhouse-hero-logo{width:100%;box-shadow:none}
+.clubhouse-logo-sheen{opacity:0;pointer-events:none;background:linear-gradient(110deg,#0000 38%,#fff7d916 46%,#fff7d93d,#fff7d916 54%,#0000 62%);animation:8s ease-in-out 1.2s infinite clubhouse-logo-sheen;position:absolute;inset:-20% -55%;transform:translate(-65%)}
+.clubhouse-logo-motion{color:#e9d39e;cursor:pointer;background:#0c211ee8;border:1px solid #e9c77d4d;border-radius:999px;align-items:center;gap:6px;min-height:36px;padding:7px 10px;font-size:11px;line-height:1.2;display:inline-flex;position:absolute;bottom:12px;right:12px}
+.clubhouse-logo-motion:hover{background:#183a30;border-color:#e9c77d}
+.clubhouse-logo-motion:focus-visible{outline-offset:4px;outline:2px solid #e9c77d}
+.clubhouse-hero-brand[data-paused=true]{animation:none}
+.clubhouse-hero-brand[data-paused=true] .clubhouse-logo-float,.clubhouse-hero-brand[data-paused=true] .clubhouse-logo-aura,.clubhouse-hero-brand[data-paused=true] .clubhouse-logo-sheen{animation-play-state:paused}
+.clubhouse-footer-brand{flex-wrap:wrap;align-items:center;gap:16px;display:flex}
+.clubhouse-footer-brand .clubhouse-logo{border-radius:8px;width:64px;height:64px}
+.game-play-header .clubhouse-logo{border-radius:4px;width:24px;height:24px}
+.clubhouse-error-logo{border-radius:12px;width:120px;height:120px;margin-bottom:24px}
+@media(max-width:600px){.clubhouse-nav-brand{gap:9px;font-size:18px}.clubhouse-nav-brand .clubhouse-logo{width:44px;height:44px}.clubhouse-hero-logo{max-width:300px}.clubhouse-hero-brand{order:-1;max-width:300px}}
+@media(prefers-reduced-motion:reduce){.clubhouse-hero-brand,.clubhouse-hero-brand .clubhouse-logo-float,.clubhouse-hero-brand .clubhouse-logo-aura,.clubhouse-hero-brand .clubhouse-logo-sheen{animation:none}.clubhouse-logo-sheen,.clubhouse-logo-motion{display:none}}
+@keyframes clubhouse-logo-arrive{0%{opacity:0;transform:translateY(14px)scale(.97)}to{opacity:1;transform:translateY(0)scale(1)}}
+@keyframes clubhouse-logo-float{0%,to{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes clubhouse-logo-glow{0%,to{opacity:.35}50%{opacity:.75}}
+@keyframes clubhouse-logo-sheen{0%,10%{opacity:0;transform:translate(-65%)}18%{opacity:.7}36%{opacity:0;transform:translate(65%)}to{opacity:0;transform:translate(65%)}}

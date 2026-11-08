@@ -1,0 +1,73 @@
+/* Reconstructed from the deployed production bundle (assets/index-69dnYAfX.css).
+   Original source unavailable; rules recovered by class family from compiled
+   output. Best-effort restoration, not a verbatim copy. */
+.gems-objective>.gem-art{flex-shrink:0;width:28px;height:31px}
+.gem-art{filter:drop-shadow(0 3px 1px #07232960);pointer-events:none;width:100%;height:100%;display:block;overflow:visible}
+.gems-cell>.gem-art{width:calc(100% - 6px);height:calc(100% - 6px);position:absolute;inset:3px}
+.gems-cell-clear .gems-gem-inner,.gems-cell-clear>.gem-art{animation:.15s ease-in forwards gem-clear}
+.gems-guide-specials .gem-art{width:53px;height:53px;margin:0 auto 10px}
+@media(max-width:720px){.gems-guide-specials .gem-art{width:42px;height:42px}}
+@media(max-width:380px){.gems-objective>.gem-art{width:23px;height:27px}}
+.gems-viewport .gems-objective>.gem-art{width:21px;height:24px}
+.gem-fx-steady-impact{opacity:1}
+.gem-fx-static-glow{stroke-width:24px;opacity:.4}
+.gems-fx :is(.gem-fx-particle,.gem-fx-ring,.gem-fx-aura,.gem-fx-lotus,.gem-fx-lotus-heart,.gem-fx-hammer,.gem-fx-impact,.gem-fx-orbit,.gem-fx-forge,.gem-fx-source-star,.gem-fx-trail,.gem-fx-target-ring,.gem-fx-lantern-flight,.gem-fx-beam,.gem-fx-wind,.gem-fx-leaf){animation-duration:var(--fx-span,.6s);animation-delay:var(--fx-delay,0s);transform-origin:0 0;animation-timing-function:cubic-bezier(.16,.7,.25,1);animation-fill-mode:both}
+.gem-fx-particle{animation-name:gem-fx-scatter}
+.gem-fx-ring{fill:none;stroke:currentColor;stroke-width:3px;animation-name:gem-fx-ring}
+.gem-fx-aura{animation-name:gem-fx-aura}
+.gem-fx-lotus{animation-name:gem-fx-bloom}
+.gem-fx-lotus-heart{animation-name:gem-fx-heart}
+.gem-fx-source-star{animation-name:gem-fx-star}
+.gem-fx-orbit{animation-name:gem-fx-orbit}
+.gem-fx-forge{animation-name:gem-fx-forge}
+.gem-fx-hammer{animation-name:gem-fx-strike}
+.gem-fx-impact{animation-name:gem-fx-impact}
+.gem-fx-beam{animation-name:gem-fx-beam-fade}
+.gem-fx-beam-hammer{animation-name:gem-fx-hammer-beam}
+.gem-fx-beam-glow{fill:none;stroke:currentColor;stroke-width:27px;stroke-linecap:round;opacity:.3}
+.gem-fx-beam-core{fill:none;stroke:#fffcdf;stroke-width:6px;stroke-linecap:round}
+.gem-fx-beam path[pathLength]{stroke-dasharray:1;animation:gem-fx-beam-draw var(--fx-span,.6s) ease-out var(--fx-delay,0s) both}
+.gem-fx-beam-hammer path[pathLength]{animation-name:gem-fx-hammer-draw}
+.gem-fx-trail{stroke-width:3px;stroke-linecap:round;stroke-dasharray:1;animation-name:gem-fx-trail}
+.gem-fx-energy{stroke-width:5px}
+.gem-fx-target-ring{stroke-width:3px;animation-name:gem-fx-target;transform-box:fill-box!important;transform-origin:50%!important}
+.gem-fx-lantern-flight{animation-name:gem-fx-flight}
+.gem-fx-wind{stroke-linecap:round;stroke-dasharray:.24 .05;animation-name:gem-fx-wind}
+.gem-fx-leaf{animation-name:gem-fx-leaf}
+.gem-fx-fusion-glyph{animation:gem-fx-fuse var(--fx-span,1s) ease-in-out both}
+.gem-fx-fusion-sigil{animation:gem-fx-fusion-power var(--fx-span,1s) ease-out both;transform-origin:0 0}
+.gem-fx-fusion-link,.gem-fx-fusion-title{animation:gem-fx-fusion-show var(--fx-span,1s) ease-out both}
+.gems-board[data-fx-active=true] .gems-cell-clear>.gem-art{animation:gem-fx-clear var(--gem-fx-duration,.6s) ease-out both}
+.gems-fx[data-reduced=true] :is(.gem-fx-particle,.gem-fx-aura,.gem-fx-leaf,.gem-fx-lantern-flight){display:none}
+.gems-moving-gem[data-hint=true] .gem-art{filter:drop-shadow(0 0 4px #ffedb4)}
+.gems-cell-damaged>.gem-art{animation:gem-crate-hit var(--gem-fx-duration,.22s) ease-out both}
+@keyframes rummy-call-enter{0%{opacity:0;transform:translateY(18px) scale(.82)}65%{opacity:1;transform:translateY(-3px) scale(1.025)}to{opacity:1;transform:none}}
+@keyframes rummy-call-ring{0%{opacity:0;transform:scale(.85)}40%{opacity:1}to{opacity:.65;transform:scale(1)}}
+@keyframes gem-clear{to{opacity:0;transform:scale(.35)rotate(12deg)}}
+@keyframes gem-glint{0%{opacity:0;transform:scale(.5)}60%{opacity:1}to{opacity:0;transform:scale(1.2)}}
+@keyframes gem-hint{50%{box-shadow:inset 0 0 10px #ffed9acc,0 0 4px #ffed9a55}}
+@keyframes gem-fx-fuse{0%{opacity:1;transform:translate(0)scale(.8)}25%{opacity:1;transform:translate(0)scale(1.1)}55%{opacity:1;transform:translate(var(--fusion-dx),var(--fusion-dy)) scale(.6)}80%,to{opacity:0;transform:translate(var(--fusion-dx),var(--fusion-dy)) scale(.15)}}
+@keyframes gem-fx-fusion-power{0%,20%{opacity:0;transform:scale(.1)rotate(-25deg)}50%{opacity:.95;transform:scale(1)rotate(0)}to{opacity:0;transform:scale(1.8)rotate(35deg)}}
+@keyframes gem-fx-fusion-show{0%{opacity:0}15%,80%{opacity:1}to{opacity:0}}
+@keyframes gem-fx-scatter{0%,10%{opacity:0;transform:translate(0)scale(.25)}25%{opacity:1}to{opacity:0;transform:translate(var(--fx-dx),var(--fx-dy)) scale(.35) rotate(var(--fx-turn))}}
+@keyframes gem-fx-ring{0%{opacity:0;transform:scale(.15)}18%{opacity:.95}to{opacity:0;transform:scale(1.65)}}
+@keyframes gem-fx-aura{0%{opacity:0;transform:scale(.2)}35%{opacity:.85}to{opacity:0;transform:scale(1.45)}}
+@keyframes gem-fx-bloom{0%{opacity:0;transform:scale(.1)rotate(-25deg)}30%{opacity:1;transform:scale(.9)rotate(-5deg)}60%{opacity:1;transform:scale(1.05)rotate(6deg)}to{opacity:0;transform:scale(1.25)rotate(18deg)}}
+@keyframes gem-fx-heart{0%{opacity:0;transform:scale(.1)}25%{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.9)}}
+@keyframes gem-fx-star{0%{opacity:0;transform:scale(.2)rotate(-20deg)}25%{opacity:1;transform:scale(2.4)rotate(25deg)}to{opacity:0;transform:scale(.5)rotate(90deg)}}
+@keyframes gem-fx-orbit{0%{opacity:0;transform:scale(.4)rotate(0)}20%{opacity:1}to{opacity:0;transform:scale(2.2)rotate(145deg)}}
+@keyframes gem-fx-forge{0%{opacity:0;transform:scale(.3)rotate(-45deg)}45%{opacity:1;transform:scale(1.2)rotate(5deg)}to{opacity:0;transform:scale(1.6)rotate(55deg)}}
+@keyframes gem-fx-strike{0%{opacity:0;transform:translate(-65px,-95px)rotate(-55deg)scale(.85)}12%{opacity:1}35%,45%{opacity:1;transform:translate(0)rotate(-5deg)scale(1)}78%,to{opacity:0;transform:translate(18px,-40px)rotate(20deg)scale(.9)}}
+@keyframes gem-fx-impact{0%,27%{opacity:0;transform:scale(.3)}40%{opacity:1}to{opacity:0;transform:scale(1.45)}}
+@keyframes gem-fx-beam-fade{0%{opacity:0}12%,42%{opacity:1}to{opacity:0}}
+@keyframes gem-fx-hammer-beam{0%,28%{opacity:0}38%,65%{opacity:1}to{opacity:0}}
+@keyframes gem-fx-beam-draw{0%{stroke-dashoffset:1px}45%,to{stroke-dashoffset:0}}
+@keyframes gem-fx-hammer-draw{0%,30%{stroke-dashoffset:1px}75%,to{stroke-dashoffset:0}}
+@keyframes gem-fx-trail{0%{opacity:0;stroke-dashoffset:1px}12%{opacity:.9}65%{opacity:.9;stroke-dashoffset:0}to{opacity:0;stroke-dashoffset:0}}
+@keyframes gem-fx-target{0%,40%{opacity:0;transform:scale(.4)}65%{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.6)}}
+@keyframes gem-fx-flight{0%{opacity:0}10%,75%{opacity:1}to{opacity:0}}
+@keyframes gem-fx-wind{0%{opacity:0;stroke-dashoffset:1px}20%,70%{opacity:.75}to{opacity:0;stroke-dashoffset:-.5px}}
+@keyframes gem-fx-leaf{0%{opacity:0}20%,70%{opacity:1}to{opacity:0}}
+@keyframes gem-fx-clear{0%,20%{opacity:1;transform:scale(1)}35%{opacity:1;transform:scale(1.15)}72%,to{opacity:0;transform:scale(.2)}}
+@keyframes gem-piece-clear{0%,25%{opacity:1;transform:scale(1)}45%{opacity:1;transform:scale(1.12)}90%,to{opacity:0;transform:scale(.25)}}
+@keyframes gem-crate-hit{0%,to{transform:translate(0)}30%{transform:translate(-2px)}60%{transform:translate(2px)}}
