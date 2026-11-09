@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SPADES_PARTNERSHIPS } from './spades-perks';
+import { economyRequest } from './economy-api';
+import type { EconomyCommandResult } from './economy-protocol';
 
 export const JOKER_MODE = { id: 'rummy-jokers', name: 'Joker Mode', price: 800, currency: 'rummy_points' } as const;
 export interface StoreItem { id: string; name: string; price: number; currency: 'rummy_points' }
@@ -30,6 +32,29 @@ export async function loadSpadesPartnerships() {
   if (error) throw error;
   if (!data || data.id !== SPADES_PARTNERSHIPS.id || data.currency !== SPADES_PARTNERSHIPS.currency || data.price !== SPADES_PARTNERSHIPS.price) throw new Error('The Spades Partnerships catalog entry is unavailable.');
   return SPADES_PARTNERSHIPS;
+}
+
+/** One catalog row from the shared economy store, across every game's currency. */
+export interface StoreCatalogRow { id: string; name: string; price: number; currency: string; slot: string | null }
+
+export async function loadEconomyCatalog(signal?: AbortSignal): Promise<StoreCatalogRow[]> {
+  const response = await fetch('/api/economy/catalog', { credentials: 'same-origin', signal });
+  if (!response.ok) throw new Error('The store catalog could not load. Try again.');
+  const data = await response.json() as { items?: StoreCatalogRow[] };
+  if (!Array.isArray(data.items)) throw new Error('The store catalog could not load. Try again.');
+  return data.items;
+}
+
+export async function purchaseStoreItem(itemId: string, expectedUserId?: string, signal?: AbortSignal) {
+  const result = await economyRequest<EconomyCommandResult>({ operation: 'purchase', itemId }, expectedUserId, signal);
+  if (result.ok !== true || !result.receipt) throw new Error('The purchase could not be confirmed. Refresh your wallet before trying again.');
+  return result;
+}
+
+export async function equipStoreItem(slot: string, itemId: string, expectedUserId?: string, signal?: AbortSignal) {
+  const result = await economyRequest<EconomyCommandResult>({ operation: 'equip', slot, itemId }, expectedUserId, signal);
+  if (result.ok !== true || !result.receipt) throw new Error('The design could not be equipped. Refresh before trying again.');
+  return result;
 }
 
 export async function purchaseSpadesPartnerships(): Promise<{ already_owned: boolean; balance: number }> {

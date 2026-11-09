@@ -1,11 +1,14 @@
-import { RoomStore, type Identity } from './rooms';
-import { checkSpadesPartnershipAccess, SpadesRoomStore } from './spades-rooms';
-import { d1Sql, type D1Database } from './d1';
+import { createClient } from '@supabase/supabase-js';
+import type { Identity } from './rooms';
+import { CloudRoomStore } from './cloud-rooms';
+import { checkSpadesPartnershipAccess, CloudSpadesRoomStore } from './cloud-spades-rooms';
+import type { D1Database } from './d1';
 import { RummyError } from '../src/lib/rummy-protocol';
-import { deliveryWorker, rewardWorker, supabaseRewardWriter } from './rewards';
-import { supabaseSpadesWriter } from './spades-rewards';
+import { validReceipt } from './rewards';
 import { validSpadesReceipt } from '../src/lib/spades-rewards';
 import type { SpadesRoomView } from '../src/lib/spades-protocol';
+import type { MatchReward, RewardReceipt } from '../src/lib/rummy-rewards';
+import type { SpadesMatchReward, SpadesReceipt } from '../src/lib/spades-rewards';
 import { assertSameOrigin, guestCookie, parseCommand, verifyMemberToken } from './api';
 
 /** Bindings supplied by the hosting platform. */
@@ -27,19 +30,25 @@ interface Ctx { waitUntil(promise: Promise<unknown>): void }
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
 
-let cached: { db: D1Database; store: RoomStore; spades: SpadesRoomStore } | null = null;
+let cached: { db: D1Database; store: CloudRoomStore; spades: CloudSpadesRoomStore } | null = null;
 function stores(env: Env) {
   if (!env.DB) throw new RummyError('The game database is not configured for this deployment.', 503, 'storage_unavailable');
-  if (!cached || cached.db !== env.DB) {
-    const sql = d1Sql(env.DB);
-    cached = { db: env.DB, store: new RoomStore(sql), spades: new SpadesRoomStore(sql) };
-  }
+  if (!cached || cached.db !== env.DB) cached = { db: env.DB, store: new CloudRoomStore(env.DB), spades: new CloudSpadesRoomStore(env.DB) };
   return cached;
 }
 
 const memberUrl = (env: Env) => env.SUPABASE_URL || env.VITE_SUPABASE_URL;
 const memberKey = (env: Env) => env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
-const rewardConfig = (env: Env) => () => ({ url: memberUrl(env), key: env.CLUBHOUSE_REWARD_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY });
+/** Credits a verified match through the member project's RPC; the key never reaches the browser. */
+async function creditReward(env: Env, rpc: 'credit_rummy_match' | 'credit_spades_match', result: unknown): Promise<unknown> {
+  const url = memberUrl(env);
+  const key = env.CLUBHOUSE_REWARD_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY;
+  if (!url || !key) throw new Error('reward_unconfigured');
+  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await client.rpc(rpc, { _result: result }).abortSignal(AbortSignal.timeout(15_000));
+  if (error) throw new Error('reward_sync_failed');
+  return data;
+}
 
 function cookieValue(header: string | null, name: string): string | undefined {
   return header?.split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1);
@@ -94,9 +103,26 @@ async function handleApi(request: Request, env: Env, ctx: Ctx): Promise<Response
   const { store, spades } = stores(env);
   const rewards = {
     flush: async () => {
-      const rummy = rewardWorker(store, supabaseRewardWriter(rewardConfig(env)));
-      const spadesWorker = deliveryWorker(spades, supabaseSpadesWriter(rewardConfig(env)), validSpadesReceipt);
-      await Promise.all([rummy.flush(), spadesWorker.flush()]);
+      // Each outbox leases its work in the database, so a retry after a crash cannot credit twice.
+      async function deliver<M extends { match_id: string }, R>(outbox: {
+        claimReward(now: number): Promise<{ result: M; lease: string; roomCode: string } | null>;
+        finishReward(id: string, lease: string, receipt: R): Promise<void>;
+        retryReward(id: string, lease: string, now: number): Promise<void>;
+      }, rpc: 'credit_rummy_match' | 'credit_spades_match', validate: (result: M, receipt: R) => boolean) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const job = await outbox.claimReward(Date.now());
+          if (!job) return;
+          try {
+            const receipt = await creditReward(env, rpc, job.result) as R;
+            if (!validate(job.result, receipt)) throw new Error('reward_invalid_receipt');
+            await outbox.finishReward(job.result.match_id, job.lease, receipt);
+          } catch { await outbox.retryReward(job.result.match_id, job.lease, Date.now()); }
+        }
+      }
+      await Promise.all([
+        deliver<MatchReward, RewardReceipt>(store, 'credit_rummy_match', validReceipt),
+        deliver<SpadesMatchReward, SpadesReceipt>(spades, 'credit_spades_match', validSpadesReceipt),
+      ]);
     },
   };
 
@@ -126,7 +152,8 @@ async function handleApi(request: Request, env: Env, ctx: Ctx): Promise<Response
     if (game === 'spades') checkSpadesPartnershipAccess(actor, (view as SpadesRoomView).options.variant);
     ctx.waitUntil(rewards.flush().catch(() => { /* Rewards retry on the next request. */ }));
     if (match[2]) {
-      return withCookie(eventStream(view, () => gameStore.get(code, actor.principal)));
+      const read = async () => await gameStore.get(code, actor.principal);
+      return withCookie(eventStream(view, read));
     }
     return withCookie(json(200, view));
   }
