@@ -1,3 +1,6 @@
+import { MATCH_PATHS, MATCH_GAME_NAMES } from '@/lib/matchmaking';
+import { useSocialResource } from '@/lib/social';
+import type { FriendActivity } from '@/lib/social-protocol';
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HubNav } from "@/components/HubNav";
@@ -166,7 +169,7 @@ function ClubhousePage() {
         ) : (
           <PlayerReportProvider key={user.id}><div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
             <div className="min-w-0 space-y-4"><Posts key={user.id} me={user.id} /></div>
-            <div className="min-w-0 space-y-4"><Chat key={user.id} me={user.id} /><FriendFeed key={user.id} /></div>
+            <div className="min-w-0 space-y-4"><Chat key={user.id} me={user.id} /><FriendFeed key={user.id} me={user.id} /></div>
           </div></PlayerReportProvider>
         )}
       </main>
@@ -246,7 +249,7 @@ function Posts({ me }: { me: string }) {
         {posts.map((post) => (
           <li key={post.id} className="rounded-xl bg-secondary p-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate font-bold text-gold">{post.user_id === me ? "You" : (containsProfanity(post.author_name) ? "Player" : post.author_name)}</span>
+              <Link to="/players/$playerId" params={{ playerId: post.user_id }} className="min-w-0 truncate font-bold text-gold">{post.user_id === me ? "You" : (containsProfanity(post.author_name) ? "Player" : post.author_name)}</Link>
               <span className="shrink-0 text-xs text-muted-foreground">{ago(post.created_at)}
                 {post.user_id === me && <button className="ml-2 underline" disabled={deleting !== null} onClick={() => void remove(post.id)}>{deleting === post.id ? "Deleting…" : "Delete"}</button>}
                 {post.user_id !== me && <ReportPlayer userId={post.user_id} name={post.author_name} context="post" contextId={post.id} />}
@@ -289,7 +292,7 @@ function Chat({ me }: { me: string }) {
         {[...messages].reverse().map((message) => (
           <div key={message.id} className={`flex ${message.user_id === me ? "justify-end" : ""}`}>
             <div className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${message.user_id === me ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-              {message.user_id !== me && <span className="block text-xs font-bold text-gold">{containsProfanity(message.author_name) ? "Player" : message.author_name}</span>}
+              {message.user_id !== me && <Link to="/players/$playerId" params={{ playerId: message.user_id }} className="block text-xs font-bold text-gold">{containsProfanity(message.author_name) ? "Player" : message.author_name}</Link>}
               <span className="whitespace-pre-wrap break-words">{containsProfanity(message.body) ? "[Message hidden]" : message.body}</span>
               {message.user_id !== me && <ReportPlayer userId={message.user_id} name={message.author_name} context="chat" contextId={message.id} />}
             </div>
@@ -305,11 +308,9 @@ function Chat({ me }: { me: string }) {
   );
 }
 
-function FriendFeed() {
-  return (
-    <section className="card-hub">
-      <h2 className="font-display text-2xl text-gold">🎉 Friends' activity</h2>
-      <p className="mt-3 text-sm text-muted-foreground">Friend activity will be available when friend connections are ready. <Link to="/friends" className="text-gold underline">View friends</Link></p>
-    </section>
-  );
+function FriendFeed({ me }: { me: string }) {
+  const feed = useSocialResource<{ activity: FriendActivity[] }>('/api/social/activity', me);
+  return <section className="card-hub"><h2 className="font-display text-2xl text-gold">Friends’ activity</h2><Link to="/friends" className="mt-2 inline-block text-gold underline">Friends & invitations</Link>
+    {feed.error ? <p role="alert" className="mt-3">{feed.error}<button onClick={() => void feed.refresh()} className="ml-2 underline">Retry activity</button></p> : !feed.data ? <p role="status" className="mt-3">Loading friends’ wins…</p> : feed.data.activity.length ? <ul className="mt-4 space-y-3">{feed.data.activity.map(item => <li key={item.id}><Link to="/players/$playerId" params={{ playerId: item.player.userId }} className="text-gold underline">@{item.player.gamerName}</Link> won a <Link to={MATCH_PATHS[item.game]} className="text-gold underline">{MATCH_GAME_NAMES[item.game]}</Link> match <span className="text-xs text-muted-foreground">{ago(item.completedAt)}</span></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Your friends’ verified match wins will appear here. Add a player in Friends to get started.</p>}
+  </section>;
 }

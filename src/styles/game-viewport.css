@@ -1,0 +1,240 @@
+/* Active play owns the available screen. Reference panels scroll independently. */
+#main-content:has(.game-viewport) + footer { display: none; }
+.game-viewport { height: 100vh; height: 100dvh; min-height: 0; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background-size: cover; background-position: center; background-attachment: scroll; }
+.game-viewport > header { display: none; }
+.game-viewport > main { flex: 1; min-height: 0; width: 100%; max-width: 1180px; padding: 6px 12px 10px; display: flex; flex-direction: column; margin: auto; }
+.game-viewport .card-game-hero, .game-viewport .game-footnote { display: none; }
+.game-play-header { flex-shrink: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 48px; padding: 5px 16px; border-bottom: 1px solid #d5bc8038; background: #0d201ce8; }
+.game-play-header > a { color: #dcc58b; font-size: 12px; padding-block: 8px; }
+.game-play-header h1 { font: 400 24px/1.15 Georgia, serif; color: #f1dbac; }
+.game-play-header > div { display: flex; gap: 5px; }
+.game-play-header button, .table-panel-buttons button { min-height: 36px; padding: 5px 10px; border: 1px solid #c7b17b55; border-radius: 7px; background: #122e25df; color: #eed7a8; font-size: 11px; line-height: 1.2; }
+.game-viewport .game-play-header button { min-height: 36px; }
+.game-panel { position: fixed; inset: 0; margin: auto; padding: 0; width: min(800px, calc(100% - 24px)); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); border: 1px solid #c4ab72; border-radius: 16px; color: #dae0ce; background: #142b23; box-shadow: 0 20px 100px #0008; }
+.game-panel[open] { display: flex; flex-direction: column; }
+.game-panel::backdrop { background: #03120de0; }
+.game-panel > header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #c5b48140; }
+.game-panel > header h2 { color: #ecd4a2; font: 400 24px/1.2 Georgia, serif; }
+.game-panel > header button { min-height: 40px; padding: 7px 10px; font-size: 12px; }
+.game-panel-content { padding: 18px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.game-panel-content > p { line-height: 1.7; }
+.game-viewport :is(.rummy-setup-grid, .spades-setup-grid) { display: flex; flex: 1; min-height: 0; justify-content: center; align-items: stretch; }
+.game-viewport .spades-setup-grid > div { display: none; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) { width: 100%; max-width: 760px; display: flex; flex-direction: column; justify-content: center; padding: 18px 24px; border-width: 7px; border-radius: 20px; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) h2 { font-size: 28px; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) > .spades-eyebrow { display: none; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) > p { margin-top: 6px; font-size: 11px; line-height: 1.4; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin-top: 12px; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) label { min-width: 0; font-size: 10px; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) :is(input:not([type="checkbox"]), select) { min-height: 38px; padding: 5px 8px; font-size: 16px; }
+.game-viewport :is(.rummy-setup-table, .spades-setup-table) > button { align-self: start; min-height: 42px; margin-top: 12px; padding: 6px 18px; font-size: 12px; }
+.game-viewport .spades-setup-table .spades-display-card { display: none; }
+.game-viewport :is(.rummy-table, .spades-table)[aria-label$="lobby"] { flex: 1; min-height: 0; padding: 16px; }
+.game-viewport .game-connection-bar { flex-shrink: 0; min-height: 26px; margin: 0 0 4px; padding: 3px 8px; border-radius: 7px; font-size: 10px; gap: 4px; }
+.game-viewport .game-connection-bar > div:last-child { display: none; }
+.game-viewport .card-reward-note { flex-shrink: 0; margin: 2px 0 4px; padding: 2px 8px; font-size: 10px; }
+.game-viewport > main > [role="alert"], .game-viewport > main > [role="status"] { margin: 2px 0 4px; padding: 4px 8px; font-size: 11px; }
+.game-viewport :is(.rummy-live-table, .spades-live-table) { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px 12px; border-width: 7px; border-radius: 20px; }
+.game-viewport .table-round-bar { flex-shrink: 0; padding: 0 0 4px; gap: 4px; font-size: 10px; }
+.game-viewport .table-round-bar > span { font-size: 10px; }
+.game-viewport .table-round-bar > strong { font-size: 11px; padding: 3px 8px; }
+.game-viewport .rummy-player-list { flex-shrink: 0; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); margin: 4px 0; gap: 4px; }
+.game-viewport .clubhouse-player { padding: 4px 6px; border-radius: 7px; }
+.game-viewport .clubhouse-player-top { gap: 5px; }
+.game-viewport .player-medallion { width: 22px; height: 22px; font-size: 12px; }
+.game-viewport .player-medallion svg { width: 16px; height: 16px; }
+.game-viewport .player-name { font-size: 11px; }
+.game-viewport .player-subtitle { display: none; }
+.game-viewport .player-score-line { margin: 0; gap: 3px; font-size: 10px; }
+.game-viewport .player-score-line b { font-size: 14px; }
+.table-panel-buttons { display: flex; flex-shrink: 0; gap: 5px; padding-block: 3px; }
+.game-viewport .table-panel-buttons button { min-height: 32px; padding: 4px 8px; font-size: 10px; }
+.game-viewport .rummy-pile-arena { flex: 1; min-height: 0; margin: 0; padding: 5px; gap: 28px; align-content: center; flex-wrap: nowrap; }
+.game-viewport .rummy-pile-crest { display: none; }
+.game-viewport .rummy-pile > p { margin-top: 5px; font-size: 9px; }
+.game-viewport .rummy-pile :is(.rummy-stock-card, .card-face-small) { width: 52px; height: 74px; }
+.game-viewport .game-hand-section { flex-shrink: 0; min-width: 0; margin: 0; padding-top: 4px; }
+.game-viewport .game-hand-section > div:first-child { gap: 4px; }
+.game-viewport .game-hand-section h2 { font-size: 18px; }
+.game-viewport .game-hand-section > div:first-child > span { font-size: 10px; }
+.game-viewport .game-hand-section > p { margin: 2px 0; min-height: 16px; font-size: 10px; line-height: 1.3; }
+.game-viewport .table-action-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 4px; padding: 4px; border-radius: 8px; }
+.game-viewport .table-action-bar > button { min-height: 40px; padding: 5px; font-size: 11px; line-height: 1.2; }
+/* The entire hand fits in a fan. Every exposed rank corner remains selectable. */
+.hand-fitted { --hand-card-width: clamp(44px, 13vw, 76px); }
+.hand-fitted .hand-card-rail { margin-top: 3px; padding: 10px 4px 5px; overflow: visible; border-radius: 8px; }
+.hand-fitted ol[aria-label="Your hand"] { width: 100%; min-width: 0; gap: 0; padding-block: 0; }
+.hand-fitted ol[aria-label="Your hand"] > li { flex: 1 1 0; width: 0; min-width: 0; }
+.hand-fitted ol[aria-label="Your hand"] > li:last-child { flex: 0 0 var(--hand-card-width); }
+.hand-fitted .clubhouse-playing-card { position: relative; width: var(--hand-card-width); height: calc(var(--hand-card-width) * 1.42); min-height: 0; border-radius: 6px; }
+.hand-fitted .clubhouse-playing-card[data-selected="true"] { translate: 0 -5px; }
+.hand-fitted .clubhouse-playing-card:focus-visible { z-index: 3; translate: 0 -5px; }
+.hand-fitted .hand-selection-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px; margin-top: 3px; }
+.hand-fitted .hand-selection-tools > p { width: auto; font-size: 10px; line-height: 1.3; }
+.hand-fitted .hand-selection-tools > button { min-width: 36px; min-height: 32px; padding: 4px 8px; font-size: 14px; }
+.hand-fitted > p[role="status"] { font-size: 10px; line-height: 1.3; min-height: 0; margin-top: 2px; }
+.game-viewport .spades-game-content { display: flex; flex: 1; min-height: 0; flex-direction: column; margin: 0; }
+.game-viewport .spades-mobile-scoreboard { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 3px 0; font-size: 10px; }
+.game-viewport .spades-mobile-scoreboard small { font-size: 9px; }
+.game-viewport .spades-trick-stage { flex: 1; min-height: 0; min-width: 0; container-type: size; display: grid; place-items: center; }
+.game-viewport .spades-trick-grid { width: min(100cqw, 460px); height: min(100cqh, 340px); max-width: none; margin: 0; padding: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 0; }
+.game-viewport .spades-trick-slot { min-height: 0; grid-row: var(--spades-card-row); grid-column: var(--spades-card-column); }
+.game-viewport .spades-trick-card { width: min(52px, 12cqh); height: min(74px, 17cqh); flex-shrink: 0; }
+.game-viewport .spades-trick-slot > p { font-size: 10px; line-height: 1.2; margin: 0 0 2px; }
+.game-viewport .spades-mobile-bid { display: block; font-size: 9px !important; }
+.game-viewport .spades-trick-centre { display: block; }
+.game-viewport .spades-trick-centre .table-crest { display: none; }
+.game-viewport .spades-trick-centre > span { font-size: 9px; }
+.game-viewport .spades-action-bar { position: static; display: flex; align-items: center; gap: 8px; padding: 4px; margin-top: 3px; border-radius: 8px; }
+.game-viewport .spades-action-bar > button { min-height: 40px; padding: 5px 8px; font-size: 11px; flex-shrink: 0; }
+.game-viewport .spades-action-bar > p { font-size: 10px; line-height: 1.3; }
+.game-viewport .spades-collect-control { flex-shrink: 0; margin: 3px 0; }
+.game-viewport .spades-collect-control > button { min-height: 36px; padding: 5px 10px; font-size: 11px; }
+.game-viewport .spades-collect-control > p { display: none; }
+.game-viewport .spades-live-table > .spades-bid-panel { flex-shrink: 0; margin: 3px 0; padding: 4px 8px; }
+.game-viewport .spades-live-table > .spades-bid-panel > div:first-child { display: none; }
+.game-viewport .spades-live-table > .spades-bid-panel > div:last-child { align-items: center; margin: 0; gap: 6px; }
+.game-viewport .spades-live-table > .spades-bid-panel label { display: flex; align-items: center; gap: 0; font-size: 0; }
+.game-viewport .spades-live-table > .spades-bid-panel select { width: 76px; min-height: 36px; margin: 0; padding: 5px; font-size: 16px; }
+.game-viewport .spades-live-table > .spades-bid-panel button { min-height: 36px; padding: 5px 8px; font-size: 10px; }
+.game-viewport .spades-live-table > .spades-bid-panel p { display: none; }
+.game-viewport .rummy-practice { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.game-viewport .rummy-practice > div:first-child, .game-viewport .rummy-practice > p:last-child { display: none; }
+.game-viewport .rummy-practice > section[aria-label="Table settings"] { flex-shrink: 0; margin: 0; padding: 5px 8px; }
+.game-viewport .rummy-practice > section[aria-label="Table settings"] > div { gap: 6px; margin: 0; padding: 0; border: 0; }
+.game-viewport .rummy-practice > section[aria-label="Table settings"] label { font-size: 10px; }
+.game-viewport .rummy-practice > section[aria-label="Table settings"] select, .game-viewport .rummy-practice > section[aria-label="Table settings"] button { min-height: 36px; margin: 0; padding: 5px 8px; font-size: 12px; }
+.game-viewport .rummy-practice > section[aria-label="Table settings"] select { font-size: 16px; }
+.game-viewport .rummy-practice > .rummy-table { flex: 1; min-height: 0; margin: 0; padding: 12px; display: flex; flex-direction: column; justify-content: center; }
+.game-viewport .rummy-practice .hand-toolbar { gap: 4px; margin: 5px 0; }
+.game-viewport .rummy-practice .hand-toolbar > button { min-height: 36px; padding: 4px 7px; font-size: 10px; }
+.game-viewport .rummy-practice h2 { font-size: 20px; }
+.game-viewport .rummy-practice .rummy-table > div:first-child > span { font-size: 10px; }
+.game-viewport .rummy-practice .rummy-table > p { margin: 3px 0; min-height: 0; font-size: 11px; }
+.game-viewport .practice-suggestions-button { align-self: start; min-height: 36px; padding: 5px 10px; font-size: 11px; }
+.rummy-collection h3 { color: #eed5a1; font: 400 23px Georgia, serif; margin: 22px 0 12px; }
+.rummy-collection-progress { margin-top: 14px; color: #e2d0a2; font-size: 12px; }
+.rummy-collection > progress { width: 100%; height: 5px; margin-top: 10px; accent-color: #d6bb7f; }
+.rummy-design-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rummy-design { overflow: hidden; border: 1px solid #c1af7e55; border-radius: 10px; background: #10241e; }
+.rummy-design > img { display: block; width: 100%; aspect-ratio: 1.65; object-fit: cover; }
+.rummy-design > div { padding: 10px 12px; }
+.rummy-design h4 { color: #f0ddb6; font: 400 18px Georgia, serif; }
+.rummy-design p { margin: 5px 0 10px; color: #b5c2af; font-size: 10px; }
+.rummy-design button { width: 100%; min-height: 38px; padding: 5px; font-size: 11px; }
+.rummy-design[data-locked="true"] > img { opacity: .65; }
+.game-panel .spades-desktop-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.game-viewport .game-panel .player-subtitle { display: block; }
+.game-art-reward { flex-shrink: 0; padding: 4px 8px; margin-bottom: 4px; border: 1px solid #c7b17b70; border-radius: 7px; background: #172e24e8; color: #f0d59c; font-size: 11px; }
+.game-art-reward button { padding-inline: 8px; text-decoration: underline; }
+/* The gem garden uses the same height budget as the card tables. */
+.gems-viewport > main { width: 100%; max-width: 1100px; gap: 5px; padding: 6px 10px; }
+.gems-viewport .gems-heading { flex-shrink: 0; min-height: 35px; padding: 0; gap: 8px; }
+.gems-viewport .gems-heading > div { display: flex; align-items: center; gap: 16px; }
+.gems-viewport .gems-back { display: inline-block !important; margin: 0; font-size: 9px; }
+.gems-viewport .gems-heading h1 { margin: 0; font-size: 25px; line-height: 1.2; }
+.gems-viewport .gems-heading h1 span { display: inline; }
+.gems-viewport .gems-heading .gems-eyebrow, .gems-viewport .gems-intro, .gems-viewport .gems-temple-preview { display: none; }
+.gems-viewport .gems-tabs { flex-shrink: 0; justify-content: space-between; gap: 8px; margin: 0; }
+.gems-viewport .gems-tabs button { min-height: 36px; padding: 4px 2px; font-size: 10px; }
+.gems-viewport .gems-play-layout { flex: 1; min-height: 0; width: 100%; max-width: 690px; display: flex; align-items: stretch; margin: auto; }
+.gems-viewport .gems-sidebar { display: none; }
+.gems-viewport .gems-board-panel { flex: 1; min-height: 0; width: 100%; padding: 10px 14px; display: flex; flex-direction: column; border-radius: 13px; }
+.gems-viewport .gems-board-heading { flex-shrink: 0; margin-bottom: 5px; gap: 8px; }
+.gems-viewport .gems-board-heading h2 { margin-top: 2px; font-size: 22px; }
+.gems-viewport .gems-board-heading h2 span { display: inline; margin-left: 10px; font-size: 9px; }
+.gems-viewport .gems-board-heading .gems-eyebrow { font-size: 7px; }
+.gems-viewport .gems-moves { min-width: 64px; padding: 4px 8px; }
+.gems-viewport .gems-moves strong { font-size: 25px; }
+.gems-viewport .gems-moves span { margin-top: 2px; font-size: 6px; }
+.gems-viewport .gems-objectives { flex-shrink: 0; margin-bottom: 5px; gap: 4px; }
+.gems-viewport .gems-objective { flex-basis: 65px; min-width: 60px; padding: 3px 5px; gap: 4px; }
+.gems-viewport .gems-objective > .gem-art { width: 21px; height: 24px; }
+.gems-viewport .gems-objective small { font-size: 7px; }
+.gems-viewport .gems-objective strong { font-size: 11px; }
+.gems-viewport .gems-objective-symbol { width: 20px; font-size: 22px; }
+.gems-viewport .gems-board-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 4px; }
+.gems-viewport .gems-board-space { flex: 1; min-height: 0; min-width: 0; container-type: size; display: grid; place-items: center; }
+.gems-viewport .gems-board { --gem-gap: 2px; --gem-pad: 2px; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); aspect-ratio: 1; border-width: 3px; padding: 2px; gap: 2px; }
+.gems-viewport .gems-board-flourish { display: none; }
+.gems-viewport .gems-boosters { flex-shrink: 0; margin-top: 6px; padding-bottom: 3px; gap: 5px; }
+.gems-viewport .gems-booster-icon { width: 33px; height: 33px; margin-bottom: 2px; }
+.gems-viewport .gems-booster-art { width: 23px; height: 23px; }
+.gems-viewport .gems-boosters button { min-height: 44px; }
+.gems-viewport .gems-board-actions { flex-shrink: 0; margin: 0; }
+.gems-viewport .gems-board-actions button { min-height: 36px; }
+.gems-viewport .gems-controls { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.gems-viewport .gems-notice { flex-shrink: 0; min-height: 2.6em; margin-top: 3px; padding: 4px 7px; line-height: 1.3; font-size: 10px; }
+.gems-viewport .gems-save-note { flex-shrink: 0; gap: 5px; padding: 0; font-size: 9px; }
+@media (max-width: 700px) {
+  .game-play-header { gap: 8px; padding-inline: 8px; }
+  .game-play-header > a span { display: none; }
+  .game-play-header h1 { font-size: 21px; }
+  .game-play-header button { padding-inline: 7px; font-size: 10px; }
+  .game-viewport > main { padding-inline: 6px; padding-bottom: 6px; }
+  .game-viewport :is(.rummy-live-table, .spades-live-table) { padding: 5px 7px; border-width: 5px; border-radius: 14px; }
+  .game-viewport .rummy-player-list .player-medallion { display: none; }
+  .game-viewport .game-connection-bar { font-size: 9px; }
+  .gems-viewport .gems-heading > div { gap: 8px; }
+  .gems-viewport .gems-back { letter-spacing: .04em; font-size: 8px; }
+  .gems-viewport .gems-heading h1 { font-size: 22px; }
+  .gems-viewport .gems-board-panel { padding: 7px 9px; }
+  .gems-viewport .gems-save-note { font-size: 8px; }
+}
+@media (max-height: 700px) {
+  .game-viewport .spades-trick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
+  .game-viewport .spades-trick-centre { display: none; }
+  .game-viewport .spades-trick-slot { grid-row: auto; grid-column: auto; }
+  .game-viewport .spades-trick-card { height: min(70px, calc((100cqh - 50px) / 2)); width: min(49px, calc((100cqh - 50px) / 2.84)); }
+  .game-viewport .spades-trick-slot > p { font-size: 9px; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .game-play-header { min-height: 40px; padding-block: 2px; }
+  .game-play-header button { min-height: 32px; }
+  .game-viewport > main { padding-block: 3px; }
+  .game-viewport :is(.rummy-live-table, .spades-live-table) { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); grid-template-rows: auto auto auto minmax(0, 1fr); gap: 3px 12px; }
+  .game-viewport .table-round-bar { grid-column: 1 / -1; grid-row: 1; }
+  .game-viewport :is(.rummy-player-list, .spades-mobile-scoreboard) { grid-column: 1; grid-row: 2; }
+  .game-viewport .table-panel-buttons { grid-column: 1; grid-row: 3; }
+  .game-viewport :is(.rummy-pile-arena, .spades-trick-stage) { grid-column: 1; grid-row: 4; }
+  .game-viewport .game-hand-section { grid-column: 2; grid-row: 2 / 5; align-self: center; }
+  .game-viewport .spades-live-table:has(> .spades-bid-panel) .game-hand-section { align-self: start; }
+  .game-viewport .spades-live-table > .spades-bid-panel { grid-column: 2; grid-row: 5; }
+  .game-viewport .spades-collect-control { grid-column: 1; grid-row: 5; }
+  .game-viewport .spades-trick-slot > p { font-size: 8px; }
+  .hand-fitted { --hand-card-width: 47px; }
+  .game-viewport .rummy-pile :is(.rummy-stock-card, .card-face-small) { width: 42px; height: 60px; }
+  .game-viewport .table-action-bar > button { min-height: 36px; font-size: 10px; }
+  .game-viewport .spades-action-bar > button { min-height: 36px; }
+  .game-viewport .game-hand-section h2 { font-size: 15px; }
+  .gems-viewport .gems-play-layout { max-width: none; }
+  .gems-viewport .gems-board-panel { display: grid; grid-template-columns: minmax(0, 1fr) 260px; grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: 4px 12px; padding: 7px; }
+  .gems-viewport .gems-board-wrap { grid-column: 1; grid-row: 1 / -1; }
+  .gems-viewport :is(.gems-board-heading, .gems-objectives, .gems-boosters, .gems-board-actions, .gems-notice) { grid-column: 2; margin: 0; }
+  .gems-viewport .gems-notice { align-self: start; }
+  .gems-viewport .gems-heading { min-height: 28px; }
+  .gems-viewport .gems-heading h1 { font-size: 20px; }
+  .gems-viewport .gems-tabs button { min-height: 30px; }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) { padding: 8px 12px; }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) > .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px 8px; margin-top: 6px; }
+  .game-viewport .rummy-setup-table > .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) > p:first-of-type { display: none; }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) > p { font-size: 9px; }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) h2 { font-size: 22px; }
+  .game-viewport .rummy-practice { display: grid; grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 6px; }
+  .game-viewport .rummy-practice > section[aria-label="Table settings"] { grid-column: 1; grid-row: 1 / -1; }
+  .game-viewport .rummy-practice > .rummy-table { grid-column: 2; grid-row: 1; padding: 6px; }
+  .game-viewport .practice-suggestions-button { grid-column: 2; grid-row: 2; }
+}
+@media (max-height: 400px) and (orientation: landscape) {
+  .game-viewport .game-connection-bar, .game-viewport .spades-mobile-scoreboard { display: none; }
+  .game-viewport .spades-trick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
+  .game-viewport .spades-trick-card { height: min(70px, calc(100cqh - 25px)); width: min(49px, calc((100cqh - 25px) / 1.42)); }
+}
+@media (max-width: 420px) { .rummy-design-grid { gap: 8px; } .rummy-design > div { padding: 8px; } .rummy-design h4 { font-size: 16px; } }
+@media (min-height: 551px) {
+  .game-viewport .table-action-bar > button, .game-viewport .spades-action-bar > button,
+  .game-viewport .spades-live-table > .spades-bid-panel button,
+  .game-viewport .spades-live-table > .spades-bid-panel select,
+  .game-viewport .game-panel > header button { min-height: 44px; }
+}

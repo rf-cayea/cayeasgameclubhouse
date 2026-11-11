@@ -19,7 +19,7 @@ function almostWon(level = 1) {
   return state;
 }
 
-describe('150 complete match-three levels', () => {
+describe('200 complete match-three levels', () => {
   it('opens every level without matches, with real goals, the exact obstacle layers, and a legal swap', () => {
     for (let level = 1; level <= GEMS_LEVEL_COUNT; level++) {
       const state = startGems(level), config = gemsLevel(level);
@@ -176,15 +176,15 @@ describe('saved supplies and monastery restoration', () => {
     expect(gemsClearReward(15)).toEqual({ row: 2, column: 2, burst: 2, shuffle: 1 });
     expect(gemsClearReward(150)).toEqual({ row: 2, column: 2, burst: 3, shuffle: 2 });
   });
-  it('restores ten distinct projects and opens the monastery only after all 150 levels', () => {
+  it('preserves the legacy artwork milestones and advances beyond the old level cap', () => {
     for (let n = 0; n < 150; n++) { expect(monasteryRestoration(n).reopened).toBe(false); expect(monasteryRestoration(n).stage).toBe(Math.floor(n / 15)); }
     expect(monasteryRestoration(15)).toMatchObject({ stage: 1, inProject: 0, project: { name: 'Bodhi Garden' } });
     expect(monasteryRestoration(150)).toMatchObject({ stage: 10, inProject: 15, reopened: true });
     const journey = newGemsJourney(); journey.unlocked = 150; journey.play = almostWon(150);
     journey.stars = Object.fromEntries(Array.from({ length: 149 }, (_, i) => [String(i + 1), 1]));
     const complete = playGemsJourney(journey, { type: 'booster', kind: 'row', target: 0 })!.journey;
-    expect(Object.keys(complete.stars).length).toBe(150); expect(complete.unlocked).toBe(150);
-    expect(enterGemsLevel(complete, 151)).toBeNull(); expect(readGemsJourney(JSON.stringify(complete))).toEqual(complete);
+    expect(Object.keys(complete.stars).length).toBe(150); expect(complete.unlocked).toBe(151);
+    expect(enterGemsLevel(complete, 151)?.play.level).toBe(151); expect(readGemsJourney(JSON.stringify(complete))).toEqual(complete);
   });
   it('recovers from malformed local saves and never loads a partial, impossible board', () => {
     for (const raw of ['{', 'null', '[]', '{}', JSON.stringify({ ...newGemsJourney(), inventory: { row: -2 } }), JSON.stringify({ ...newGemsJourney(), unlocked: 150 })]) expect(readGemsJourney(raw)).toEqual(newGemsJourney());

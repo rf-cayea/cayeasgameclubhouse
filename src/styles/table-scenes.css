@@ -1,0 +1,158 @@
+/* One physical table sits inside a visible room, including its connection controls. */
+:is(.rummy-viewport, .spades-viewport) > main {
+  position: relative;
+  max-width: 1440px;
+  padding: 36px clamp(32px, 11vw, 150px) 30px;
+}
+.table-room-view {
+  position: absolute;
+  inset: 5px 0 auto;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.table-room-view > span {
+  padding: 2px 14px;
+  border: 1px solid #f3d59a66;
+  border-radius: 999px;
+  background: #14231c9c;
+  color: #fff0d2;
+  text-shadow: 0 1px 3px #000;
+  font: 10px/1.6 Georgia, serif;
+  letter-spacing: .13em;
+}
+.table-play-stage, .spades-preview-table {
+  --rail-width: 13px;
+  --rail-color: var(--spades-rail, #79502f);
+  position: relative;
+  isolation: isolate;
+  background: var(--rummy-table-background, var(--spades-table-background, #175644));
+  background-size: var(--table-surface-size, cover);
+  background-position: center;
+  background-clip: padding-box;
+  border: var(--rail-width) solid var(--rail-color);
+  border-radius: 64px / 44px;
+  outline: 1px solid #ebc995aa;
+  outline-offset: -7px;
+  box-shadow: 0 7px 0 #291b13, 0 11px 0 #100e0a, 0 17px 22px #0008,
+    inset 0 0 0 2px #d6be7f99, inset 0 5px 24px #0007;
+}
+.game-viewport .table-play-stage {
+  flex: 1;
+  max-height: 800px;
+  margin-block: auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 22px;
+}
+.table-play-stage::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--rail-width));
+  padding: var(--rail-width);
+  border-radius: inherit;
+  background: repeating-linear-gradient(4deg, #f4d29824 0 1px, #1f100b17 1px 4px),
+    linear-gradient(110deg, #e7be8250, var(--rail-color) 22%, #26170f66 48%, #d8a65c55 76%, var(--rail-color));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+/* Inner game sections share the outer table surface rather than painting another panel. */
+.game-viewport .table-play-stage :is(.rummy-table, .spades-table) {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+.game-viewport .table-play-stage :is(.rummy-table, .spades-table)::before,
+.game-viewport .table-play-stage :is(.rummy-table, .spades-table)::after { content: none; }
+.game-viewport :is(.rummy-setup-grid, .spades-setup-grid) { padding-bottom: 0; }
+.game-viewport .table-play-stage > :is([role="alert"], [role="status"]) { flex-shrink: 0; margin: 2px 0 4px; padding: 4px 8px; font-size: 11px; }
+.game-viewport .rummy-player-list { grid-template-columns: repeat(var(--rummy-seats, 2), minmax(0, 1fr)); }
+.rummy-player-list .clubhouse-player { min-width: 0; }
+.rummy-player-list .clubhouse-player-top > div { min-width: 0; }
+.rummy-player-list .player-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rummy-player-stats { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 5px; }
+.rummy-card-count { color: #fff1c9; font-size: 10px; white-space: nowrap; }
+.rummy-card-count strong { font: 700 21px/1.1 Georgia, serif; font-variant-numeric: tabular-nums; }
+.rummy-player-score { color: #c8d4c5; font-size: 10px; white-space: nowrap; }
+.game-viewport .rummy-player-list .rummy-player-play { min-height: 28px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: normal; text-align: left; color: #edce91; font-size: 10px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; padding-block: 2px; }
+.rummy-player-play:hover, .rummy-player-play:focus-visible { color: white; text-decoration: underline; }
+.rummy-public-plays { display: flex; flex-direction: column; gap: 10px; }
+.rummy-public-plays li { padding: 10px 14px; border-left: 3px solid #d6b477; border-radius: 4px; background: #071c1580; }
+.rummy-public-plays li > strong { display: block; color: #f2dbac; font: 18px Georgia, serif; }
+.rummy-public-plays li > span { font-size: 12px; }
+.rummy-play-cards { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.rummy-play-cards > span { padding: 3px 7px; border: 1px solid #d6b47770; border-radius: 4px; background: #fff5dc; color: #162c25; font-size: 12px; }
+.rummy-owned-meld h3 { margin-bottom: 8px; color: #f2dbac; font: 18px Georgia, serif; }
+.rummy-owned-meld figcaption { max-width: 63px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; text-align: center; font-size: 10px; white-space: nowrap; }
+.spades-preview-room { padding: 64px 32px 40px; }
+.spades-venue-swatch { padding: 24px 14px 16px; }
+.spades-venue-swatch > div { box-shadow: 0 5px 0 #21150d, 0 9px 14px #0008, inset 0 0 0 1px #e8c28e99; }
+@media (max-width: 700px) {
+  .table-play-stage { --rail-width: 9px; border-radius: 36px / 28px; }
+  .game-viewport .table-play-stage { padding: 10px 9px; }
+  .game-viewport .table-panel-buttons { gap: 4px; flex-wrap: wrap; }
+  .game-viewport .table-panel-buttons button { padding-inline: 6px; }
+  .spades-preview-room { padding: 44px 18px 26px; }
+  .spades-preview-table { border-radius: 40px; padding: 22px 12px; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  :is(.rummy-viewport, .spades-viewport) > main { padding: 15px clamp(22px, 5vw, 64px) 20px; }
+  .table-room-view { display: none; }
+  .table-play-stage { --rail-width: 7px; border-radius: 30px / 24px; }
+  .game-viewport .table-play-stage { padding: 6px 12px; }
+  .game-viewport .rummy-live-table > .table-round-bar { grid-column: 1; grid-row: 1; }
+  .game-viewport .rummy-live-table > .table-panel-buttons { grid-column: 2; grid-row: 1; justify-content: flex-end; flex-wrap: nowrap; }
+  .game-viewport .rummy-live-table > .rummy-pile-arena { grid-row: 3 / 5; }
+  .game-viewport .rummy-live-table > .rummy-player-list { grid-column: 1; grid-row: 2; margin: 0; }
+  .game-viewport .rummy-live-table > .game-hand-section { grid-row: 2 / 5; }
+  .game-viewport .rummy-player-list .player-medallion { display: none; }
+  .game-viewport .table-panel-buttons { flex-wrap: wrap; }
+  .game-viewport .table-panel-buttons button { min-height: 28px; padding-inline: 5px; font-size: 9px; }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) > .grid { margin-top: 4px; }
+  .game-viewport :is(.rummy-setup-table, .spades-setup-table) > button { min-height: 36px; margin-top: 6px; }
+  .game-viewport .spades-setup-table > p:last-child { font-size: 8px; margin-top: 4px; }
+}
+@media (max-height: 400px) and (orientation: landscape) {
+  .rummy-live-table .game-hand-section { position: relative; }
+  .game-viewport .rummy-live-table .game-hand-section > div:first-child { flex-wrap: nowrap; padding-right: 68px; }
+  .rummy-live-table .hand-fitted .hand-selection-tools { position: absolute; top: 0; right: 0; display: flex; margin: 0; }
+  .rummy-live-table .hand-fitted .hand-selection-tools > p { display: none; }
+  .rummy-live-table .hand-fitted .hand-selection-tools > button { min-width: 28px; min-height: 28px; padding: 2px 6px; }
+  .rummy-live-table .hand-fitted ol[aria-label="Your hand"] > li { line-height: 0; }
+}
+
+/* Full-screen tables: room scenery has been retired in favor of larger cards. */
+:is(.rummy-viewport, .spades-viewport) { background-image: none; background-color: #10271f; }
+:is(.rummy-viewport, .spades-viewport) > main { max-width: none; padding: 4px; }
+.game-viewport .table-play-stage { --rail-width: 6px; max-height: none; margin: 0; padding: 10px 14px; border-width: 6px; border-radius: 20px; box-shadow: inset 0 0 0 1px #d6be7f99, inset 0 4px 18px #0007; }
+.game-viewport .hand-fitted { --hand-card-width: clamp(60px, 17vw, 104px); }
+.game-viewport .rummy-pile :is(.rummy-stock-card, .card-face-small) { width: 64px; height: 92px; }
+.game-viewport .spades-trick-card { width: min(76px, 17cqh); height: min(108px, 24cqh); }
+.rummy-surface-swatch { height: 155px; background-size: cover; background-position: center; border-bottom: 5px solid #80603b; }
+.spades-preview-room, .spades-venue-swatch { background-image: none; background-color: transparent; padding: 12px; }
+@media (max-height: 700px) {
+  .game-viewport .hand-fitted { --hand-card-width: clamp(58px, 16vw, 88px); }
+  .game-viewport .spades-trick-card { height: min(94px, calc((100cqh - 42px) / 2)); width: min(66px, calc((100cqh - 42px) / 2.84)); }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  :is(.rummy-viewport, .spades-viewport) > main { padding: 2px; }
+  .game-viewport .table-play-stage { --rail-width: 5px; padding: 6px 10px; border-width: 5px; border-radius: 16px; }
+  .game-viewport .hand-fitted { --hand-card-width: 60px; }
+  .game-viewport .rummy-pile :is(.rummy-stock-card, .card-face-small) { width: 50px; height: 72px; }
+}
+@media (max-height: 400px) and (orientation: landscape) {
+  .spades-live-table .game-hand-section { position: relative; }
+  .game-viewport .spades-live-table .game-hand-section > div:first-child { flex-wrap: nowrap; padding-right: 68px; }
+  .spades-live-table .hand-fitted .hand-selection-tools { position: absolute; top: 0; right: 0; display: flex; margin: 0; }
+  .spades-live-table .hand-fitted .hand-selection-tools > p { display: none; }
+  .spades-live-table .hand-fitted .hand-selection-tools > button { min-width: 28px; min-height: 28px; padding: 2px 6px; }
+  .spades-live-table .hand-fitted ol[aria-label="Your hand"] > li { line-height: 0; }
+}

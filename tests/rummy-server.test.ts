@@ -21,6 +21,26 @@ function started(store: RoomStore) {
 }
 
 describe('authoritative rooms', () => {
+  it.each(['classic', 'r500'] as const)('shares %s public actions and live card counts without revealing drawn stock cards', variant => {
+    const store = open();
+    let room = store.command(a, { operation: 'create', name: 'Alice', options: { ...options, variant } }).view;
+    store.command(b, { operation: 'join', code: room.code, name: 'Bob' });
+    room = store.command(b, { operation: 'ready', code: room.code, ready: true }).view;
+    room = store.command(a, { operation: 'start', code: room.code, revision: room.revision }).view;
+    const before = store.get(room.code, b.principal);
+    const drawn = store.command(b, { operation: 'move', code: room.code, revision: room.revision, requestId: randomUUID(), move: { t: 'draw', from: 'stock' } }).view;
+    const peer = store.get(room.code, a.principal);
+    expect(peer.players[1]!.count).toBe(before.hand.length + 1);
+    expect(peer.activity).toEqual([{ id: 1, seat: 1, kind: 'stock', cards: [] }]);
+    expect(peer.hand).toEqual(room.hand);
+    const card = drawn.hand[0]!;
+    const discarded = store.command(b, { operation: 'move', code: room.code, revision: drawn.revision, requestId: randomUUID(), move: { t: 'discard', card } }).view;
+    const updated = store.get(room.code, a.principal);
+    expect(updated.activity).toEqual(discarded.activity);
+    expect(updated.activity!.at(-1)).toEqual({ id: 2, seat: 1, kind: 'discard', cards: [card] });
+    expect(updated.players[1]!.count).toBe(before.hand.length);
+    expect(updated.revealedHands).toBeNull();
+  });
   it('fills a ready lobby and keeps stock and other hands private', () => {
     const store = open();
     const room = started(store);
@@ -65,7 +85,7 @@ describe('authoritative rooms', () => {
     const second = new RoomStore(path);
     try {
       expect(second.get(room.code, a.principal)).toEqual(room);
-      expect(() => second.command(a, { operation: 'create', name: 'Alice', options: { ...options, jokers: true } })).toThrow('800');
+      expect(() => second.command(a, { operation: 'create', name: 'Alice', options: { ...options, jokers: true } })).toThrow('500');
     } finally { second.close(); rmSync(directory, { recursive: true }); }
   });
   it('reassigns a waiting host and ends active games on leaving without declaring a winner', () => {

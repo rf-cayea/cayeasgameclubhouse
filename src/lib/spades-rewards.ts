@@ -1,5 +1,6 @@
+import { validCardRewardAmount } from './reward-rates';
 import { memberId, type RewardTier } from './rummy-rewards';
-import { SPADES_POINTS, unitFor, type SpadesState } from './spades';
+import { unitFor, type SpadesState } from './spades';
 import type { Level } from './rummy';
 export interface SpadesRewardPlayer { user_id: string | null; bot: boolean; level: Level | null }
 export interface SpadesMatchReward {
@@ -24,7 +25,7 @@ export function spadesMatchReward(state: SpadesState, mode: 'bot' | 'online', me
 }
 export function validSpadesReceipt(result: SpadesMatchReward, receipt: SpadesReceipt): boolean {
   const tier = spadesRewardTier(result.mode, result.players);
-  return Boolean(tier && receipt && receipt.match_id === result.match_id && receipt.tier === tier && receipt.amount === SPADES_POINTS[tier] &&
+  return Boolean(tier && receipt && receipt.match_id === result.match_id && receipt.tier === tier && validCardRewardAmount(tier, receipt.amount) &&
     receipt.source === `spades:win:${result.match_id}` && typeof receipt.already_credited === 'boolean' && Array.isArray(receipt.user_ids) &&
     [...receipt.user_ids].sort().join(',') === spadesWinners(result).join(','));
 }

@@ -10,19 +10,39 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ClubhouseRouteImport } from './routes/clubhouse'
+import { Route as CollectiblesRouteImport } from './routes/collectibles'
 import { Route as FriendsRouteImport } from './routes/friends'
+import { Route as MatchmakingRouteImport } from './routes/matchmaking'
 import { Route as ModerationRouteImport } from './routes/moderation'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RewardsRouteImport } from './routes/rewards'
 import { Route as StoreRouteImport } from './routes/store'
+import { Route as AuthConfirmRouteImport } from './routes/auth_.confirm'
+import { Route as AuthResetRouteImport } from './routes/auth_.reset'
 import { Route as Games3GemsRouteImport } from './routes/games.3-gems'
+import { Route as GamesBackgammonRouteImport } from './routes/games.backgammon'
+import { Route as GamesCarromRouteImport } from './routes/games.carrom'
+import { Route as GamesCrownCourtRouteImport } from './routes/games.crown-court'
+import { Route as GamesDominoesRouteImport } from './routes/games.dominoes'
 import { Route as GamesFaith3RouteImport } from './routes/games.faith-3'
+import { Route as GamesFarkleRouteImport } from './routes/games.farkle'
+import { Route as GamesFiveDiceRouteImport } from './routes/games.five-dice'
+import { Route as GamesQuintseeRouteImport } from './routes/games.quintsee'
 import { Route as GamesRummyRouteImport } from './routes/games.rummy'
 import { Route as GamesSpadesRouteImport } from './routes/games.spades'
+import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -35,9 +55,19 @@ const ClubhouseRoute = ClubhouseRouteImport.update({
   path: '/clubhouse',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CollectiblesRoute = CollectiblesRouteImport.update({
+  id: '/collectibles',
+  path: '/collectibles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FriendsRoute = FriendsRouteImport.update({
   id: '/friends',
   path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchmakingRoute = MatchmakingRouteImport.update({
+  id: '/matchmaking',
+  path: '/matchmaking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModerationRoute = ModerationRouteImport.update({
@@ -45,9 +75,29 @@ const ModerationRoute = ModerationRouteImport.update({
   path: '/moderation',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RewardsRoute = RewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/auth_/confirm',
+  path: '/auth/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetRoute = AuthResetRouteImport.update({
+  id: '/auth_/reset',
+  path: '/auth/reset',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Games3GemsRoute = Games3GemsRouteImport.update({
@@ -55,9 +105,44 @@ const Games3GemsRoute = Games3GemsRouteImport.update({
   path: '/games/3-gems',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesBackgammonRoute = GamesBackgammonRouteImport.update({
+  id: '/games/backgammon',
+  path: '/games/backgammon',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesCarromRoute = GamesCarromRouteImport.update({
+  id: '/games/carrom',
+  path: '/games/carrom',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesCrownCourtRoute = GamesCrownCourtRouteImport.update({
+  id: '/games/crown-court',
+  path: '/games/crown-court',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesDominoesRoute = GamesDominoesRouteImport.update({
+  id: '/games/dominoes',
+  path: '/games/dominoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesFaith3Route = GamesFaith3RouteImport.update({
   id: '/games/faith-3',
   path: '/games/faith-3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesFarkleRoute = GamesFarkleRouteImport.update({
+  id: '/games/farkle',
+  path: '/games/farkle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesFiveDiceRoute = GamesFiveDiceRouteImport.update({
+  id: '/games/five-dice',
+  path: '/games/five-dice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesQuintseeRoute = GamesQuintseeRouteImport.update({
+  id: '/games/quintsee',
+  path: '/games/quintsee',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesRummyRoute = GamesRummyRouteImport.update({
@@ -70,94 +155,204 @@ const GamesSpadesRoute = GamesSpadesRouteImport.update({
   path: '/games/spades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
+  id: '/players/$playerId',
+  path: '/players/$playerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/clubhouse': typeof ClubhouseRoute
+  '/collectibles': typeof CollectiblesRoute
   '/friends': typeof FriendsRoute
+  '/matchmaking': typeof MatchmakingRoute
   '/moderation': typeof ModerationRoute
+  '/profile': typeof ProfileRoute
+  '/rewards': typeof RewardsRoute
   '/store': typeof StoreRoute
+  '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/reset': typeof AuthResetRoute
   '/games/3-gems': typeof Games3GemsRoute
+  '/games/backgammon': typeof GamesBackgammonRoute
+  '/games/carrom': typeof GamesCarromRoute
+  '/games/crown-court': typeof GamesCrownCourtRoute
+  '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
+  '/games/farkle': typeof GamesFarkleRoute
+  '/games/five-dice': typeof GamesFiveDiceRoute
+  '/games/quintsee': typeof GamesQuintseeRoute
   '/games/rummy': typeof GamesRummyRoute
   '/games/spades': typeof GamesSpadesRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/clubhouse': typeof ClubhouseRoute
+  '/collectibles': typeof CollectiblesRoute
   '/friends': typeof FriendsRoute
+  '/matchmaking': typeof MatchmakingRoute
   '/moderation': typeof ModerationRoute
+  '/profile': typeof ProfileRoute
+  '/rewards': typeof RewardsRoute
   '/store': typeof StoreRoute
+  '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/reset': typeof AuthResetRoute
   '/games/3-gems': typeof Games3GemsRoute
+  '/games/backgammon': typeof GamesBackgammonRoute
+  '/games/carrom': typeof GamesCarromRoute
+  '/games/crown-court': typeof GamesCrownCourtRoute
+  '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
+  '/games/farkle': typeof GamesFarkleRoute
+  '/games/five-dice': typeof GamesFiveDiceRoute
+  '/games/quintsee': typeof GamesQuintseeRoute
   '/games/rummy': typeof GamesRummyRoute
   '/games/spades': typeof GamesSpadesRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/clubhouse': typeof ClubhouseRoute
+  '/collectibles': typeof CollectiblesRoute
   '/friends': typeof FriendsRoute
+  '/matchmaking': typeof MatchmakingRoute
   '/moderation': typeof ModerationRoute
+  '/profile': typeof ProfileRoute
+  '/rewards': typeof RewardsRoute
   '/store': typeof StoreRoute
+  '/auth_/confirm': typeof AuthConfirmRoute
+  '/auth_/reset': typeof AuthResetRoute
   '/games/3-gems': typeof Games3GemsRoute
+  '/games/backgammon': typeof GamesBackgammonRoute
+  '/games/carrom': typeof GamesCarromRoute
+  '/games/crown-court': typeof GamesCrownCourtRoute
+  '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
+  '/games/farkle': typeof GamesFarkleRoute
+  '/games/five-dice': typeof GamesFiveDiceRoute
+  '/games/quintsee': typeof GamesQuintseeRoute
   '/games/rummy': typeof GamesRummyRoute
   '/games/spades': typeof GamesSpadesRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/auth'
     | '/clubhouse'
+    | '/collectibles'
     | '/friends'
+    | '/matchmaking'
     | '/moderation'
+    | '/profile'
+    | '/rewards'
     | '/store'
+    | '/auth/confirm'
+    | '/auth/reset'
     | '/games/3-gems'
+    | '/games/backgammon'
+    | '/games/carrom'
+    | '/games/crown-court'
+    | '/games/dominoes'
     | '/games/faith-3'
+    | '/games/farkle'
+    | '/games/five-dice'
+    | '/games/quintsee'
     | '/games/rummy'
     | '/games/spades'
+    | '/players/$playerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth'
     | '/clubhouse'
+    | '/collectibles'
     | '/friends'
+    | '/matchmaking'
     | '/moderation'
+    | '/profile'
+    | '/rewards'
     | '/store'
+    | '/auth/confirm'
+    | '/auth/reset'
     | '/games/3-gems'
+    | '/games/backgammon'
+    | '/games/carrom'
+    | '/games/crown-court'
+    | '/games/dominoes'
     | '/games/faith-3'
+    | '/games/farkle'
+    | '/games/five-dice'
+    | '/games/quintsee'
     | '/games/rummy'
     | '/games/spades'
+    | '/players/$playerId'
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/auth'
     | '/clubhouse'
+    | '/collectibles'
     | '/friends'
+    | '/matchmaking'
     | '/moderation'
+    | '/profile'
+    | '/rewards'
     | '/store'
+    | '/auth_/confirm'
+    | '/auth_/reset'
     | '/games/3-gems'
+    | '/games/backgammon'
+    | '/games/carrom'
+    | '/games/crown-court'
+    | '/games/dominoes'
     | '/games/faith-3'
+    | '/games/farkle'
+    | '/games/five-dice'
+    | '/games/quintsee'
     | '/games/rummy'
     | '/games/spades'
+    | '/players/$playerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   ClubhouseRoute: typeof ClubhouseRoute
+  CollectiblesRoute: typeof CollectiblesRoute
   FriendsRoute: typeof FriendsRoute
+  MatchmakingRoute: typeof MatchmakingRoute
   ModerationRoute: typeof ModerationRoute
+  ProfileRoute: typeof ProfileRoute
+  RewardsRoute: typeof RewardsRoute
   StoreRoute: typeof StoreRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
+  AuthResetRoute: typeof AuthResetRoute
   Games3GemsRoute: typeof Games3GemsRoute
+  GamesBackgammonRoute: typeof GamesBackgammonRoute
+  GamesCarromRoute: typeof GamesCarromRoute
+  GamesCrownCourtRoute: typeof GamesCrownCourtRoute
+  GamesDominoesRoute: typeof GamesDominoesRoute
   GamesFaith3Route: typeof GamesFaith3Route
+  GamesFarkleRoute: typeof GamesFarkleRoute
+  GamesFiveDiceRoute: typeof GamesFiveDiceRoute
+  GamesQuintseeRoute: typeof GamesQuintseeRoute
   GamesRummyRoute: typeof GamesRummyRoute
   GamesSpadesRoute: typeof GamesSpadesRoute
+  PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -167,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -183,11 +385,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClubhouseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collectibles': {
+      id: '/collectibles'
+      path: '/collectibles'
+      fullPath: '/collectibles'
+      preLoaderRoute: typeof CollectiblesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/friends': {
       id: '/friends'
       path: '/friends'
       fullPath: '/friends'
       preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matchmaking': {
+      id: '/matchmaking'
+      path: '/matchmaking'
+      fullPath: '/matchmaking'
+      preLoaderRoute: typeof MatchmakingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/moderation': {
@@ -197,11 +413,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModerationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rewards': {
+      id: '/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof RewardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/store': {
       id: '/store'
       path: '/store'
       fullPath: '/store'
       preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth_/confirm': {
+      id: '/auth_/confirm'
+      path: '/auth/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth_/reset': {
+      id: '/auth_/reset'
+      path: '/auth/reset'
+      fullPath: '/auth/reset'
+      preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/3-gems': {
@@ -211,11 +455,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Games3GemsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/backgammon': {
+      id: '/games/backgammon'
+      path: '/games/backgammon'
+      fullPath: '/games/backgammon'
+      preLoaderRoute: typeof GamesBackgammonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/carrom': {
+      id: '/games/carrom'
+      path: '/games/carrom'
+      fullPath: '/games/carrom'
+      preLoaderRoute: typeof GamesCarromRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/crown-court': {
+      id: '/games/crown-court'
+      path: '/games/crown-court'
+      fullPath: '/games/crown-court'
+      preLoaderRoute: typeof GamesCrownCourtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/dominoes': {
+      id: '/games/dominoes'
+      path: '/games/dominoes'
+      fullPath: '/games/dominoes'
+      preLoaderRoute: typeof GamesDominoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/faith-3': {
       id: '/games/faith-3'
       path: '/games/faith-3'
       fullPath: '/games/faith-3'
       preLoaderRoute: typeof GamesFaith3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/farkle': {
+      id: '/games/farkle'
+      path: '/games/farkle'
+      fullPath: '/games/farkle'
+      preLoaderRoute: typeof GamesFarkleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/five-dice': {
+      id: '/games/five-dice'
+      path: '/games/five-dice'
+      fullPath: '/games/five-dice'
+      preLoaderRoute: typeof GamesFiveDiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/quintsee': {
+      id: '/games/quintsee'
+      path: '/games/quintsee'
+      fullPath: '/games/quintsee'
+      preLoaderRoute: typeof GamesQuintseeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/rummy': {
@@ -232,20 +525,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesSpadesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/players/$playerId': {
+      id: '/players/$playerId'
+      path: '/players/$playerId'
+      fullPath: '/players/$playerId'
+      preLoaderRoute: typeof PlayersPlayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   ClubhouseRoute: ClubhouseRoute,
+  CollectiblesRoute: CollectiblesRoute,
   FriendsRoute: FriendsRoute,
+  MatchmakingRoute: MatchmakingRoute,
   ModerationRoute: ModerationRoute,
+  ProfileRoute: ProfileRoute,
+  RewardsRoute: RewardsRoute,
   StoreRoute: StoreRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
+  AuthResetRoute: AuthResetRoute,
   Games3GemsRoute: Games3GemsRoute,
+  GamesBackgammonRoute: GamesBackgammonRoute,
+  GamesCarromRoute: GamesCarromRoute,
+  GamesCrownCourtRoute: GamesCrownCourtRoute,
+  GamesDominoesRoute: GamesDominoesRoute,
   GamesFaith3Route: GamesFaith3Route,
+  GamesFarkleRoute: GamesFarkleRoute,
+  GamesFiveDiceRoute: GamesFiveDiceRoute,
+  GamesQuintseeRoute: GamesQuintseeRoute,
   GamesRummyRoute: GamesRummyRoute,
   GamesSpadesRoute: GamesSpadesRoute,
+  PlayersPlayerIdRoute: PlayersPlayerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

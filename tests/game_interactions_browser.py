@@ -25,10 +25,10 @@ with sync_playwright() as p:
 
     # Calling native click in one JS turn reproduces multiple discrete inputs
     # queued before the UI commits. A captured state loses all but the last pick.
-    page.evaluate('''() => {
+    page.evaluate(r'''() => {
       const buttons = [...document.querySelectorAll('button[aria-label^="Pick "]')];
-      const symbol = buttons[0].textContent;
-      for (const button of buttons.filter(tile => tile.textContent === symbol).slice(0, 3)) button.click();
+      const symbol = buttons[0].getAttribute('aria-label').replace(/ tile \d+$/, '');
+      for (const button of buttons.filter(tile => tile.getAttribute('aria-label').replace(/ tile \d+$/, '') === symbol).slice(0, 3)) button.click();
     }''')
     expect(tiles).to_have_count(15)
     expect(page.get_by_text('15 tiles left · 1 triples matched', exact=True)).to_be_visible()
@@ -36,7 +36,7 @@ with sync_playwright() as p:
 
     page.get_by_role('button', name='Restart level', exact=True).click()
     expect(tiles).to_have_count(18)
-    page.evaluate('''() => {
+    page.evaluate(r'''() => {
       const tile = document.querySelector('button[aria-label^="Pick "]');
       tile.click(); tile.click(); tile.click();
     }''')
@@ -45,9 +45,9 @@ with sync_playwright() as p:
 
     page.get_by_role('button', name='Restart level', exact=True).click()
     expect(tiles).to_have_count(18)
-    page.evaluate('''() => {
+    page.evaluate(r'''() => {
       const tiles = [...document.querySelectorAll('button[aria-label^="Pick "]')];
-      tiles.sort((a, b) => a.textContent.localeCompare(b.textContent));
+      tiles.sort((a, b) => a.getAttribute('aria-label').replace(/ tile \d+$/, '').localeCompare(b.getAttribute('aria-label').replace(/ tile \d+$/, '')));
       for (const tile of tiles) tile.click();
     }''')
     expect(tiles).to_have_count(0)
@@ -55,14 +55,14 @@ with sync_playwright() as p:
 
     page.get_by_role('button', name='Restart level', exact=True).click()
     expect(tiles).to_have_count(18)
-    page.evaluate('''() => {
+    page.evaluate(r'''() => {
       const button = [...document.querySelectorAll('button')].find(button => button.textContent.startsWith('Shuffle ·'));
       button.click(); button.click(); button.click();
     }''')
     expect(page.get_by_role('button', name='Shuffle · 0 left', exact=True)).to_be_disabled()
     expect(tiles).to_have_count(18)
 
-    page.evaluate('''() => {
+    page.evaluate(r'''() => {
       const button = [...document.querySelectorAll('button')].find(button => button.textContent === 'Next level');
       button.click(); button.click();
     }''')

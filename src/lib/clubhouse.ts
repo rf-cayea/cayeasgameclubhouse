@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { CONVERSION_RATE, puzzleLevelPoints, type EconomyWallet } from "./economy-protocol";
+export { ACHIEVEMENTS as BADGES } from "./achievement-catalog";
 
 export const HUB_NAME = "Cayea's Game Clubhouse";
 
-/** Points for clearing a Faith 3 level the first time. Grows every 20 levels. */
-export const levelPoints = (level: number) => 5 + Math.floor(level / 20);
-/** Points for claiming an in-game Faith 3 milestone. */
-export const MILESTONE_POINTS = 25;
+/** The shared server reward schedule also drives the displayed first-clear reward. */
+export const levelPoints = (level: number) => puzzleLevelPoints('faith-3', level);
 
 export interface Game {
   slug: string;
@@ -17,77 +17,19 @@ export interface Game {
 }
 
 export const GAMES: Game[] = [
+ {slug:"carrom",name:"Clubhouse Carrom & Disc Pool",tagline:"Slide your striker. Pull back to aim. Pocket your color with touch controls, bank shots, three computer difficulties or online rivals.",status:"live",icon:"◉"},
+  {slug:"backgammon",name:"Clubhouse Backgammon",tagline:"Smart moves, doubling cube, Crawford matches and Nackgammon. Collect boards and engraved checkers.",status:"live",icon:"◈"},
+  { slug: "crown-court", name: "Crown & Court", tagline: "A Clubhouse Original. Five poker dice, three match lengths, and a royal scorecard. Roll 9, 10, J, Q, K, A.", status: "live", icon: "♛" },
+  { slug: "farkle", name: "Farkle", tagline: "Six dice. Smart scoring. Bank your points or risk a Farkle. Three computer difficulties and online tables for 2–4.", status: "live", icon: "⚅" },
+  { slug: "dominoes", name: "Clubhouse Dominoes", tagline: "Draw, Block and Muggins. Three computer difficulties or private online matches for two.", status: "live", icon: "▣" },
+  { slug: "five-dice", name: "Quintsee", tagline: "Three computer difficulties, free two-player online tables, and unlockable three- or four-player party tables.", status: "live", icon: "🎲" },
   { slug: "faith-3", name: "Faith 3 Tile Match", tagline: "280 levels across ten world beliefs, including 80 mahjong-style layouts.", status: "live", icon: "🕊" },
   { slug: "rummy", name: "Cayea's Classic Cards Rummy+", tagline: "Classic, Gin and Rummy 500 — vs computer, online, or on one device.", status: "live", icon: "🃏" },
   { slug: "spades", name: "Cayea’s Classic Cards Spades", tagline: "Four players. Solo rivals or 2 vs 2 partners. Bid, play, and collect your own table and deck.", status: "live", icon: "♠" },
-  { slug: "3-gems", name: "3 Gems of Buddhism", tagline: "150 match-three levels. Create special gems, earn boosters, and restore a temple to reopen the monastery.", status: "live", icon: "🪷" },
+  { slug: "3-gems", name: "3 Gems of Buddhism", tagline: "200 match-three levels. Restore four monasteries, 50 levels each.", status: "live", icon: "🪷" },
 ];
 
-export interface Wallet {
-  points: number;
-  f3_points: number;
-  rummy_points: number;
-  spades_points?: number;
-  lifetime_points: number;
-  owned: string[];
-  equipped: Record<string, string>;
-  pending_perks: Record<string, number>;
-}
-
-export interface HubStats {
-  lifetime: number;
-  cosmetics: number;
-  f3Levels: number;
-  f3Milestones: number;
-  rummyWins: number;
-  rummyHumanWins: number;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  desc: string;
-  stat: keyof HubStats;
-  goal: number;
-  points: number;
-}
-
-export const BADGES: Badge[] = [
-  { id: "first-points", name: "Welcome In", desc: "Earn your first points in any game", stat: "lifetime", goal: 10, points: 10 },
-  { id: "pts-500", name: "Regular", desc: "Earn 500 lifetime points", stat: "lifetime", goal: 500, points: 50 },
-  { id: "pts-2000", name: "Clubhouse Legend", desc: "Earn 2,000 lifetime points", stat: "lifetime", goal: 2000, points: 150 },
-  { id: "style-1", name: "New Look", desc: "Own 1 cosmetic", stat: "cosmetics", goal: 1, points: 25 },
-  { id: "style-3", name: "Collector", desc: "Own 3 cosmetics", stat: "cosmetics", goal: 3, points: 75 },
-  { id: "f3-10", name: "Pilgrim", desc: "Clear 10 Faith 3 levels", stat: "f3Levels", goal: 10, points: 50 },
-  { id: "f3-50", name: "Devoted", desc: "Clear 50 Faith 3 levels", stat: "f3Levels", goal: 50, points: 150 },
-  { id: "f3-200", name: "Enlightened", desc: "Clear the original 200 Faith 3 levels", stat: "f3Levels", goal: 200, points: 500 },
-  { id: "f3-ms-5", name: "Milestone Hunter", desc: "Claim 5 Faith 3 milestones", stat: "f3Milestones", goal: 5, points: 75 },
-  { id: "rummy-100", name: "Rummy+ Centurion", desc: "Win 100 verified Rummy+ games", stat: "rummyWins", goal: 100, points: 500 },
-  ...[
-    [1, 5, "First Rival"], [3, 7, "Table Challenger"], [5, 10, "Friendly Competition"],
-    [10, 15, "Rising Rival"], [15, 20, "Table Regular"], [25, 25, "Seasoned Competitor"],
-    [40, 35, "Card Contender"], [60, 45, "Table Champion"], [80, 55, "Rival Master"],
-    [100, 70, "Multiplayer Centurion"], [150, 90, "Clubhouse All-Star"], [200, 120, "Rummy+ Rival Legend"],
-  ].map(([goal, points, name]): Badge => ({
-    id: `rummy-pvp-${goal}`,
-    name: String(name),
-    desc: `Win ${goal} online Rummy+ ${goal === 1 ? "game" : "games"} against real players`,
-    stat: "rummyHumanWins",
-    goal: Number(goal),
-    points: Number(points),
-  })),
-];
-
-export function hubStats(w: Wallet | null, sources: string[], cosmeticIds: string[], humanWinSources: string[] = []): HubStats {
-  return {
-    lifetime: w?.lifetime_points ?? 0,
-    cosmetics: (w?.owned ?? []).filter((id) => cosmeticIds.includes(id)).length,
-    f3Levels: sources.filter((s) => s.startsWith("faith3:level:")).length,
-    f3Milestones: sources.filter((s) => s.startsWith("faith3:ms:")).length,
-    rummyWins: sources.filter((s) => s.startsWith("rummy:win:")).length,
-    rummyHumanWins: new Set(humanWinSources.filter((s) => s.startsWith("rummy:win:") && sources.includes(s))).size,
-  };
-}
+export type Wallet = EconomyWallet;
 
 export const SKIN_SLOT = "faith3_skin";
 /** Owned forever: unlimited Shuffles in Faith 3 (server allows it when verifying wins). */
@@ -96,30 +38,21 @@ export const INFINITY_SHUFFLE = "f3-infinity-shuffle";
 const EVT = "clubhouse-wallet";
 /** Each game's own points. They buy only that game's items, or convert to Clubhouse Cash. */
 export const GAME_POINTS = {
+  dominoes: { name: "Dominoes points", short: "Domino pts", icon: "▣", key: "domino_points" },
+  "3-gems": { name: "3 Gems points", short: "Gems pts", icon: "🪷", key: "gems_points" },
   "faith-3": { name: "Faith 3 points", short: "F3 pts", icon: "🙏", key: "f3_points" },
   rummy: { name: "Rummy+ points", short: "Rummy pts", icon: "🃏", key: "rummy_points" },
+  "five-dice": { name: "Shared Dice points (Quintsee, Farkle, Crown & Court, Backgammon, Carrom)", short: "Dice pts", icon: "⚄", key: "dice_points" },
   spades: { name: "Spades points", short: "Spades pts", icon: "♠", key: "spades_points" },
 } as const;
 export type PointGame = keyof typeof GAME_POINTS;
-/** Conversion: every 10 game points become 7 Clubhouse Cash (you keep 70%). */
-export const CASH_PER_10 = 7;
-export const cashFor = (gamePoints: number) => Math.floor(gamePoints / 10) * CASH_PER_10;
+/** One Clubhouse Cash is worth 30% more than one game point. */
+export const cashFor = (gamePoints: number) => Math.floor(gamePoints / CONVERSION_RATE.points) * CONVERSION_RATE.cash;
 export const notifyWallet = () => {
   window.dispatchEvent(new Event(EVT));
   try { localStorage.setItem('clubhouse-wallet-refresh', crypto.randomUUID()); } catch { /* Cross-tab refresh is optional in private browsing. */ }
 };
 
-export async function awardPoints(source: string, amount: number) {
-  if (!supabase) return false;
-  try {
-    const { error } = await supabase.rpc("award_points", { _source: source, _amount: amount });
-    if (error) return false;
-    notifyWallet();
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 type ClubhouseUser = { id: string; email?: string | undefined };
 
@@ -176,22 +109,14 @@ export function useClubhouse() {
       currentUserId.current = verifiedUser.id;
       setUser(verifiedUser);
 
-      const [walletResult, awardsResult] = await Promise.all([
-        client.from("wallets")
-          .select("points, f3_points, rummy_points, spades_points, lifetime_points, owned, equipped, pending_perks")
-          .eq("user_id", verifiedUser.id).maybeSingle(),
-        client.from("point_awards").select("source, rummy_tier").eq("user_id", verifiedUser.id),
-      ]);
+      const response = await fetch('/api/economy', { credentials: 'same-origin', headers: { Authorization: `Bearer ${session.session.access_token}` }, signal: AbortSignal.timeout(15000) });
+      const result = await response.json();
       if (!active()) return;
-      if (walletResult.error) throw walletResult.error;
-      if (awardsResult.error) throw awardsResult.error;
-      setWallet((walletResult.data as Wallet | null) ?? {
-        points: 0, f3_points: 0, rummy_points: 0, spades_points: 0, lifetime_points: 0,
-        owned: [], equipped: {}, pending_perks: {},
-      });
-      const awards = (awardsResult.data ?? []) as { source: string; rummy_tier: string | null }[];
-      setSources(awards.map((row) => row.source));
-      setHumanWinSources(awards.filter((row) => row.rummy_tier === "humans").map((row) => row.source));
+      if (!response.ok) throw new Error(typeof result?.error === 'string' ? result.error : 'Your reward wallet could not load. Please retry.');
+      if (!result?.wallet || !Array.isArray(result.sources) || !Array.isArray(result.humanWinSources)) throw new Error('The reward wallet response could not be verified.');
+      setWallet(result.wallet as Wallet);
+      setSources(result.sources);
+      setHumanWinSources(result.humanWinSources);
     } catch (cause) {
       if (!active()) return;
       currentUserId.current = verifiedUser?.id ?? null;
@@ -247,5 +172,10 @@ export function useClubhouse() {
     };
   }, [clearWallet, load]);
 
-  return { user, ready, wallet, sources, humanWinSources, reload: load, error };
+  const applyWallet = useCallback((ownerId: string, confirmed: Wallet) => {
+    if (!mounted.current || currentUserId.current !== ownerId) return;
+    ++request.current; // An older refresh must not overwrite a confirmed mutation.
+    setWallet(confirmed); setError(null); setReady(true);
+  }, []);
+  return { user, ready, wallet, sources, humanWinSources, reload: load, applyWallet, error };
 }

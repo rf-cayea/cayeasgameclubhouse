@@ -1,0 +1,12 @@
+.nautical-bundle { margin:14px 0; padding:16px; border:1px solid #81c6ca77; border-radius:14px; background:radial-gradient(ellipse at top right,#176c7b55,transparent 70%),#102f3b; color:#eaf5ed; }
+.nautical-bundle h3 { font:26px Georgia,serif; color:#ffe1a4; margin:4px 0 8px; }
+.nautical-bundle p { font-size:12px; line-height:1.6; }
+.nautical-bundle .nautical-eyebrow { color:#8edce0; font-size:9px; letter-spacing:.18em; }
+.nautical-bundle-previews { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:16px 0; }
+.nautical-bundle-previews>div { min-width:0; text-align:center; }
+.nautical-bundle-previews>div>div { height:90px; display:flex; justify-content:center; }
+.nautical-bundle-previews svg { height:100%; max-width:100%; }
+.nautical-bundle-previews span { display:block; margin-top:8px; color:#f5deb0; font-size:11px; }
+.nautical-bundle .nautical-note { font-size:10px; color:#b3ced0; margin-top:12px; }
+.nautical-bundle>button { margin-top:12px; font-size:12px; }
+@media(max-width:440px){.nautical-bundle{padding:12px}.nautical-bundle-previews{gap:6px}.nautical-bundle-previews>div>div{height:68px}.nautical-bundle-previews span{font-size:9px}}

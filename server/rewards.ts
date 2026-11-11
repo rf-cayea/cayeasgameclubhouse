@@ -1,5 +1,5 @@
+import { validCardRewardAmount } from '../src/lib/reward-rates';
 import { createClient } from '@supabase/supabase-js';
-import { WIN_POINTS } from '../src/lib/rummy';
 import { rewardTier, type MatchReward, type RewardReceipt } from '../src/lib/rummy-rewards';
 import type { RoomStore } from './rooms';
 
@@ -25,7 +25,7 @@ export function supabaseRewardWriter(): RewardWriter {
 export function validReceipt(result: MatchReward, receipt: RewardReceipt): boolean {
   const tier = rewardTier(result.mode, result.participants);
   return Boolean(tier && receipt && receipt.match_id === result.match_id && receipt.user_id === result.participants[result.winner_index]?.user_id &&
-    receipt.tier === tier && receipt.amount === WIN_POINTS[tier] && receipt.source === `rummy:win:${result.match_id}` && typeof receipt.already_credited === 'boolean');
+    receipt.tier === tier && validCardRewardAmount(tier, receipt.amount) && receipt.source === `rummy:win:${result.match_id}` && typeof receipt.already_credited === 'boolean');
 }
 
 /** A leased outbox survives process restarts and ambiguous network responses. */

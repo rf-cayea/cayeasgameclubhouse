@@ -1,0 +1,1 @@
+ALTER TABLE `gems_monastery` ADD `workshop` text DEFAULT '{}' NOT NULL;

@@ -1,3 +1,6 @@
+import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
+import { validCardRewardAmount } from '../src/lib/reward-rates';
+import { canonicalDeckId, ownsPlayingDeck } from '../src/lib/playing-decks';
 import type { DatabaseSync } from 'node:sqlite';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { containsProfanity } from '../src/lib/moderation';
@@ -12,7 +15,7 @@ import { ownsSpadesPartnerships, SPADES_PARTNERSHIPS } from '../src/lib/spades-p
 
 const rand = () => randomInt(0, 0x100000000) / 0x100000000;
 interface Member { id: string; principal: string; name: string; seat: number; ready: boolean }
-interface Room { code: string; matchId: string; owner: string; options: SpadesOptions; members: Member[]; state: SpadesState | null; revision: number; status: SpadesRoomView['status'] }
+interface Room { cratePolicy?:number; presentation?:ComputerStates<SpadesState>; code: string; matchId: string; owner: string; options: SpadesOptions; members: Member[]; state: SpadesState | null; revision: number; status: SpadesRoomView['status'] }
 const nameFor = (input: unknown) => {
   if (typeof input !== 'string') throw new RummyError('Enter a friendly name.');
   const name = input.normalize('NFKC').trim().replace(/\s+/g, ' ');
@@ -21,26 +24,28 @@ const nameFor = (input: unknown) => {
 };
 function settings(input: unknown): SpadesOptions {
   if (!input || typeof input !== 'object') throw new RummyError('Choose table settings.');
-  const value = input as SpadesOptions;
+  const raw = input as SpadesOptions;
+  const value = { ...raw, deck: typeof raw.deck === 'string' ? canonicalDeckId(raw.deck) : raw.deck };
   if (!['bot', 'online'].includes(value.mode) || !['solo', 'teams'].includes(value.variant) || !SPADES_TARGETS.includes(value.target as 500) ||
     !['easy', 'normal', 'hard'].includes(value.level) || !Number.isInteger(value.humans) || value.humans < 2 || value.humans > 4 ||
     ![CLASSIC_VENUE, ...SPADES_VENUES].some(item => item.id === value.table) || ![CLASSIC_DECK, ...SPADES_DECKS].some(item => item.id === value.deck)) throw new RummyError('Invalid Spades settings.');
   return { mode: value.mode, variant: value.variant, target: value.target, humans: value.humans, level: value.level, table: value.table, deck: value.deck };
 }
 function checkLook(identity: Identity, options: SpadesOptions) {
-  for (const id of [options.table, options.deck]) if (![CLASSIC_VENUE.id, CLASSIC_DECK.id].includes(id) && !identity.owned?.includes(id)) throw new RummyError('Collect this Spades design in the store before using it at a table.', 403);
+  for (const id of [options.table, options.deck]) if (![CLASSIC_VENUE.id, CLASSIC_DECK.id].includes(id) && !(id === options.deck ? ownsPlayingDeck(identity.owned ?? [], id) : identity.owned?.includes(id))) throw new RummyError('Collect this Spades design in the store before using it at a table.', 403);
 }
 export function checkSpadesPartnershipAccess(identity: Identity, variant: SpadesOptions['variant']) {
   if (variant === 'teams' && (!memberId(identity.principal) || !ownsSpadesPartnerships(identity.owned))) {
     throw new RummyError(`Unlock ${SPADES_PARTNERSHIPS.name} in the Store for ${SPADES_PARTNERSHIPS.price} Spades points first. Every human player needs this permanent unlock.`, 403, 'partnerships_locked');
   }
 }
-function pump(state: SpadesState) {
+function pump(state: SpadesState,frames:SpadesState[]) {
+  frames.push(state);
   for (let count = 0; count < 12 && ['bid', 'play'].includes(state.phase) && state.players[state.turn]!.bot; count++) {
     const move = spadesBotMove(state, state.turn, state.players[state.turn]!.level, rand);
     const next = move && applySpadesMove(state, state.turn, move, rand);
     if (!next) throw new Error('Spades computer could not choose a legal move.');
-    state = next;
+    state = next;frames.push(state);
   }
   if (['bid', 'play'].includes(state.phase) && state.players[state.turn]!.bot) throw new Error('Spades computer turn exceeded its limit.');
   return state;
@@ -57,6 +62,11 @@ export class SpadesRoomStore {
     if (!row) throw new RummyError('Spades room not found.', 404);
     return JSON.parse(String(row.data)) as Room;
   }
+  private advance(room:Room,state:SpadesState) {
+    const frames:SpadesState[]=[];const next=pump(state,frames);
+    room.presentation=frames.length>1?{id:randomUUID(),startedAt:Date.now(),states:frames}:undefined;
+    return next;
+  }
   private save(room: Room) { this.db.prepare('INSERT INTO spades_rooms(code,data,updated_at) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at').run(room.code, JSON.stringify(room), Date.now()); }
   private member(room: Room, principal: string) {
     const member = room.members.find(value => value.principal === principal);
@@ -68,17 +78,19 @@ export class SpadesRoomStore {
       const member = room.members.find(value => value.seat === seat);
       return member ? { id: member.id, name: member.name, bot: false } : { id: randomUUID(), name: `Computer ${seat + 1}`, bot: true, level: room.options.level };
     });
-    room.state = pump(newSpades(room.options.variant, players, room.options.target, rand)); room.status = 'playing';
+    room.state = this.advance(room,newSpades(room.options.variant, players, room.options.target, rand)); room.status = 'playing';
   }
   private reward(room: Room, principal: string): RewardView {
     const none = (message: string): RewardView => ({ status: 'ineligible', amount: 0, tier: null, message });
     const user = memberId(principal);
     if (!user) return none('Guest Spades is free to play. Sign in before starting a reward match.');
-    const row = this.db.prepare('SELECT status,payload FROM spades_rewards WHERE match_id=?').get(room.matchId);
+    const row = this.db.prepare('SELECT status,payload,receipt FROM spades_rewards WHERE match_id=?').get(room.matchId);
     if (row) {
       const result = JSON.parse(String(row.payload)) as SpadesMatchReward;
       if (spadesWinners(result).includes(user)) {
-        const tier = spadesRewardTier(result.mode, result.players)!, amount = SPADES_POINTS[tier];
+        const tier = spadesRewardTier(result.mode, result.players)!;
+        const paid = row.status === 'credited' && row.receipt ? JSON.parse(String(row.receipt)) as { amount: number } : null;
+        const amount = paid && validCardRewardAmount(tier, paid.amount) ? paid.amount : SPADES_POINTS[tier];
         return row.status === 'credited' ? { status: 'credited', tier, amount, source: `spades:win:${room.matchId}`, message: `${amount} Spades points credited to your wallet.` }
           : { status: 'pending', tier, amount, message: `Match won! ${amount} Spades points are queued and will sync automatically.` };
       }
@@ -89,15 +101,23 @@ export class SpadesRoomStore {
     return eligible ? { status: 'eligible', tier: eligible, amount: SPADES_POINTS[eligible], message: `Win this match to earn ${SPADES_POINTS[eligible]} Spades points${room.options.variant === 'teams' ? ' for each eligible teammate' : ''}.` }
       : none('Online rewards require four distinct signed-in human players. Mixed computer tables are unranked.');
   }
-  private view(room: Room, principal: string): SpadesRoomView {
+  private view(room: Room, principal: string,rewardOverride?:RewardView): SpadesRoomView {
     const me = this.member(room, principal), state = room.state;
-    return { code: room.code, revision: room.revision, owner: room.owner === principal, status: room.status, options: room.options, mySeat: me.seat,
+    const result:SpadesRoomView = { code: room.code, revision: room.revision, owner: room.owner === principal, status: room.status, options: room.options, mySeat: me.seat,
       players: Array.from({ length: 4 }, (_, seat) => {
         const member = room.members.find(value => value.seat === seat), player = state?.players[seat];
         return { id: player?.id ?? member?.id ?? `seat-${seat}`, name: player?.name ?? member?.name ?? 'Open seat', bot: player?.bot ?? false, occupied: Boolean(player || member), ready: member?.ready ?? false, you: seat === me.seat, count: state?.hands[seat]?.length ?? 0 };
       }),
       hand: [...(state?.hands[me.seat] ?? [])], legal: state ? legalSpadesCards(state, me.seat) : [], bids: state?.bids ?? [null, null, null, null], taken: state?.taken ?? [0, 0, 0, 0], scores: state?.scores ?? Array(room.options.variant === 'teams' ? 2 : 4).fill(0), bags: state?.bags ?? Array(room.options.variant === 'teams' ? 2 : 4).fill(0), phase: state?.phase ?? null, turn: state?.turn ?? 0, dealer: state?.dealer ?? 3, round: state?.round ?? 1, broken: state?.broken ?? false,
-      trick: state?.trick ?? [], completed: state?.completed ?? [], result: state?.result ?? null, winner: state?.winner ?? null, log: state?.log ?? [], reward: this.reward(room, principal) };
+      trick: state?.trick ?? [], completed: state?.completed ?? [], result: state?.result ?? null, winner: state?.winner ?? null, log: state?.log ?? [], reward: rewardOverride??this.reward(room, principal) };
+
+    if(room.presentation&&room.status!=='abandoned'){
+      const frameReward:RewardView=result.reward.status==='credited'||result.reward.status==='pending'?{status:'eligible',tier:result.reward.tier,amount:result.reward.amount,message:'Computer turn in progress.'}:result.reward;
+      const frames:SpadesRoomView[]=[];
+      for(const snapshot of room.presentation.states) frames.push(this.view({...room,state:snapshot,presentation:undefined,status:snapshot.phase==='gameOver'? 'finished':'playing'},principal,frameReward));
+      result.playback={id:room.presentation.id,startedAt:room.presentation.startedAt,stepMs:COMPUTER_STEP_MS,frames};
+    }
+    return result;
   }
   get(code: string, principal: string) { return this.view(this.load(code), principal); }
   command(identity: Identity, input: unknown): { view: SpadesRoomView; changed: boolean } {
@@ -110,7 +130,7 @@ export class SpadesRoomStore {
         const options = settings(command.options); checkSpadesPartnershipAccess(identity, options.variant); checkLook(identity, options);
         if (Number(this.db.prepare('SELECT count(*) AS n FROM spades_rooms WHERE updated_at>?').get(Date.now() - 86400000)?.n) >= 5000) throw new RummyError('The Spades service is busy. Try again later.', 503);
         let code: string; do { code = randomBytes(4).toString('hex').toUpperCase(); } while (this.db.prepare('SELECT code FROM spades_rooms WHERE code=?').get(code));
-        room = { code, matchId: randomUUID(), options, owner: identity.principal, revision: 0, status: 'waiting', state: null,
+        room = { code, cratePolicy:2,matchId: randomUUID(), options, owner: identity.principal, revision: 0, status: 'waiting', state: null,
           members: [{ id: randomUUID(), principal: identity.principal, name: nameFor(command.name), seat: 0, ready: true }] };
         if (options.mode === 'bot') this.start(room);
       } else {
@@ -146,7 +166,7 @@ export class SpadesRoomStore {
             if (move.t === 'next' && room.owner !== identity.principal) throw new RummyError('The host deals the next hand.', 403);
             const next = applySpadesMove(room.state, member.seat, move, rand);
             if (!next) throw new RummyError('That move is not legal. Follow suit and wait for your turn.');
-            room.state = pump(next); if (room.state.phase === 'gameOver') room.status = 'finished';
+            room.state = this.advance(room,next); if (room.state.phase === 'gameOver') room.status = 'finished';
             this.db.prepare('INSERT INTO spades_requests(code,actor,id,fingerprint) VALUES(?,?,?,?)').run(room.code, identity.principal, command.requestId, fingerprint);
           } else if (command.operation === 'leave') {
             if (room.status === 'waiting') {

@@ -1,15 +1,18 @@
 import { applyGemsAction, gemsGoalsMet, gemsStars, startGems, type GemsAction, type GemsOutcome, type GemsState } from './gems-engine';
 import { BOOSTERS, GEMS_LEVEL_COUNT, GEMS_SIZE, gemsClearReward, type Inventory } from './gems-levels';
+import { legacyMonasteryTasks, monasteryProgress, MONASTERY_TASKS } from './monastery';
+import { emptyWorkshop, type MonasteryWorkshop } from './monastery-community';
 
 export const GEMS_SAVE_KEY = 'clubhouse-three-gems-v1';
 export interface GemsJourney {
   version: 1; revision: number; unlocked: number; attempts: number;
   stars: Record<string, number>; inventory: Inventory; play: GemsState;
   reward: { level: number; items: Inventory } | null;
+  monastery: { completedTasks: number; workshop?: MonasteryWorkshop };
 }
 export function newGemsJourney(): GemsJourney {
   return { version: 1, revision: 0, unlocked: 1, attempts: 0, stars: {},
-    inventory: { row: 2, column: 2, burst: 1, shuffle: 1 }, play: startGems(1), reward: null };
+    inventory: { row: 2, column: 2, burst: 1, shuffle: 1 }, play: startGems(1), reward: null, monastery: { completedTasks: 0, workshop: emptyWorkshop() } };
 }
 const whole = (n: unknown, max = 1_000_000): n is number => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0 && n <= max;
 function validInventory(value: unknown): value is Inventory {
@@ -18,6 +21,7 @@ function validInventory(value: unknown): value is Inventory {
 function validPlay(value: unknown): value is GemsState {
   if (!value || typeof value !== 'object') return false;
   const p = value as GemsState;
+  if (p.rules !== undefined && p.rules !== 1 && p.rules !== 2) return false;
   if (!whole(p.level, GEMS_LEVEL_COUNT) || p.level < 1 || !whole(p.seed, 0xffffffff) || !whole(p.nextId) || p.nextId < 1 || !whole(p.movesLeft, 100) || !whole(p.score, 1_000_000_000) ||
     !whole(p.turns, 10000) || !whole(p.cratesCleared, 64) || !whole(p.chainsCleared, 64) || !whole(p.frostCleared, 192) || !['play', 'won', 'lost'].includes(p.status) ||
     !Array.isArray(p.collected) || p.collected.length !== 6 || !p.collected.every(count => whole(count, 100000)) || !Array.isArray(p.board) || p.board.length !== GEMS_SIZE ** 2) return false;
@@ -41,12 +45,17 @@ export function readGemsJourney(raw: string | null): GemsJourney {
       !validInventory(value.inventory) || !value.stars || typeof value.stars !== 'object' || Array.isArray(value.stars) ||
       Object.entries(value.stars).some(([key, stars]) => !/^[1-9]\d{0,2}$/.test(key) || Number(key) > GEMS_LEVEL_COUNT || !whole(stars, 3) || stars < 1) ||
       !validPlay(value.play) || value.play.level > value.unlocked ||
-      (value.reward !== null && (!value.reward || !whole(value.reward.level, 150) || value.reward.level < 1 || !validInventory(value.reward.items)))) return newGemsJourney();
+      (value.reward !== null && (!value.reward || !whole(value.reward.level, GEMS_LEVEL_COUNT) || value.reward.level < 1 || !validInventory(value.reward.items)))) return newGemsJourney();
     // Saved progress advances sequentially; stale or incomplete saves cannot
     // silently skip a chapter when the game is restored.
     let unlocked = 1;
     while (unlocked < GEMS_LEVEL_COUNT && value.stars[String(unlocked)]) unlocked++;
+    if (value.unlocked === 150 && unlocked === 151) value.unlocked = unlocked;
     if (unlocked !== value.unlocked) return newGemsJourney();
+    const earned = Object.keys(value.stars).length;
+    if (value.monastery === undefined) value.monastery = { completedTasks: legacyMonasteryTasks(earned) };
+    if (!value.monastery || !whole(value.monastery.completedTasks, MONASTERY_TASKS.length)) return newGemsJourney();
+    value.monastery.workshop = monasteryProgress(earned, value.monastery.completedTasks, value.monastery.workshop ?? {}).workshop;
     return value;
   } catch { return newGemsJourney(); }
 }
@@ -73,4 +82,11 @@ export function playGemsJourney(journey: GemsJourney, action: GemsAction): { jou
 export function enterGemsLevel(journey: GemsJourney, level: number): GemsJourney | null {
   if (!Number.isInteger(level) || level < 1 || level > journey.unlocked) return null;
   return { ...journey, revision: journey.revision + 1, attempts: journey.attempts + 1, play: startGems(level, journey.attempts + 1), reward: null };
+}
+
+export function gemsMonastery(journey: GemsJourney) { return monasteryProgress(Object.keys(journey.stars).length, journey.monastery.completedTasks, journey.monastery.workshop ?? {}); }
+export function repairGemsMonastery(journey: GemsJourney, taskId: string): GemsJourney | null {
+  const progress = gemsMonastery(journey), task = MONASTERY_TASKS[progress.completedTasks];
+  if (!task || task.id !== taskId || progress.stars < task.cost) return null;
+  return { ...journey, revision: journey.revision + 1, monastery: { completedTasks: progress.completedTasks + 1, workshop: progress.workshop } };
 }

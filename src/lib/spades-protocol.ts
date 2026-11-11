@@ -1,8 +1,10 @@
+import type { ComputerPlayback } from './computer-turns';
 import type { Level } from './rummy';
 import type { HandScore, SpadesMode, SpadesMove, SpadesPhase, SpadesTrick, TrickCard } from './spades';
 import type { RewardView } from './rummy-rewards';
 export interface SpadesOptions { mode: 'bot' | 'online'; variant: SpadesMode; target: number; humans: number; level: Level; table: string; deck: string }
 export interface SpadesRoomView {
+  playback?:ComputerPlayback<SpadesRoomView>;
   code: string; revision: number; owner: boolean; status: 'waiting' | 'playing' | 'finished' | 'abandoned';
   options: SpadesOptions; mySeat: number; players: { id: string; name: string; bot: boolean; ready: boolean; occupied: boolean; you: boolean; count: number }[];
   hand: string[]; legal: string[]; bids: (number | null)[]; taken: number[]; scores: number[]; bags: number[];

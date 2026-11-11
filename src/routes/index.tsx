@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HubNav } from "@/components/HubNav";
 import { GAMES, HUB_NAME, useClubhouse } from "@/lib/clubhouse";
-import art from "@/assets/faith-art.svg";
+import { AnimatedClubhouseLogo } from "@/components/ClubhouseLogo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,14 +23,14 @@ function Hub() {
     <>
       <HubNav />
       <main className="mx-auto max-w-6xl px-4 py-10">
-        <p role="status" className="mb-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Rummy+ and Spades, or restore a monastery in 3 Gems of Buddhism. Sign in before an eligible card match to earn points. 3 Gems saves your journey and boosters on this device; Faith 3 is available for local practice.</p>
+
         {error && <p role="alert" className="mb-6 rounded-xl border border-border p-4 text-sm text-destructive">{error}</p>}
         <section className="grid items-center gap-8 md:grid-cols-[1.3fr_1fr]">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Welcome to</p>
             <h1 className="mt-2 font-display text-5xl leading-tight text-gold md:text-6xl">{HUB_NAME}</h1>
             <p className="mt-4 max-w-xl text-lg text-foreground/85">
-              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn points from Rummy+ and Spades wins into Clubhouse Cash, or follow a 150-level journey to restore the monastery in 3 Gems of Buddhism.
+              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn points from all nine games into Clubhouse Cash, or follow a 200-level journey to restore the monastery in 3 Gems of Buddhism.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link to="/games/faith-3" className="btn-gold">Play Faith 3 Tile Match</Link>
@@ -41,8 +41,10 @@ function Hub() {
               )}
             </div>
           </div>
-          <img src={art} alt="Decorative Faith 3 tile illustration" width={768} height={1024} className="art-frame mx-auto max-h-96 w-auto max-w-full object-contain" />
+          <AnimatedClubhouseLogo />
         </section>
+
+        <p role="status" className="mt-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Crown &amp; Court, Rummy+, Spades and Quintsee, or restore a monastery in 3 Gems of Buddhism. Sign in before an eligible match to earn points. Guests can try the puzzles; signed-in puzzle runs save verified first clears and rewards to your account.</p>
 
         <h2 className="mt-14 font-display text-3xl text-gold">Games</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -56,6 +58,14 @@ function Hub() {
                   <Link to="/games/rummy" className="btn-gold mt-4 inline-block text-sm">Play Rummy+</Link>
                 ) : g.slug === 'spades' ? (
                   <Link to="/games/spades" className="btn-gold mt-4 inline-block text-sm">Play Spades</Link>
+                ) : g.slug === 'dominoes' ? (
+                  <Link to="/games/dominoes" className="btn-gold w-full justify-center">Play Dominoes →</Link>
+                ) : g.slug === 'crown-court' ? (
+                  <Link to="/games/crown-court" className="btn-gold mt-4 inline-block text-sm">Play Crown &amp; Court</Link>
+                ) : g.slug === 'carrom' ? (<Link to="/games/carrom" className="btn-gold mt-4 inline-block text-sm">Play Carrom &amp; Disc Pool</Link>) : g.slug === 'backgammon' ? (<Link to="/games/backgammon" className="btn-gold mt-4 inline-block text-sm">Play Backgammon</Link>) : g.slug === 'farkle' ? (
+                  <Link to="/games/farkle" className="btn-gold mt-4 inline-block text-sm">Play Farkle</Link>
+                ) : g.slug === 'five-dice' ? (
+                  <Link to="/games/quintsee" className="btn-gold mt-4 inline-block text-sm">Play Quintsee</Link>
                 ) : g.slug === '3-gems' ? (
                   <Link to="/games/3-gems" className="btn-gold mt-4 inline-block text-sm">Play 3 Gems</Link>
                 ) : (
@@ -73,19 +83,20 @@ function Hub() {
           <div className="card-hub">
             <div className="text-2xl" aria-hidden="true">🎮</div>
             <h3 className="mt-1 font-display text-xl text-gold">Play</h3>
-            <p className="text-sm text-muted-foreground">Win an eligible signed-in Rummy+ or Spades match: 40 points on Easy, 70 Normal, 120 Hard, or 150 against signed-in online human opponents.</p>
+            <p className="text-sm text-muted-foreground">Clear Faith 3 or 3 Gems levels, or win full Rummy+ and Spades matches. Achievements add game points and Clubhouse Cash bonuses.</p>
           </div>
           <div className="card-hub">
             <div className="text-2xl" aria-hidden="true">🏅</div>
             <h3 className="mt-1 font-display text-xl text-gold">Convert</h3>
-            <p className="text-sm text-muted-foreground">Every 10 game points can become 7 Clubhouse Cash in your reward wallet. Your lifetime earnings stay the same.</p>
+            <p className="text-sm text-muted-foreground">Exchange 13 game points for 10 Clubhouse Cash. Each Cash has 30% more buying power per unit. Converting leaves lifetime earnings unchanged.</p>
           </div>
           <div className="card-hub">
             <div className="text-2xl" aria-hidden="true">🛍</div>
             <h3 className="mt-1 font-display text-xl text-gold">Spend</h3>
-            <p className="text-sm text-muted-foreground">Save 800 Rummy+ points for permanent Joker Mode in the Store. Converting those points reduces the balance available for this unlock.</p>
+            <p className="text-sm text-muted-foreground">Shared card decks cost 563 Rummy+ or Spades points, or 434 Cash. Buy once and use them in both card games. Joker Mode and Spades Partnerships each cost 500 game points or 385 Cash.</p>
           </div>
         </div>
+        <section className="home-about" aria-labelledby="home-about-title"><div><h2 id="home-about-title">New to the Clubhouse?</h2><p>Get to know all nine games, monastery restoration, points, Clubhouse Cash, shared decks, achievements, profiles, and playing with friends.</p></div><Link to="/about" className="btn-ghost-gold">About &amp; player guide →</Link></section>
       </main>
     </>
   );

@@ -54,6 +54,7 @@ with sync_playwright() as p:
     code = created.value.json()['code']
     # Joiners deliberately choose seats in a nonsequential order.
     for index, seat in enumerate((2, 1, 3), start=1):
+        if pages[index].get_by_role('button', name='Join', exact=True).is_visible(): pages[index].get_by_role('button', name='Join', exact=True).click()
         pages[index].get_by_label('Spades room code', exact=True).fill(code)
         pages[index].get_by_label('Spades preferred seat', exact=True).select_option(str(seat))
         pages[index].get_by_role('button', name='Join Spades room', exact=True).click()
@@ -73,17 +74,19 @@ with sync_playwright() as p:
     before = order(host); revision = views[0]['revision']
     first = cards(host).nth(0).get_by_role('button'); first.scroll_into_view_if_needed()
     start, end = first.bounding_box(), cards(host).nth(2).get_by_role('button').bounding_box()
-    x, y = start['x'] + start['width'] / 2, start['y'] + start['height'] / 2
+    x, y = start['x'] + 5, start['y'] + start['height'] / 2
     client = contexts[0].new_cdp_session(host)
     client.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y}]})
     host.wait_for_timeout(280)
     for step in range(1, 15):
-        client.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x + (end['x'] + end['width'] / 2 - x) * step / 14, 'y': y}]})
+        client.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x + (end['x'] + 5 - x) * step / 14, 'y': y}]})
     client.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
     expected = before[1:3] + before[:1] + before[3:]
     host.wait_for_function('expected => JSON.stringify([...document.querySelectorAll("ol[aria-label=\\"Your hand\\"] [data-card]")].map(node => node.dataset.card)) === JSON.stringify(expected)', arg=expected)
     assert view(contexts[0], base, code)['revision'] == revision
+    host.get_by_role('button', name='Hand tools', exact=True).click()
     host.get_by_role('button', name='Undo arrangement', exact=True).click()
+    host.get_by_role('button', name='Back to game', exact=True).click()
     assert order(host) == before
     checks.append('long-press touch drag and undo reorder the mobile hand without playing a card or changing server state')
     seat_to_index = {state['mySeat']: index for index, state in enumerate(views)}
@@ -98,7 +101,7 @@ with sync_playwright() as p:
         assert state['turn'] == seat
         card = state['legal'][0]
         locator = page.locator(f'ol[aria-label="Your hand"] li[data-card="{card}"] button')
-        locator.click()
+        locator.click(position={'x':5,'y':25})
         page.get_by_role('button', name='Play selected card', exact=True).click()
         expect(cards(page)).to_have_count(12)
     state = view(contexts[0], base, code)
@@ -129,10 +132,12 @@ with sync_playwright() as p:
     checks.append('all six interactive tutorial lessons work on a phone without losing the live table')
     host.get_by_role('button', name='Collection', exact=True).click()
     expect(host.get_by_role('heading', name='The Spades collection', exact=True)).to_be_visible()
-    for venue, colour in [('Moonlit Observatory', 'rgb(35, 56, 100)'), ('Rosewood Parlour', 'rgb(104, 47, 63)'), ('Emerald Conservatory', 'rgb(18, 84, 86)'), ('Gilded Grand Hall', 'rgb(73, 52, 84)')]:
+    for venue, colour, theme in [('Moonlit Observatory', 'rgb(35, 56, 100)', 'atlas'), ('Rosewood Parlour', 'rgb(104, 47, 63)', 'ember'), ('Emerald Conservatory', 'rgb(18, 84, 86)', 'grove'), ('Gilded Grand Hall', 'rgb(73, 52, 84)', 'deco')]:
         host.get_by_role('button', name='Preview ' + venue, exact=True).click()
         assert host.locator('.spades-preview-table').evaluate('node => getComputedStyle(node).backgroundColor') == colour
-        assert 'data:image/svg' in host.locator('.spades-preview-room').evaluate('node => getComputedStyle(node).backgroundImage')
+        room_image = '/spades-art/room-' + theme + '.webp'
+        assert room_image in host.locator('.spades-preview-room').evaluate('node => getComputedStyle(node).backgroundImage')
+        host.evaluate('async src=>{const image=new Image();image.src=src;await image.decode();if(!image.naturalWidth)throw new Error("Missing venue painting")}', room_image)
     faces, backs = set(), set()
     for deck in ('Midnight Atlas', 'Ember Crown', 'Verdant Grove', 'Ivory Deco'):
         host.get_by_role('button', name='Preview ' + deck, exact=True).click()
@@ -176,8 +181,10 @@ with sync_playwright() as p:
     fits(host)
     host.evaluate('window.scrollTo(0,0)')
     host.screenshot(path='/tmp/spades-small-phone.png', full_page=True)
-    checks.append('the live table fits a 320-pixel phone; controls have at least 44-pixel touch targets')
-    assert host.get_by_role('button', name='Game table', exact=True).bounding_box()['height'] >= 44
+    checks.append('the live table fits a 320-pixel phone; primary turn controls retain 44-pixel touch targets')
+    primary = host.get_by_role('button', name='Confirm bid', exact=True)
+    if not primary.is_visible(): primary = host.get_by_role('button', name='Back to game', exact=True)
+    assert primary.bounding_box()['height'] >= 44
     assert not errors, errors
     browser.close()
 result = {'mode': 'real HTTP/SSE and separate guest sessions', 'checks': checks, 'browser_errors': errors}

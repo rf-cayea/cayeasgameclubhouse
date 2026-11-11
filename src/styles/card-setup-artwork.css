@@ -1,0 +1,8 @@
+.card-setup-artwork { position:relative; min-width:0; margin:12px 0 0; padding:9px 12px 12px; border:1px solid #d9bb6e88; border-radius:10px; background:#0b211dbb; }
+.card-setup-artwork legend { padding:0 6px; color:#f2d99c; font-size:13px; font-weight:600; }
+.card-setup-artwork-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding-right:44px; }
+.card-setup-artwork-fields label { display:grid; gap:4px; min-width:0; color:#f2e5bd; }
+.card-setup-artwork-fields select { width:100%; max-width:100%; }
+.card-setup-artwork-preview { position:absolute; right:10px; top:13px; width:32px; height:46px; overflow:hidden; border-radius:4px; }
+.card-setup-artwork-preview > * { width:100%; height:100%; }
+@media(max-height:520px) { .card-setup-artwork { margin-top:4px; padding:3px 8px 6px; }.card-setup-artwork legend { font-size:10px; }.card-setup-artwork-fields { gap:6px; }.card-setup-artwork-preview { top:6px; } }

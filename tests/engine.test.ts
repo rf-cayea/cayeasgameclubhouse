@@ -101,7 +101,7 @@ describe("Faith 3 play and replay", () => {
     const start = initPlay(24);
     const after = applyAction(24, start, { t: "shuffle" })!;
     expect(after).toEqual(applyAction(24, start, { t: "shuffle" }));
-    expect(after.board.map(({ type: _type, ...position }) => position)).toEqual(start.board.map(({ type: _type, ...position }) => position));
+    expect(after.board.map(({ id, x, y, z }) => ({ id, x, y, z }))).toEqual(start.board.map(({ id, x, y, z }) => ({ id, x, y, z })));
     expect(after.board.map(tile => tile.type).sort()).toEqual(start.board.map(tile => tile.type).sort());
     expect(after.shuffleCount).toBe(1);
     expect(after.helped).toBe(true);

@@ -23,6 +23,7 @@ def saved(page):
     return page.evaluate('(key) => JSON.parse(localStorage.getItem(key))', KEY)
 
 def move(page, prefer_live=True):
+    expect(page.get_by_role('grid', name='Gem garden')).to_have_attribute('aria-busy', 'false')
     page.wait_for_function('localStorage.getItem("clubhouse-three-gems-v1") !== null')
     return page.evaluate('''async preferLive => {
       const {legalGemSwaps, applyGemsAction} = await import('/src/lib/gems-engine.ts');
@@ -35,6 +36,7 @@ def move(page, prefer_live=True):
     }''', prefer_live)
 
 def click_swap(page, pair):
+    expect(page.get_by_role('grid', name='Gem garden')).to_have_attribute('aria-busy', 'false')
     page.locator(f'[data-index="{pair["a"]}"]').click()
     page.locator(f'[data-index="{pair["b"]}"]').click()
     expect(page.get_by_test_id('gems-moves')).to_have_text(str(pair['next']['movesLeft']))

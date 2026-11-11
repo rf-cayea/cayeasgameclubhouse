@@ -1,12 +1,17 @@
+import { ClubhouseLogo } from "./ClubhouseLogo";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HUB_NAME, useClubhouse } from "@/lib/clubhouse";
 import { supabase } from "@/integrations/supabase/client";
 import { useModerationRole } from "@/lib/moderation-api";
+import { useSocialResource } from '@/lib/social';
+import type { FriendsView, InvitesView } from '@/lib/social-protocol';
 
 export function HubNav() {
   const { user, ready } = useClubhouse();
   const moderation = useModerationRole(user?.id);
+  const friends = useSocialResource<FriendsView>('/api/social/friends', user?.id ?? null), invitations = useSocialResource<InvitesView>('/api/social/invites', user?.id ?? null);
+  const pendingFriends = (friends.data?.incoming.length ?? 0) + (invitations.data?.incoming.filter(invite => invite.status === 'pending' && invite.available).length ?? 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +32,15 @@ export function HubNav() {
   return (
     <header className="border-b border-border bg-background/95">
       <nav aria-label="Main navigation" className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-5">
-        <Link to="/" className="font-display text-xl text-gold">{HUB_NAME}</Link>
+        <Link to="/" className="clubhouse-nav-brand font-display text-xl text-gold"><ClubhouseLogo decorative/><span>{HUB_NAME}</span></Link>
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-gold underline" }}>Games</Link>
+          <Link to="/about" activeProps={{ className: "text-gold underline" }}>About</Link>
           <Link to="/clubhouse" activeProps={{ className: "text-gold underline" }}>Clubhouse</Link>
-          <Link to="/friends" activeProps={{ className: "text-gold underline" }}>Friends</Link>
+          {user && <Link to="/profile" activeProps={{ className: "text-gold underline" }}>My profile</Link>}
+          <Link to="/friends" activeProps={{ className: "text-gold underline" }}>Friends{pendingFriends > 0 && <span className="ml-1 rounded-full bg-gold px-1.5 text-xs text-background" aria-label={`${pendingFriends} new requests or invitations`}>{pendingFriends}</span>}</Link>
+          <Link to="/rewards" activeProps={{ className: "text-gold underline" }}>Rewards & Cash</Link>
+          <Link to="/collectibles" activeProps={{ className: "text-gold underline" }}>Collectibles</Link>
           <Link to="/store" activeProps={{ className: "text-gold underline" }}>Store</Link>
           {moderation.role && <Link to="/moderation" activeProps={{ className: "text-gold underline" }}>Moderation</Link>}
           {ready && (user ? (

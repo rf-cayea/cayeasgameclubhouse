@@ -1,12 +1,13 @@
-"""Wallet browser regressions with explicitly fictional, intercepted Supabase APIs.
+"""Wallet browser regressions with fictional Supabase identity and economy APIs.
 
 Use the dummy-config Vite server described in member_features_browser.py.
-Database security and concurrency are verified separately by run_local.sh.
+Real database security and concurrency are verified separately by the economy tests.
 """
 import argparse
 import base64
 import copy
 import json
+import math
 from urllib.parse import urlparse
 from playwright.sync_api import expect, sync_playwright
 from member_features_browser import ADMIN, MEMBER, SupabaseFixture, session
@@ -20,50 +21,116 @@ class WalletFixture(SupabaseFixture):
         self.ambiguous = False
         self.hold = False
         self.pending = []
-        self.wallets[ADMIN]['f3_points'] = 50
+        for wallet in self.wallets.values():
+            wallet.update(gems_points=65, spades_points=2080, rummy_points=1040)
+        self.wallets[ADMIN]['f3_points'] = 52
+        self.catalog = [
+            {'id': 'rummy-jokers', 'name': 'Joker Mode', 'price': 400, 'currency': 'rummy_points', 'slot': None},
+            {'id': 'spades-partnerships', 'name': 'Spades Partnerships', 'price': 400, 'currency': 'spades_points', 'slot': None},
+        ]
+        for slug, name, price in [('celestial', 'Moonlit Celestial', 300), ('jade', 'Jade Sanctuary', 450), ('rose', 'Rose Quartz', 600)]:
+            self.catalog.append({'id': 'faith3-skin-' + slug, 'name': name, 'price': price, 'currency': 'points', 'slot': 'faith3_skin'})
+        for kind, entries in [('table', [('atlas', 'Moonlit Observatory', 500), ('ember', 'Rosewood Parlour', 650), ('grove', 'Emerald Conservatory', 800), ('deco', 'Gilded Grand Hall', 950)]), ('deck', [('atlas', 'Midnight Atlas', 350), ('ember', 'Ember Crown', 500), ('grove', 'Verdant Grove', 650), ('deco', 'Ivory Deco', 800)])]:
+            self.catalog += [{'id': f'spades-{kind}-{slug}', 'name': name, 'price': price, 'currency': 'spades_points', 'slot': 'spades_' + kind} for slug, name, price in entries]
 
-    def http(self, route, fallback_user):
+        for item in self.catalog:
+            if item['slot'] == 'spades_deck': item['price'] = 300
+            item['cashPrice'] = item['price'] if item['currency'] == 'points' else math.ceil(item['price'] * 10 / 13)
+
+    @staticmethod
+    def actor(route, fallback=None):
         try:
             payload = route.request.headers.get('authorization', '').split('.')[1]
-            user = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))['sub']
+            return json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))['sub']
         except (IndexError, KeyError, ValueError):
-            user = fallback_user
-        if urlparse(route.request.url).path.endswith('/rpc/convert_game_points') and route.request.method == 'POST':
+            return fallback
+
+    @staticmethod
+    def reply(route, value, status=200):
+        route.fulfill(status=status, content_type='application/json', body=json.dumps(value))
+
+    def context(self, browser, user_id, width=1280):
+        context = super().context(browser, user_id, width)
+        context.route('**/api/economy**', self.economy)
+        context.route('**/api/social**', self.social)
+        return context
+
+    def http(self, route, fallback_user):
+        super().http(route, self.actor(route, fallback_user))
+
+    def view(self, user):
+        return {'wallet': copy.deepcopy(self.wallets[user]), 'sources': [], 'humanWinSources': [], 'history': [], 'achievements': [], 'stats': {}, 'progress': {}, 'conversionRate': {'points': 13, 'cash': 10}}
+
+    def social(self, route):
+        path = urlparse(route.request.url).path
+        if path.endswith('/friends'):
+            self.reply(route, {'friends': [], 'incoming': [], 'outgoing': [], 'blocked': []})
+        elif path.endswith('/invites'):
+            self.reply(route, {'incoming': [], 'outgoing': [], 'rooms': []})
+        elif path.endswith('/me'):
+            user = self.actor(route)
+            self.reply(route, {'userId': user, 'gamerName': 'WalletPlayer', 'bio': '', 'avatar': 'jade', 'joinedAt': 0, 'updatedAt': 0, 'nameFlagged': False, 'relationship': 'self', 'stats': {'rummyWins': 1, 'spadesWins': 0}})
+        else:
+            self.unhandled.append(path)
+            self.reply(route, {'error': 'Unknown fixture social endpoint'}, 404)
+
+    def economy(self, route):
+        path = urlparse(route.request.url).path
+        if path.endswith('/catalog'):
+            self.reply(route, {'items': self.catalog})
+            return
+        user = self.actor(route)
+        assert user in self.wallets, 'Economy fixture requires a fictional member'
+        if route.request.method == 'GET':
+            self.reply(route, self.view(user))
+            return
+        body = route.request.post_data_json
+        if body['operation'] == 'convert':
             if self.hold:
                 self.pending.append((route, user))
-                return
-            self.convert(route, user)
+            else:
+                self.convert(route, user)
+            return
+        wallet = self.wallets[user]
+        if body['operation'] == 'purchase':
+            item = next(item for item in self.catalog if item['id'] == body['itemId'])
+            owned = item['id'] in wallet['owned']
+            if not owned:
+                assert wallet[item['currency']] >= item['price']
+                wallet[item['currency']] -= item['price']
+                wallet['owned'].append(item['id'])
+            receipt = {'type': 'purchase', 'itemId': item['id'], 'currency': item['currency'], 'alreadyApplied': owned, 'amount': item['price']}
+        elif body['operation'] == 'equip':
+            assert body['itemId'] in wallet['owned'] or body['itemId'].endswith('-classic')
+            wallet['equipped'][body['slot']] = body['itemId']
+            receipt = {'type': 'equip', 'itemId': body['itemId'], 'alreadyApplied': False}
         else:
-            super().http(route, user)
+            raise AssertionError('Unexpected economy operation: ' + str(body))
+        self.reply(route, {'ok': True, **self.view(user), 'receipt': receipt})
 
     def convert(self, route, user):
         body = route.request.post_data_json
-        self.calls.append((user, '/rest/v1/rpc/convert_game_points', copy.deepcopy(body)))
-
-        def reply(value, status=200):
-            route.fulfill(status=status, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(value))
-
+        self.calls.append((user, '/api/economy/convert', copy.deepcopy(body)))
         if self.fail:
             self.fail = False
-            reply({'message': 'Fixture conversion denied; balance unchanged', 'code': '22023'}, 400)
+            self.reply(route, {'error': 'Fixture conversion denied; balance unchanged'}, 400)
             return
-        key = (user, body['_request_id'])
+        key = (user, body['requestId'])
         if key in self.conversions:
-            reply({**self.conversions[key], 'already_converted': True})
+            self.reply(route, {'ok': True, **self.view(user), 'receipt': {**self.conversions[key], 'alreadyApplied': True}})
             return
-        wallet = self.wallets[user]
-        quantity = body['_amount']
-        field = 'rummy_points' if body['_game'] == 'rummy' else 'f3_points'
-        assert quantity > 0 and quantity % 10 == 0 and wallet[field] >= quantity
+        wallet, quantity = self.wallets[user], body['amount']
+        field = {'rummy': 'rummy_points', 'faith-3': 'f3_points', 'spades': 'spades_points', '3-gems': 'gems_points'}[body['game']]
+        assert quantity > 0 and quantity % 13 == 0 and wallet[field] >= quantity
         wallet[field] -= quantity
-        wallet['points'] += quantity // 10 * 7
-        result = {'amount': quantity, 'cash': quantity // 10 * 7, 'already_converted': False}
+        wallet['points'] += quantity // 13 * 10
+        result = {'type': 'conversion', 'amount': quantity, 'cash': quantity // 13 * 10, 'alreadyApplied': False}
         self.conversions[key] = result
         if self.ambiguous:
             self.ambiguous = False
-            reply({'message': 'Fixture connection lost after commit; retry to confirm', 'code': 'TEMP'}, 503)
+            self.reply(route, {'error': 'Fixture connection lost after commit; retry to confirm'}, 503)
         else:
-            reply(result)
+            self.reply(route, {'ok': True, **self.view(user), 'receipt': result})
 
 
 parser = argparse.ArgumentParser()
@@ -79,64 +146,98 @@ with sync_playwright() as p:
     for tab in (page, other):
         tab.on('pageerror', lambda error: errors.append(str(error)))
         tab.goto(args.base_url + '/store')
-        expect(tab.get_by_test_id('rummy-balance')).to_have_text('1000')
+        expect(tab.get_by_test_id('rummy-balance')).to_have_text('1,040')
     amount = page.get_by_role('spinbutton', name='Points to convert')
     convert = page.get_by_role('button', name='Convert to Cash', exact=True)
     for invalid in ('0', '-10', '11', '1010'):
         amount.fill(invalid)
         expect(convert).to_be_disabled()
     checks.append('zero, negative, fractional-block, and over-balance conversions are disabled')
-    amount.fill('100')
+    amount.fill('130')
     convert.click()
-    expect(page.get_by_role('dialog')).to_contain_text('70 Clubhouse Cash')
+    expect(page.get_by_role('dialog')).to_contain_text('100 Clubhouse Cash')
     page.get_by_role('button', name='Cancel', exact=True).click()
     assert not fixture.conversions
     checks.append('conversion cancellation does not debit points')
     convert.click()
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
-    expect(page.get_by_test_id('rummy-balance')).to_have_text('900')
-    expect(page.get_by_test_id('cash-balance')).to_have_text('70')
-    expect(other.get_by_test_id('rummy-balance')).to_have_text('900')
-    expect(other.get_by_test_id('cash-balance')).to_have_text('70')
+    expect(page.get_by_test_id('rummy-balance')).to_have_text('910')
+    expect(page.get_by_test_id('cash-balance')).to_have_text('100')
+    expect(other.get_by_test_id('rummy-balance')).to_have_text('910')
+    expect(other.get_by_test_id('cash-balance')).to_have_text('100')
     assert fixture.wallets[ADMIN]['lifetime_points'] == 1000
     checks.append('conversion updates both same-account tabs without adding lifetime earnings')
     page.get_by_role('combobox', name='Conversion game').select_option('faith-3')
-    amount.fill('50')
+    amount.fill('52')
     convert.click()
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
-    expect(page.get_by_test_id('cash-balance')).to_have_text('105')
-    assert fixture.wallets[ADMIN]['f3_points'] == 0 and fixture.wallets[ADMIN]['rummy_points'] == 900
+    expect(page.get_by_test_id('cash-balance')).to_have_text('140')
+    assert fixture.wallets[ADMIN]['f3_points'] == 0 and fixture.wallets[ADMIN]['rummy_points'] == 910
     checks.append('Faith points convert independently of the Rummy balance')
     page.get_by_role('combobox', name='Conversion game').select_option('rummy')
-    amount.fill('10')
+    amount.fill('13')
     fixture.fail = True
     convert.click()
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
     expect(page.get_by_role('alert')).to_contain_text('balance unchanged')
-    expect(page.get_by_test_id('rummy-balance')).to_have_text('900')
+    expect(page.get_by_test_id('rummy-balance')).to_have_text('910')
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
-    expect(page.get_by_test_id('rummy-balance')).to_have_text('890')
-    calls = [body for _, path, body in fixture.calls if path.endswith('/convert_game_points')]
-    assert calls[-1]['_request_id'] == calls[-2]['_request_id']
-    checks.append('failed conversion keeps funds and retries with the original request ID')
+    expect(page.get_by_test_id('rummy-balance')).to_have_text('897')
+    calls = [body for _, path, body in fixture.calls if path.endswith('/convert')]
+    assert calls[-1]['requestId'] != calls[-2]['requestId']
+    checks.append('a definite rejected conversion keeps funds and allows a fresh request')
     fixture.ambiguous = True
-    amount.fill('890')
+    amount.fill('897')
     convert.click()
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
     expect(page.get_by_role('alert')).to_contain_text('retry to confirm')
     expect(page.get_by_test_id('rummy-balance')).to_have_text('0')
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
     expect(page.get_by_role('dialog')).to_have_count(0)
-    expect(page.get_by_test_id('cash-balance')).to_have_text('735')
+    expect(page.get_by_test_id('cash-balance')).to_have_text('840')
     assert len(fixture.conversions) == 4
     checks.append('a lost response after commit can be confirmed with zero balance and no second debit')
 
+    for slug, quantity, cash in [('3-gems', 65, '890'), ('spades', 52, '930')]:
+        page.get_by_role('combobox', name='Conversion game').select_option(slug)
+        amount.fill(str(quantity))
+        convert.click()
+        page.get_by_role('button', name='Confirm conversion', exact=True).click()
+        expect(page.get_by_test_id('cash-balance')).to_have_text(cash)
+    assert fixture.wallets[ADMIN]['gems_points'] == 0 and fixture.wallets[ADMIN]['spades_points'] == 2028
+    checks.append('all four games convert into the same Cash balance independently')
+
+    # Spend converted Cash and game points through the same authoritative wallet.
+    skin = page.get_by_role('article', name='Moonlit Celestial', exact=True)
+    skin.get_by_role('button', name='Buy · 300 Cash', exact=True).click()
+    page.get_by_role('button', name='Confirm purchase', exact=True).click()
+    expect(page.get_by_test_id('cash-balance')).to_have_text('630')
+    skin.get_by_role('button', name='Equip skin', exact=True).click()
+    expect(skin.get_by_role('button', name='Equipped', exact=True)).to_be_disabled()
+    assert fixture.wallets[ADMIN]['equipped']['faith3_skin'] == 'faith3-skin-celestial'
+    checks.append('converted Cash buys a permanent Faith skin and equips it without another debit')
+
+    deck = page.locator('[aria-label="The Spades collection"]').get_by_role('article', name='Midnight Atlas', exact=True)
+    deck.get_by_role('button', name='Buy · 300 points', exact=True).click()
+    page.get_by_role('button', name='Confirm purchase', exact=True).click()
+    expect(page.get_by_test_id('spades-balance')).to_have_text('1,728')
+    deck.get_by_role('button', name='Equip', exact=True).click()
+    expect(deck.get_by_role('button', name='Equipped', exact=True)).to_be_disabled()
+    standard = page.locator('[aria-label="The Spades collection"]').get_by_role('article', name='Clubhouse Standard', exact=True)
+    standard.get_by_role('button', name='Equip', exact=True).click()
+    expect(standard.get_by_role('button', name='Equipped', exact=True)).to_be_disabled()
+    page.locator('[data-store-item="spades-partnerships"]').get_by_role('button', name='Buy · 400 points', exact=True).click()
+    page.get_by_role('button', name='Confirm purchase', exact=True).click()
+    expect(page.get_by_test_id('spades-balance')).to_have_text('1,328')
+    assert 'spades-partnerships' in fixture.wallets[ADMIN]['owned'] and fixture.wallets[ADMIN]['equipped']['spades_deck'] == 'spades-deck-classic'
+    checks.append('Spades designs, free-default equipment and permanent partnership unlock use the shared points wallet')
+
     # An in-flight completion belongs to its original account even after sign-in changes.
-    fixture.wallets[ADMIN]['rummy_points'] = 50
+    fixture.wallets[ADMIN]['rummy_points'] = 52
     page.reload()
-    expect(page.get_by_test_id('rummy-balance')).to_have_text('50')
+    expect(page.get_by_test_id('rummy-balance')).to_have_text('52')
     fixture.hold = True
-    page.get_by_role('spinbutton', name='Points to convert').fill('10')
+    page.get_by_role('spinbutton', name='Points to convert').fill('13')
     page.get_by_role('button', name='Convert to Cash', exact=True).click()
     page.get_by_role('button', name='Confirm conversion', exact=True).click()
     expect(page.get_by_role('button', name='Converting…', exact=True)).to_be_disabled()
@@ -146,17 +247,17 @@ with sync_playwright() as p:
       const {error} = await supabase.auth.setSession(session); if (error) throw error;
     }""", session(MEMBER))
     expect(page.get_by_role('dialog')).to_have_count(0)
-    expect(page.get_by_test_id('rummy-balance')).to_have_text('1000')
+    expect(page.get_by_test_id('rummy-balance')).to_have_text('1,040')
     fixture.hold = False
     for route, user in fixture.pending:
         fixture.convert(route, user)
     expect(page.get_by_test_id('cash-balance')).to_have_text('0')
-    expect(page.get_by_text('7 Clubhouse Cash added. Lifetime earnings are unchanged.', exact=True)).to_have_count(0)
-    assert fixture.wallets[ADMIN]['rummy_points'] == 40
+    expect(page.get_by_text('10 Clubhouse Cash added. Lifetime earnings are unchanged.', exact=True)).to_have_count(0)
+    assert fixture.wallets[ADMIN]['rummy_points'] == 39
     checks.append('late conversion cannot credit the next account or show the previous account success notice')
     page.set_viewport_size({'width': 390, 'height': 844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
-    page.screenshot(path='/tmp/clubhouse-reward-wallet-mobile.png', full_page=True)
+    page.screenshot(path='/tmp/clubhouse-reward-wallet-mobile.png', full_page=False, animations='disabled')
     checks.append('reward wallet fits a mobile viewport')
     assert not fixture.unhandled, fixture.unhandled
     context.close()
@@ -180,7 +281,9 @@ with sync_playwright() as p:
 
     def game_http(route):
         path = urlparse(route.request.url).path
-        if path.endswith('/events'):
+        if path.endswith('/appearance'):
+            route.fulfill(content_type='application/json', body=json.dumps({'member': True, 'wins': 1, 'owned': ['rummy-room-classic', 'rummy-table-classic', 'rummy-room-riviera', 'rummy-standard', 'rummy-deck-atlas'], 'equipped': {'background': 'rummy-room-classic', 'table': 'rummy-table-classic', 'deck': 'rummy-standard'}}))
+        elif path.endswith('/events'):
             route.fulfill(content_type='text/event-stream', body=': fixture\n\n')
         elif path.endswith('/session'):
             route.fulfill(content_type='application/json', body='{"member":true,"jokers":false}')
@@ -192,10 +295,12 @@ with sync_playwright() as p:
     for tab in (game, wallet):
         tab.on('pageerror', lambda error: errors.append(str(error)))
     wallet.goto(args.base_url + '/store')
-    expect(wallet.get_by_test_id('rummy-balance')).to_have_text('40')
+    expect(wallet.get_by_test_id('rummy-balance')).to_have_text('39')
     game.goto(args.base_url + '/games/rummy')
+    expect(game.get_by_role('dialog', name='Round result', exact=True)).to_be_visible()
+    game.get_by_role('button', name='Back to game', exact=True).click()
     expect(game.get_by_text(pending_reward['message'], exact=True)).to_be_visible()
-    expect(wallet.get_by_test_id('rummy-balance')).to_have_text('40')
+    expect(wallet.get_by_test_id('rummy-balance')).to_have_text('39')
     checks.append('a queued match win does not display an optimistic wallet credit')
     room['reward'] = {'status': 'credited', 'tier': 'normal', 'amount': 70,
                       'source': 'rummy:win:99999999-9999-4999-8999-999999999999',
@@ -204,7 +309,7 @@ with sync_playwright() as p:
     fixture.wallets[ADMIN]['lifetime_points'] += 70
     game.evaluate("window.dispatchEvent(new Event('focus'))")
     expect(game.get_by_role('status').filter(has_text=room['reward']['message'])).to_be_visible()
-    expect(wallet.get_by_test_id('rummy-balance')).to_have_text('110')
+    expect(wallet.get_by_test_id('rummy-balance')).to_have_text('109')
     expect(game.get_by_role('link', name='View reward wallet', exact=True)).to_be_visible()
     assert game.evaluate('window.walletRefreshes') == 1
     checks.append('a confirmed match credit refreshes an open wallet tab at the same room revision')
@@ -216,7 +321,7 @@ with sync_playwright() as p:
     expect(game.get_by_role('status').filter(has_text='70 Rummy+ points credited to your wallet.')).to_be_visible()
     assert game.evaluate('window.walletRefreshes') == 1
     checks.append('stale queued responses cannot regress a confirmed credit or notify it twice')
-    game.screenshot(path='/tmp/clubhouse-rummy-reward-credited.png', full_page=True)
+    game.screenshot(path='/tmp/clubhouse-rummy-reward-credited.png', full_page=False, animations='disabled')
     context.close()
     browser.close()
 assert not errors, errors

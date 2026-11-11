@@ -1,0 +1,170 @@
+/* The play surface owns the viewport; long reference content lives in dialogs. */
+#main-content:has(.faith-scene) + footer { display: none; }
+.faith-scene { height: 100vh; height: 100dvh; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: radial-gradient(ellipse at 10% 12%, #52654b24, transparent 48%), #11231e; }
+.faith-play-header { flex-shrink: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 10px max(16px, calc((100% - 1180px) / 2)); border-bottom: 1px solid #c9b27a30; background: #10231de8; }
+.faith-hub-link { display: flex; align-items: center; gap: 8px; min-height: 40px; color: #d7bf85; font-size: 12px; }
+.faith-play-header h1 { color: #f2e5c7; font: 400 27px/1.15 Georgia, serif; letter-spacing: -.03em; }
+.faith-play-header h1 em { color: #d7bf85; font-weight: 400; }
+.faith-play-header > div { display: flex; gap: 8px; }
+.faith-play-header button { min-height: 40px; padding: 7px 14px; border: 1px solid #ad976659; border-radius: 8px; color: #e4d1a5; background: #1c352a; font-size: 12px; }
+.faith-shell { flex: 1; min-height: 0; width: 100%; max-width: 1180px; padding: 12px 16px 16px; margin: auto; display: flex; flex-direction: column; gap: 12px; }
+.faith-controls { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.faith-level-summary { min-width: 0; }
+.faith-level-summary h2 { color: #e8d3a3; font: 400 21px/1.2 Georgia, serif; }
+.faith-level-summary p { margin-top: 3px; color: #b1bfb2; font-size: 12px; }
+.faith-round-controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.faith-round-controls select { width: 64px; min-height: 40px; padding: 6px; border: 1px solid #6a7158; border-radius: 8px; color: #f1e2c2; background: #182f27; font-size: 13px; }
+.faith-round-controls > button { min-height: 40px; padding: 8px 14px; font-size: 12px; }
+.faith-game-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; }
+.faith-board-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 10px 14px 14px; border: 1px solid #ad97664a; border-radius: 18px; background: radial-gradient(ellipse at center, #304c3a66, #10231d); box-shadow: inset 0 0 0 4px #10231d, inset 0 0 0 5px #ad97661c; }
+.faith-board-caption { flex-shrink: 0; display: flex; justify-content: center; align-items: center; gap: 14px; padding: 2px 0 8px; color: #c7b88f; text-transform: uppercase; font-size: 8px; letter-spacing: .18em; }
+.faith-board-caption span { color: var(--faith-accent); }
+/* Size containment lets both available width AND height limit the portrait board. */
+.faith-board-space { flex: 1; min-height: 0; min-width: 0; container-type: size; display: grid; place-items: center; }
+.faith-board { position: relative; width: min(100cqw, calc(100cqh * var(--faith-board-ratio))); aspect-ratio: var(--faith-board-ratio); isolation: isolate; }
+.faith-sidebar { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.faith-tray-panel { padding: 12px; border: 1px solid #7b80624d; border-radius: 12px; background: linear-gradient(145deg, #284036a8, #172e25cc); }
+.faith-tray-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.faith-tray-heading h2 { color: #e6d1a0; font: 400 19px/1.2 Georgia, serif; }
+.faith-tray-heading p { color: #b1bfb2; font-size: 11px; }
+.faith-tray-slots { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; max-width: 336px; margin-inline: auto; }
+.faith-tray-slot { display: grid; place-items: center; min-width: 0; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 5px; border: 1px dashed #72806677; color: #899a83; background: #10231c; }
+.faith-tray-filled { border: 1px solid #c9b27a; background: #efe1c0; box-shadow: 0 2px 0 #685435; }
+.faith-assists { display: grid; gap: 6px; }
+.faith-assists button { min-height: 40px; padding: 7px 8px; font-size: 12px; white-space: nowrap; }
+.faith-challenge-bar { display: grid; gap: 8px; padding: 10px; border: 1px solid #b6ad7b3b; border-radius: 10px; background: #1f372c; font-size: 11px; color: #bfccb8; }
+.faith-challenge-bar > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.faith-difficulty { color: #e6d1a0; font-weight: 700; }
+.faith-obstacle-counts span { white-space: nowrap; }
+.faith-obstacle-counts [data-count="frost"] { color: #b2d8e6; }
+.faith-obstacle-counts [data-count="seal"] { color: #e1b1a0; }
+.faith-obstacle-counts [data-count="veil"] { color: #c8bbdd; }
+.faith-notice { min-height: 4.05em; color: #e6d1a0; font-size: 12px; line-height: 1.35; }
+.faith-notice-lost { color: #ffb2ab; }
+.faith-practice-note { color: #a7b6a7; font-size: 10px; line-height: 1.3; }
+.faith-eyebrow { color: var(--faith-accent, #d5bc80); font-size: 9px; letter-spacing: .2em; font-weight: 700; }
+.faith-select-label { display: grid; gap: 5px; color: #b1bfb2; font-size: 11px; }
+.faith-select-label select { width: 100%; padding: 9px 28px 9px 10px; min-height: 42px; background: #182f27; color: #f1e2c2; border: 1px solid #6a7158; border-radius: 8px; font-size: 16px; }
+.faith-panel { position: fixed; inset: 0; margin: auto; width: min(540px, calc(100% - 24px)); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid #ad976680; border-radius: 16px; color: #d6dece; background: #142b22; box-shadow: 0 20px 80px #0007; }
+.faith-panel::backdrop { background: #06100ed9; }
+.faith-panel[open] { display: flex; flex-direction: column; }
+.faith-panel > header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #ad976640; }
+.faith-panel h2 { color: #e6d1a0; font: 400 24px/1.2 Georgia, serif; }
+.faith-panel > header button { min-height: 42px; padding: 8px 12px; font-size: 12px; }
+.faith-panel-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px; font-size: 13px; }
+.faith-panel-content > p + p { margin-top: 12px; }
+.faith-panel-content h3 { margin: 18px 0 10px; color: #e6d1a0; font: 400 21px/1.2 Georgia, serif; }
+.faith-panel-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 12px; }
+.faith-panel-settings .faith-skin-picker { max-width: none; align-self: start; }
+.faith-collection-card { margin-top: 24px; }
+.faith-collection-preview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.faith-collection-preview > div { aspect-ratio: 2 / 3; border: 1px solid #9a875a; border-radius: 5px; overflow: hidden; box-shadow: 0 2px 0 #625333; background: #efe1c0; }
+.faith-collection-card > p:last-child { font-size: 11px; color: #b0bbaa; margin-top: 14px; }
+@media (prefers-reduced-motion: reduce) { .faith-tile { transition: none; } .faith-tile:not(:disabled):hover { transform: none; } }
+@media (max-width: 900px) { .faith-game-layout { grid-template-columns: minmax(0, 1fr) 250px; gap: 12px; } .faith-play-header { gap: 12px; } .faith-board-panel { padding-inline: 8px; } }
+@media (max-width: 700px) and (min-height: 541px) {
+  .faith-game-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
+  .faith-sidebar { gap: 6px; }
+  .faith-tray-panel { padding: 6px 10px 8px; }
+  .faith-tray-heading { margin-bottom: 4px; }
+  .faith-tray-heading h2 { font-size: 15px; }
+  .faith-tray-heading p { font-size: 10px; }
+  .faith-tray-slots { max-width: 238px; }
+  .faith-assists { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .faith-assists button { font-size: 10px; padding-inline: 2px; }
+  .faith-challenge-bar { display: flex; justify-content: space-between; padding: 6px 10px; gap: 6px; font-size: 9px; }
+  .faith-challenge-bar > div { justify-content: space-between; gap: 6px; }
+  .faith-challenge-bar > div:first-child > span:last-child { display: none; }
+  .faith-notice { min-height: 2.7em; font-size: 11px; }
+  .faith-practice-note { text-align: center; font-size: 9px; }
+}
+@media (max-width: 700px) {
+  .faith-play-header { padding: 5px 8px; gap: 8px; }
+  .faith-hub-link { justify-content: center; min-width: 28px; }
+  .faith-hub-link span { display: none; }
+  .faith-play-header h1 { font-size: clamp(17px, 4.8vw, 23px); white-space: nowrap; }
+  .faith-play-header > div { gap: 4px; }
+  .faith-play-header button { padding: 6px 9px; font-size: 11px; }
+  .faith-shell { padding: 8px; gap: 8px; }
+  .faith-controls { gap: 6px; }
+  .faith-level-summary h2 { font-size: 15px; }
+  .faith-level-summary p { font-size: 10px; line-height: 1.4; }
+  .faith-round-controls { gap: 4px; }
+  .faith-round-controls select { width: 60px; padding-inline: 4px; font-size: 12px; }
+  .faith-round-controls > button { padding: 7px 8px; font-size: 11px; }
+  .faith-board-panel { padding: 5px 6px 8px; border-radius: 12px; }
+  .faith-board-caption { font-size: 7px; padding-bottom: 4px; }
+  .faith-tile { box-shadow: 1px 2px 0 #a78c57, 1px 4px 0 #685435, 0 5px 7px #0005; }
+}
+@media (max-height: 540px) {
+  .faith-play-header { padding-block: 3px; }
+  .faith-play-header h1 { font-size: 21px; }
+  .faith-shell { padding-block: 6px; gap: 6px; }
+  .faith-game-layout { grid-template-columns: minmax(0, 1fr) 260px; gap: 10px; }
+  .faith-sidebar { gap: 5px; }
+  .faith-tray-panel { padding: 5px 8px 6px; }
+  .faith-tray-heading { margin-bottom: 3px; }
+  .faith-tray-heading h2 { font-size: 15px; }
+  .faith-tray-heading p { font-size: 10px; }
+  .faith-assists { grid-template-columns: minmax(0, .9fr) minmax(0, 1fr) minmax(0, 1.25fr); }
+  .faith-assists button { font-size: 9px; padding-inline: 1px; }
+  .faith-challenge-bar { padding: 5px 8px; gap: 2px; font-size: 10px; }
+  .faith-notice { min-height: 2.7em; font-size: 10px; }
+  .faith-practice-note { font-size: 9px; }
+}
+@media (max-height: 350px) {
+  .faith-tray-slots { max-width: 210px; }
+  .faith-assists button { min-height: 36px; }
+  .faith-notice { min-height: 0; }
+}
+
+.faith-tile { position: absolute; padding: 0; border: 1px solid #b99c61; border-radius: 8%; overflow: hidden; background: #efe1c0; box-shadow: 0 1px 0 #fff9 inset, 1px 3px 0 #a78c57, 2px 5px 0 #685435, 0 7px 10px #0006; transition: transform .15s, filter .15s, box-shadow .15s; }
+.faith-tile:not(:disabled):hover { transform: translateY(-3px); box-shadow: 0 1px 0 #fff9 inset, 1px 3px 0 #c7b073, 2px 5px 0 #685435, 0 12px 15px #0007; }
+.faith-tile:disabled { opacity: 1; filter: brightness(.64) saturate(.65); cursor: not-allowed; }
+.faith-tile:focus-visible { z-index: 600 !important; outline: 3px solid #ffdf88; outline-offset: 3px; }
+.faith-painted-art { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; pointer-events: none; }
+
+.faith-veiled-face { width: 100%; height: 100%; display: block; background: radial-gradient(ellipse at center, #345a58, #1e333c); }
+.faith-veiled-face rect { fill: none; stroke: #d0bc83; stroke-width: 1.5; }
+.faith-veiled-face path, .faith-veiled-face circle { fill: none; stroke: #d0bc83; stroke-width: 1; }
+.faith-veil-label { position: absolute; bottom: 9%; left: 0; width: 100%; text-align: center; font-size: clamp(5px, .6vw, 8px); letter-spacing: .12em; color: #f3e2b0; pointer-events: none; }
+.faith-frost-overlay { position: absolute; inset: 0; pointer-events: none; border: 3px solid #c4ecffc9; border-radius: inherit; background: repeating-linear-gradient(125deg, transparent 0 12px, #c1ebf133 13px 14px, transparent 15px 25px), linear-gradient(30deg, #b4def34d, #e7f7fb66, #a7cbed33); box-shadow: inset 0 0 13px #c8f1ffcc; }
+.faith-frost-overlay b { position: absolute; top: 3%; left: 5%; color: #18374b; background: #e8f7ff; border-radius: 4px; padding: 1px 3px; font-size: clamp(8px, .8vw, 11px); line-height: 1.4; }
+.faith-wax-seal { position: absolute; bottom: 10%; left: 22%; width: 56%; aspect-ratio: 1; display: grid; place-items: center; border: 1px solid #eab7a5; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #ca705a, #773f3b); box-shadow: 0 2px 3px #0005, inset 0 0 0 3px #993d3540; color: #fff0cd; font: bold clamp(12px, 1.3vw, 20px) Georgia, serif; pointer-events: none; }
+.faith-wax-seal small { position: absolute; bottom: -18%; right: -12%; min-width: 14px; padding: 1px 3px; border: 1px solid #dab69a; border-radius: 4px; background: #553a32; color: #fff1d9; font: bold 10px/1.4 system-ui, sans-serif; }
+.faith-tray-locked { background: repeating-linear-gradient(45deg, #704f4c22 0 5px, transparent 5px 10px), #15261e; border-color: #806c6566; color: #b69d86; }
+.faith-obstacle-guide > p { margin-top: 14px; color: #bec8b7; font-size: 11px; line-height: 1.8; }
+.faith-obstacle-guide b { display: block; color: #e4d1a5; margin-bottom: 3px; font-size: 12px; }
+
+.faith-painted-art[data-skin="faith3-skin-celestial"] .faith-base-painting { filter: saturate(.83) brightness(.98); }
+.faith-painted-art[data-skin="faith3-skin-jade"] .faith-base-painting { filter: saturate(.92); }
+.faith-painted-art[data-skin="faith3-skin-rose"] .faith-base-painting { filter: saturate(.92) brightness(1.03); }
+.faith-skin-picker { display: grid; gap: 3px; align-self: end; max-width: 180px; }
+.faith-skin-picker > a { color: #cfbb86; font-size: 9px; }
+.faith-skin-picker > span { color: #d5c6ab; font-size: 10px; }
+.faith-skin-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; margin-top: 10px; }
+.faith-skin-heading > div { flex: 1 1 340px; }
+.faith-skin-heading > a { flex-shrink: 0; font-size: 12px; }
+.faith-skin-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin: 25px 0 20px; color: #c5ceb9; font-size: 12px; }
+.faith-skin-toolbar label { display: grid; gap: 6px; }
+.faith-skin-toolbar select { border: 1px solid #69775e; border-radius: 8px; padding: 8px 12px; color: #eadbb9; background: #163026; }
+.faith-skin-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.faith-skin-card { min-width: 0; display: flex; flex-direction: column; align-items: start; padding: 18px 14px; border: 1px solid #bba56e55; border-radius: 13px; background: linear-gradient(145deg, #233a3b, #10271f); }
+.faith-skin-card:nth-child(2) { background: linear-gradient(145deg, #284b39, #122e25); }
+.faith-skin-card:nth-child(3) { background: linear-gradient(145deg, #49383c, #251f26); }
+.faith-skin-samples { display: flex; align-items: center; width: 100%; gap: 6px; margin-bottom: 14px; }
+.faith-skin-samples > div { flex: 1; min-width: 0; aspect-ratio: 2 / 3; border-radius: 7px; overflow: hidden; box-shadow: 0 5px 12px #0005; background: #e8d9b8; }
+.faith-skin-card h3 { color: #e6d4ae; font: 400 23px/1.15 Georgia, serif; margin: 7px 0 12px; }
+.faith-skin-card > p:not(.faith-skin-preview-note) { color: #bac4b3; font-size: 11px; line-height: 1.8; margin-bottom: 16px; flex-grow: 1; }
+.faith-skin-card .faith-skin-preview-note { color: #a9baa9; font-size: 8px; letter-spacing: .13em; text-transform: uppercase; }
+.faith-skin-price { color: #e4d2a5; font-size: 13px; }
+.faith-skin-card > small { color: #aab7a1; font-size: 9px; line-height: 1.7; margin: 6px 0; }
+.faith-skin-card > .btn-gold, .faith-skin-card > .btn-ghost-gold { margin-top: 14px; width: 100%; padding: 10px 8px; font-size: 11px; }
+@media (max-width: 640px) { .faith-skin-grid { grid-template-columns: 1fr; } .faith-skin-card { padding: 22px; } .faith-skin-samples { max-width: 300px; margin-inline: auto; gap: 12px; } .faith-skin-card h3 { font-size: 27px; } }
+
+.faith-skin-card:nth-child(4) { background: linear-gradient(145deg, #69431f, #2d2019); }
+.faith-skin-card:nth-child(5) { background: linear-gradient(145deg, #155965, #142c3e); }
+.faith-skin-card:nth-child(6) { background: linear-gradient(145deg, #4f3271, #241b37); }
+.faith-painted-art[data-skin="faith3-skin-amber"] .faith-base-painting { filter: sepia(.12) saturate(1.08); }
+.faith-painted-art[data-skin="faith3-skin-turquoise"] .faith-base-painting { filter: saturate(1.07) contrast(1.03); }
+.faith-painted-art[data-skin="faith3-skin-violet"] .faith-base-painting { filter: saturate(1.06) brightness(1.04); }

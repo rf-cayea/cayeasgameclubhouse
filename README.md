@@ -1,549 +1,230 @@
 # Cayea’s Game Clubhouse
 
-**Start here:** [open the games in your browser or download the ZIP](START_HERE.md).
-The repository includes automatic GitHub Codespaces setup for the complete app.
+Play the current site: **https://cayeas-game-clubhouse.r-f-cayea.chatgpt.site**.
+The [About & Player Guide](https://cayeas-game-clubhouse.r-f-cayea.chatgpt.site/about)
+explains the games, rewards, collections, multiplayer and account features.
 
-React + TypeScript + Vite application scaffolded from the supplied hub, wallet,
-and lounge source, plus Faith 3, full Rummy, four-player Spades, and 3 Gems of
-Buddhism. Uses TanStack file
-routing, Tailwind CSS, the Supabase browser SDK, and a Node/SQLite authoritative
-card-game service. Supabase migrations cover the lounge, moderation, wallets,
-verified match rewards, and points store. Guest card games need no Supabase project.
+This repository contains the complete React / TypeScript / Vite app, original
+artwork, Node/SQLite game service, Cloudflare Worker/D1 deployment, migrations
+and tests. Supabase provides member authentication and the moderated lounge.
+The current wallets, profiles, friends, game state, verified rewards and
+collectible-card albums live in the Clubhouse game database.
 
-## Local development
+## Games available now
 
-Use Node.js 24.19.0 (`.nvmrc`) and npm. Run from this checkout:
+| Game | Rules and features | Opponents |
+| --- | --- | --- |
+| Carrom & Disc Pool | Movable baseline striker, touch pull-back aiming arrow, light-to-hard power, first-contact and bank guides, deterministic collisions and cushion rebounds. Carrom has queen-and-cover rules; Disc Pool is a nine-disc color race. | Easy / Normal / Hard computer; two-player online |
+| Backgammon | Standard or Nackgammon; 1/3/5/7/9-point matches, smart legal moves, doubling cube, gammons, backgammons and Crawford rule | Three computer difficulties; two-player online |
+| Crown & Court | Cayea’s original five poker-dice game, faces 9/10/J/Q/K/A; exact poker hands, Court Tally and Royal Trials; 7/14/21 turns | Three computer difficulties; free online tables for 2–4 |
+| Farkle | Six pip dice; smart scoring, hot dice, 300-point opening; Classic 10,000 or Fast 5,000; first to bank the target wins immediately | Three computer difficulties; two-player online; separate Party unlock for 3–4 |
+| Clubhouse Dominoes | Draw, Block or Muggins; highest-double opening, physical chains/spinner branches, drag-and-drop, opponent tile counts and revealed hand results | Three computer difficulties; two-player online |
+| Quintsee | Five pip dice, three rolls, freely adjustable holds, 13-category scorecard including small/large straights, five-of-a-kind celebration | Three computer difficulties; two-player online; separate Party unlock for 3–4 |
+| Faith 3 Tile Match | 280 levels, layered portrait tiles, belief-themed artwork, increasing obstacles, 80 mahjong-style bonus layouts and collectible skins | Solo puzzle |
+| 3 Gems of Buddhism | 200 match-three levels, mixed specials, visible effects and boosters; 50 levels per monastery and 50 restoration-star repairs | Solo puzzle |
+| Rummy+ | Classic, Gin and Rummy 500; legal ace runs, meld ownership, Call Rummy, smart sorting, drag-and-drop and optional Joker Mode | Computers, same-device play and private online tables |
+| Spades | Four-seat Solo or Partnerships, bids, private hands, paced computer plays, drag-to-play and explicit trick collection | Computers or online; Partnerships requires its unlock |
+
+All eight multiplayer game entries have a **Match Making** button. Public
+listings are opt-in; private rooms stay private until listed. Players join,
+ready up, and the host starts. Room codes and shareable table links support
+private invitations. The signed-in Friends page also provides direct in-app
+invitations for Rummy+ and Spades. See [multiplayer testing](docs/multiplayer-testing.md).
+
+Game boards fit phone/tablet viewports; rules, history, artwork and collection
+panels open separately. Core Carrom physics and server validation are shared by
+both players. The server locks the next shot until the discs settle; computers
+pause before replying. Interrupted commands retry their original request ID.
+
+## Points, Clubhouse Cash and achievements
+
+- Eligible full-match wins pay **15 Easy / 25 Normal / 35 Hard / 50 online**.
+  Online rewards require the eligible signed-in human participants. Guest,
+  abandoned, pass-and-play and unverified results do not pay win rewards.
+- Faith 3 verified first clears pay **12–45 Faith 3 points**. 3 Gems first clears
+  pay **10–50 Gems points** and one restoration star. Replays do not repeat
+  first-clear rewards; Gems replays can improve saved star ratings.
+- There are six game-point balances. Quintsee, Farkle, Crown & Court,
+  Backgammon and Carrom / Disc Pool share **Dice points**. The other balances
+  are Faith 3, Gems, Rummy+, Spades and Dominoes.
+- Convert **13 game points → 10 Clubhouse Cash**, in multiples of 13. Cash has
+  30% more purchasing power per unit. Conversion and spending preserve lifetime
+  earnings. Cash is an in-game currency, with no withdrawal or monetary value.
+- All ten game entries plus membership have achievements. Each table-game
+  entry has 12 win, Hard-computer and online milestones. Claim rewards in
+  Rewards & Cash; earned badges appear on player profiles. Game achievements
+  give points plus `max(2, floor(points / 13))` Cash. Membership has its own
+  modest Cash rewards. The catalog is authoritative for current amounts.
+- Selected claimed achievements also award Harvest & Hearth cards or boosters.
+  Previously claimed eligible achievements receive their card bonus once when
+  the album opens. No achievement or reward retry can pay twice.
+
+The implementation lives in `src/lib/reward-rates.ts`,
+`src/lib/achievement-catalog.ts`, `server/economy.ts` and `server/puzzle-rewards.ts`.
+See [rewards and accounting](docs/rewards-testing.md).
+
+## Reward crates and fragments — current policy
+
+| Collection | Win progress comes from | Fragment unlocks |
+| --- | --- | --- |
+| Shared D6 dice | Quintsee + Farkle | Shared pip-dice finishes |
+| Dominoes | Draw / Block / Muggins | Domino sets |
+| Shared playing decks | Rummy+ + Spades | Shared 52-card decks |
+| Backgammon | Standard + Nackgammon | Boards or checker sets |
+
+Each collection awards one crate per **6 verified real-player wins** or
+**9 computer wins**. A computer crate gives **3–20 Cash**; a real-player crate
+**28–65 Cash**. Every crate also gives one fragment. **Three matching fragments**
+unlock the complete set. Losses and ties do not advance crates. Existing crates,
+fragments, ownership and credited rewards remain valid.
+
+Open crates from a game's Rewards panel or Rewards & Cash. Openings have an
+animation, synthesized sounds, a saved mute setting and reduced-motion support.
+An interrupted opening retries the same crate. Store → Fragments sells one or
+the remaining fragments, each at `ceil(set price / 3)` in points or Cash.
+
+## Cayea’s Collectibles — Harvest & Hearth
+
+The permanent first album contains **100 original illustrated cards**:
+**45 fall/Thanksgiving and 55 winter/holiday** paintings.
+
+| Stars | Rarity | Cards | Booster price | Duplicate-sale price |
+| --- | --- | --- | --- | --- |
+| 1 | Common | 38 | 25 Cash | 5 Cash |
+| 2 | Uncommon | 26 | 50 Cash | 10 Cash |
+| 3 | Rare | 20 | 94 Cash | 20 Cash |
+| 4 | Ultra-rare | 16 | 157 Cash | 40 Cash |
+
+Each booster contains three cards. Its first card meets or exceeds the pack
+tier; two additional slots can have any rarity. A pack has a **44% chance to contain one missing card**.
+If the guaranteed slot has no eligible duplicate, it awards a new card.
+Full albums receive duplicates.
+
+Across all reward-crate collections, every **second opened crate** gives a common
+or uncommon booster (75% / 25%), every **third** also gives a rare booster, and
+every **fifth** has a 25% ultra-rare-booster chance. After three missed ultra
+checkpoints the fourth is guaranteed. Overlapping milestones stack. Selected
+claimed achievements give individual cards or boosters too.
+
+Use Collectibles → Boosters for the foil-tear animation, staggered card reveals
+and rarity chimes; sound can be muted and reduced motion is supported. Store →
+Card boosters sells all four tiers. View the last opening again after a reload.
+
+Only duplicates can be offered directly to another gamer name. Both players
+confirm a fixed-price Cash sale or a swap of different cards of the same
+rarity. The first copy stays in the album. Offers escrow the duplicate until
+accepted, declined or cancelled; Cash transfers between player wallets.
+Complete all 100 cards to claim a **one-time 1,000 Cash jackpot**.
+
+`server/collectibles.ts` validates ownership, consent, blocks and balances and
+commits both sides atomically. `drizzle/0018_cayea_collectibles.sql` is additive.
+Original paintings are local assets; [artwork notes](art/README.md) document
+atlas panels and deployment encodings.
+
+## Store and customization
+
+Paid prices increased by 25%, with fractional prices rounded up to whole units.
+
+The Store has categories for Card boosters, Fragments, Carrom, Backgammon, Tables,
+Decks, Shared D6 dice, Dominoes, Faith 3, Game modes, Frames and Wallet.
+
+- Shared 52-card decks: **563 Rummy+ or Spades points / 434 Cash** each. Buy once
+  for compatible games, equip independently. Includes 52 cards and two optional
+  jokers; Rummy+ Joker Mode remains a separate unlock.
+- Paid Rummy+/Spades table surfaces: **125 game points / 97 Cash** each.
+  Retired room-background products are no longer offered.
+- Joker Mode and Spades Partnerships: **500 matching-game points / 385 Cash**.
+- Quintsee Party and Farkle Party: **750 Dice points / 578 Cash each**, separate
+  purchases. Every human at a 3–4-player table needs that game's Party unlock.
+- Shared D6 and Dominoes jewel colors: **188 matching points / 145 Cash**.
+  Decorated, skull, sunburst and nautical designs: **313 points / 242 Cash**.
+  Four-set nautical bundles cost **1,000 points / 770 Cash** per collection.
+  Dice and domino ownership are separate; D6 dice work in compatible pip-dice
+  games, including Backgammon. Crown & Court uses separate poker-rank dice.
+- Backgammon boards: **375 Dice points / 289 Cash**; checker sets:
+  **188 points / 145 Cash**. Twenty paid board and twenty checker themes are available,
+  alongside included classic designs; equip each slot independently.
+- Custom-image circle, diamond, square and portrait frames are **four separate
+  purchases of 125 points / 97 Cash each**. Upload the image on My profile.
+- Faith 3 skins cost **375, 563 or 750 Cash**. Equipping changes artwork only.
+
+Carrom and Disc Pool share a collection of boards, pip-free puck sets and strikers, plus a reward crate with one design fragment per opening. Equip each piece independently. The eight table games have an optional four-track instrumental loop with crossfades.
+
+Owned designs are selectable before a match and in each game's collection
+controls. The Store retains Equip/Use after purchase. The server catalog,
+not a browser price, determines every debit. See [shared card decks](docs/shared-card-decks.md).
+
+## 3 Gems monastery journey
+
+The 200-level journey has four monasteries inspired by Sri Lankan Theravada,
+Chinese Mahayana, Tibetan Vajrayana and Japanese Zen (within Mahayana). First
+clears earn restoration stars for 50 repairs, with before/after scenes and
+repair animation. Villages, resource production, NPC missions and worker
+purchases are retired. Existing earned stars and completed repairs stay saved.
+
+Story milestones introduce Buddha, Dharma and Sangha, including monks, nuns and
+lay practitioners. Quotations use Bhikkhu Sujato's CC0 translations and retain
+references. See [monastery sources](docs/monastery-sources.md).
+
+## Accounts, profiles and moderation
+
+A member can choose a unique gamer name, bio and emblem/custom-image shape.
+Standalone player pages show earned badges and safe statistics; private
+wallets and transaction history stay in account views. Friends, blocks,
+verified friend activity and room invitations use authenticated member APIs.
+
+The Supabase lounge provides posts/chat, reports and staff moderation with
+audit records. Staff actions are checked on the server/database; sign-up does
+not grant a moderation role. Membership, email confirmation and password
+recovery use the configured Supabase project. See [Supabase setup](SUPABASE_SETUP.md)
+and [password recovery](docs/password-reset.md).
+
+## Run locally or in Codespaces
+
+Use Node **24.19.0** (`.nvmrc`) and npm:
 
 ```sh
 npm ci
 npm run dev -- --port 5173 --strictPort
 ```
 
-`npm run dev` starts the game service on port8787 and Vite on the requested
-frontend port. It reuses an already-running instance of this game's API, and
-stops only processes it started. The Vite `/api/rummy` and `/api/spades` proxies keep browser
-requests and guest cookies on the app's own origin.
-
-The hub, signed-out lounge, Faith 3 practice, 3 Gems, and Rummy/solo-Spades guest play work without
-Supabase. Rummy supports full Classic, Gin, and Rummy500 matches against computer
-players, pass-and-play, and private online rooms. Spades supports solo and
-partnership games with four seats, computers, or private online rooms. The store previews Joker Mode
-at **800 Rummy+ points**; checkout, member verification, and moderation require
-the Supabase configuration below. Friends management remains unfinished. Game
-scores are separate from wallet rewards. Eligible signed-in match wins earn
-game-specific points through the trusted reward service described below.
-The replacement SVG artwork is local and requires no external image service.
+This starts Vite on 5173 and the authoritative API on 8787, using
+`.data/rummy.sqlite`. Vite proxies all game, puzzle, economy, collectible and
+social routes so cookies remain on one origin. Copy `.env.example` to
+`.env.local` for optional member settings. Guest play does not need Supabase.
 
 ```sh
-npm run build       # Production bundle, route generation, and strict TypeScript check
-npm test           # Game/reward rules and moderation API behavior
-npm run typecheck  # Generate the route tree and check types without bundling
-npm run preview -- --port 4173 --strictPort # Static preview; keep the game API running
-npm start          # Production app + game API; run npm run build first
-```
-
-For the cloud image’s preinstalled Python Playwright and system Chromium:
-
-```sh
-python3 tests/browser_smoke.py  # With the dev server running, no backend configuration
-python3 tests/bonus_levels_browser.py # All levels201–280, desktop + mobile
-python3 tests/rummy_multiplayer_browser.py --base-url http://127.0.0.1:5173
-python3 tests/spades_browser.py --base-url http://127.0.0.1:5173
-python3 tests/spades_debug_browser.py --base-url http://127.0.0.1:5173
-python3 tests/gems_browser.py --base-url http://127.0.0.1:5173
-```
-
-This checks desktop/mobile routes, navigation, missing-backend auth states,
-artwork, and the local tile game. A running server alone is not a readiness
-check. Command sandboxing may require the supported approval mechanism for
-package installation, local server binding, or Chromium; preserve proxy and CA
-settings and keep TLS verification enabled.
-
-`src/routeTree.gen.ts` is generated by TanStack Router and should not be edited
-manually. `npm ci` uses the project lockfile. No global package install is
-needed. This cloud task already has an isolated checkout; use it directly
-without creating another Git worktree.
-
-## 3 Gems of Buddhism
-
-Open **Games → Play 3 Gems**. This original match-three game has 150 sequential
-levels across ten chapters. The jade, ivory, and gold presentation uses local
-faceted gem artwork and an illustrated Buddhist monastery. Each first clear
-advances restoration; every fifteen clears restores a courtyard, garden,
-lantern walk, pond, gate, hall, roof, stupa, or reopening project. Finishing level
-150 reopens the monastery permanently in that saved journey.
-
-- Match three in a line to clear. Four creates a horizontal/vertical line gem;
-  five in a straight line creates a wisdom orb; a T/L creates a lotus burst;
-  a square creates a goal-seeking lantern. Specials chain and combine, including
-  orb/color, orb/special, double orb, crossed lines, line/burst, double burst,
-  and lantern deliveries.
-- Goals combine gem collection, layered lotus seals, multi-hit crates, and
-  chained gems. Invalid swaps spend nothing. Gravity respects crates and chains;
-  cascades settle before the next turn. Dead boards reshuffle for free.
-- Start with two row hammers, two column hammers, a 3 × 3 lotus blessing, and a
-  fresh breeze. Boosters cost no moves. Each first clear earns supplies; every
-  fifth level pays two of each hammer. Ten-level and chapter milestones add
-  blessings and breezes. Replays improve stars but cannot repeat first-clear gifts.
-- Tap neighbors, swipe on phones, or use arrows/Enter and Shift + arrow. Free
-  hints, a six-lesson guide, a level map, and a restoration journal are included.
-  The heading compacts during play, and reduced-motion preferences are respected.
-
-The active board, stars, level access, booster balances, restoration, and
-first-clear gifts are saved together under `clubhouse-three-gems-v1` in this
-browser's local storage. Web Locks serialize available cross-tab transactions;
-revision checks reject stale input and storage events synchronize visible tabs.
-Browsers that expose but deny Web Locks fall back to revision-checked saving.
-Board updates clear obsolete hints, selections, and restart prompts across tabs;
-animated cascades preserve keyboard focus while blocking further game actions.
-Restarting preserves spent supplies. This game works without Supabase; these
-are **in-game booster rewards**, separate from Clubhouse wallet points. Clearing
-browser storage clears this device's journey; cloud/account sync is not implemented.
-
-Relevant verification:
-
-```sh
-npm test -- --run tests/gems.test.ts
-python3 tests/gems_browser.py --base-url http://127.0.0.1:5173
-python3 tests/gems_debug_browser.py --base-url http://127.0.0.1:5173
-node --import tsx scripts/check-gems-balance.ts --earned-boosters
-```
-
-The 32 mechanic/progress tests check all 150 openings, special combinations,
-blockers, inventory, saved state, and reopening. The campaign checker completed
-all 150 levels in sequence using only its starter kit and earned supplies,
-without retries or replay gifts. The browser suite plays real early levels and
-tests touch/keyboard input, queued actions, two-tab saves, and phone layouts;
-explicit late-level save fixtures preview the restoration milestones and ending.
-The debug browser suite adds animated keyboard focus, denied/missing locking APIs,
-full-storage fallback, stale hints, and a cross-tab win during a restart prompt.
-Neither automated strategy nor fixtures substitute for a human playtest of every
-level. No remote deployment or database migration is required to play locally.
-
-## Connecting Supabase
-
-The selected project is `https://spjxaghfxomgafgbrnkr.supabase.co`.
-See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for this project’s configuration,
-auth redirects, read-only schema inspection, and activation steps.
-
-Copy `.env.example` to `.env.local`, or set the variables in cloud environment
-settings, then restart Vite. Add the actual project URL as
-`VITE_SUPABASE_URL` and the browser-safe publishable key as
-`VITE_SUPABASE_PUBLISHABLE_KEY`. The legacy `VITE_SUPABASE_ANON_KEY` also works.
-Never use a service-role or admin key in `VITE_*`; these values are included in browser
-assets. Local env files are ignored by Git. The client requires HTTPS.
-
-Enable email/password auth in the project, and configure the app’s auth URLs
-and email confirmation behavior in Supabase. Sign-in and sign-up use real
-Supabase authentication; no mock accounts or wallet balance are created.
-Missing configuration disables sign-in with an explanation.
-
-The Node game service reads the same `.env` / `.env.local` files. Production
-servers may instead use `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. When a
-browser supplies a member JWT, the service verifies it with Supabase and checks
-that member's own wallet through RLS before allowing a Joker-enabled table.
-An unverified JWT never becomes a guest or a trusted member silently. Guests
-can play ordinary games immediately; they cannot enable Joker Mode.
-
-## Card-room appearance
-
-Rummy+ and Spades share the original SVG renderer in
-`src/components/CardArtwork.tsx`: ivory card stock, traditional number-card pip
-layouts, mirrored illustrated court cards, ornate backs, and Rummy jokers.
-Spades keeps the palettes and motifs of all four collectible decks. Shared
-headers, player medallions, turn indicators, textured felt, inset table rails,
-and compact hand controls are styled in `src/styles/card-games.css`.
-
-These styles are scoped to the two card-game scenes. Keep Rummy’s outer wrapper
-transparent: uploaded room/table images and the existing CSS background variables
-remain authoritative. Spades venue backgrounds and owned designs remain selected
-by their existing settings. The visual refresh adds no new purchase, currency,
-game rule, or server requirement. Inputs and touch targets retain the mobile
-minimums; visual transitions respect reduced-motion preferences.
-
-## Cayea’s Classic Cards Spades
-
-Open **Games → Play Spades**. All games have four seats and a standard 52-card
-deck, with no jokers. Choose Solo (four separate scores) or Partnerships (opposite
-seats share scores: 1 & 3, 2 & 4). Targets are100,250,500, or1000;500 is the
-default target. Solo is the free default scoring mode. Choose computers or a private room with2–4 human seats; computers fill
-the others. Joiners can choose their seat, including the host’s opposite seat.
-Every human must be ready before the host deals. Only a player’s own hand is
-returned by the API, including after a hand ends. Private hands, moves, match
-UUIDs, reward jobs, and guest sessions persist in the same private SQLite file
-as Rummy; never reset it to troubleshoot connection problems.
-
-**Partnership unlock:** each human must purchase `spades-partnerships` once
-in the central Store for exactly **800 Spades points**. This enables both
-computer and online 2v2 games permanently. Solo computer/online play stays free.
-Mode ownership is checked from the verified wallet before creating, joining,
-reading/reconnecting to, readying, starting, or moving at a partnership table.
-A saved match, invitation code, client-owned flag, or 800-point balance without
-purchase does not bypass it. Locked players may still leave an old table.
-Computers do not need an unlock. No existing players are granted it for free.
-The price/currency are constrained in the catalog; purchases lock the wallet,
-debit only Spades points, and are idempotent even after the balance reaches 0.
-
-Snapshot and command requests have a 15-second timeout. After an uncertain reply,
-the client refreshes the authoritative table before allowing another move, so
-an accepted bid or card play survives the lost response. Leave confirmations
-reset when the room changes, and Solo lobbies show individual scoring guidance.
-The debug browser suite holds a real accepted bid response to verify recovery
-without a duplicate move, and checks stale leave prompts and lobby instructions.
-
-Rules used by this table:
-
-- Deal13 cards each, bid clockwise from the dealer’s left, then that player
-  leads. Bids0–13 are final; a partnership’s combined positive bid cannot
-  exceed13. Zero is ordinary nil, worth+100 for taking no tricks or−100 if set.
-- Follow the led suit when possible. When void, any card is allowed, including
-  a spade. Highest spade wins; otherwise highest led suit wins. Aces are high.
-  The winner leads next. Leading spades requires spades to be broken, unless
-  only spades remain in that hand. Trumping is allowed on the first trick.
-- A made positive contract earns10 per bid trick. Missing it costs10 per bid
-  trick. Each overtrick on a made contract earns1 point and1 bag. Nil tricks
-  do not fulfill a partner’s positive bid; failed-nil tricks add bags. Every10
-  bags costs100 points, with remaining bags carried forward. The hand result
-  shows contract, nil, bag points, penalty, hand change, and total separately.
-- All13 tricks settle before checking the target. A unique leader at or above
-  the target wins; tied leaders play another hand. Anyone can collect a
-  completed trick after reviewing its four cards. The host deals each next
-  hand, rotating the dealer. Leaving an active match ends it without a winner.
-  Blind nil, passing, and alternate deck rules are not enabled.
-
-Easy computers vary their bids and legal card choices. Normal estimates high
-cards and trump length, tries to make contracts, and avoids overtaking a winning
-partner. Hard also tracks publicly played cards, favors established winners,
-and protects an active nil when possible. They never inspect another hand.
-These are heuristics, not an optimal-play solver.
-
-**Hand management and phones:** long-press to drag, swipe normally to scroll
-the hand, or use the left/right buttons. Keyboard Space lifts/drops a card,
-arrows move it, Escape cancels. Smart sort groups suits high-to-low, with spades
-on the right; rank sort and20-step undo are available. Reordering never submits
-a game move. Select a card, then press Play selected card. The phone table uses
-a compact score strip and four-card trick row; bidding follows the hand, and play controls stay within reach, touch
-targets are at least44px, and inputs use16px type. Browser checks cover320px
-and390px widths, real touch dragging, four real sessions, legal tricks, a full
-computer hand, reconnection, and all six interactive tutorial lessons.
-
-**The collection:** one complimentary table/deck is always available. Four
-collectible venues include both felt/rail styling and an original room background:
-
-| Venue | Spades points |
-| --- | ---: |
-| Moonlit Observatory | 500 |
-| Rosewood Parlour | 650 |
-| Emerald Conservatory | 800 |
-| Gilded Grand Hall | 950 |
-
-Four separate original SVG skins change both backs and all52 card faces,
-including pip layouts, palettes, ace artwork, and court crowns:
-
-| Deck | Spades points |
-| --- | ---: |
-| Midnight Atlas | 350 |
-| Ember Crown | 500 |
-| Verdant Grove | 650 |
-| Ivory Deco | 800 |
-
-Preview every design in Collection; previews do not grant ownership or alter
-live games. Signed-in users can buy with **Spades points**, equip a permanent
-design, and use it on the next table they host. The host’s designs are shared
-by all four players. Both PostgreSQL and the game service enforce ownership;
-the server never trusts a browser-owned flag, price, or wallet balance.
-Purchases serialize on the wallet and retries never charge twice. Equipment is
-saved in the owner’s wallet. Rummy’s800-point Joker unlock is unchanged.
-
-Eligible Spades wins use the same40/70/120 computer rates and150 human rate.
-Solo pays the human winner; partnerships pay each eligible human on the winning
-team the full amount. Computer mode requires one signed-in human; online
-rewards require four distinct verified human accounts. Mixed online tables and
-guest games are unranked. `credit_spades_match` is service-role-only; its match
-receipt, awards, and both winner wallet updates commit together. Winner wallets
-lock in UUID order, preventing overlapping team matches from deadlocking.
-The durable outbox retries with the same match UUID after restart or a lost
-response. Wallet receipts must include the full expected winner set before a
-table says credited. Spades points convert10-to-7 into Cash through the central
-wallet, preserving lifetime totals. No real-money checkout is introduced.
-
-Local Spades gameplay and browser previews work now. Live purchases, equipment,
-and rewards require the actual Supabase project and all four migrations.
-After the original three, `20261102000000_spades_partnership_unlock.sql` adds
-the 800-point mode unlock; apply it before enabling partnership purchases. The
-project URL has been supplied and added to the environment draft. Runtime access,
-the key/project match, schema setup, and the server reward key remain unverified;
-no live project schema was changed or live wallet credited.
-
-## Rummy games, persistence, and hosting
-
-- Choose Vs computer, Pass and play, or Online with friends. Classic and Rummy500
-  allow2–4 players; Gin requires2. Computer levels are Easy, Normal, and Hard;
-  bots inspect their own hand and public piles, never the stock order or another
-  player's cards. Hard uses the global meld optimizer; Easy plays loosely.
-- Draw, select cards, meld or lay off (Classic/Rummy500), and discard. Gin keeps
-  melds in hand; use Knock at10 or fewer deadwood, or Go Gin at0. Both players
-  can decline Gin's opening upcard before a forced stock draw. Gin and undercut
-  bonuses are25. Opponent layoffs are considered before scoring an ordinary knock.
-- Classic plays to100, Gin to100, Rummy500 to500. Rummy500 credits each card's
-  contributor, then subtracts remaining hand value. Highest tied scores at the
-  target require another round. The host advances rounds. The chosen Rummy500
-  discard and all cards above it enter the hand; the chosen card must be used
-  before discarding, and an unusable pickup is rejected. Picked-up cards cannot
-  be discarded straight back. Classic recycles discards; Gin's last two stock
-  cards cancel the round; Rummy500 scores a round when stock is exhausted.
-- Online rooms use eight-character invitation codes. All seats must be filled
-  and ready before the host starts. A code allows joining a waiting room, not
-  reading an active room's private hands. Each independent guest browser has an
-  opaque HttpOnly/SameSite cookie; verified members are identified by their
-  Supabase account. Same-account tabs share a seat. Pass-and-play covers the next
-  hand until its player taps Reveal; the single device controls its local seats.
-- The service is authoritative: it shuffles with cryptographic randomness,
-  derives the acting seat, rejects illegal/out-of-turn moves, compares room
-  revisions, and deduplicates move IDs. No client-supplied state/deck/scores are
-  accepted. Room pushes contain revision numbers only; each client refetches a
-  filtered view of its own hand, public piles, and opponent counts. Complete
-  hands are revealed only after a round ends. A three-second polling fallback
-  and reconnect/refocus refresh recover missed events. Leaving an active match
-  closes it without a winner or rewards; it never awards a forfeit payout.
-- `.data/rummy.sqlite` stores rooms, private game state, guest session hashes,
-  processed move IDs, and the durable reward outbox. It is ignored by Git and created with private file
-  permissions. Keep this file and its SQLite WAL files on a persistent volume,
-  and back them up as private application data. Reopening the same app in the
-  same browser resumes its saved room. Restarting the server preserves rooms;
-  losing the database or guest cookie loses the guest's access.
-- The outer wrapper is transparent. The felt/wood-rim surface is the actual
-  table; hand rails and table controls do not paint over it. Table appearance
-  offers felt colors plus custom room/table images (up to2MB each). Images stay
-  in that browser and are never uploaded; preferences persist in local storage
-  when storage quota permits. Existing `--rummy-room-background` / normal page
-  backgrounds and `--rummy-table-background` styles can also supply artwork.
-
-For public online play, host the Node service and built app on one HTTPS origin:
-
-```sh
-npm ci
+npm run typecheck
+npm test
 npm run build
-RUMMY_HOST=0.0.0.0 RUMMY_API_PORT=8787 \
-RUMMY_ORIGIN=https://your-actual-app-host RUMMY_COOKIE_SECURE=true npm start
+npm start
 ```
 
-Replace the origin with the real app URL. Preserve the Host header and streaming
-responses in the reverse proxy; do not buffer `/api/rummy/room/*/events`. This is
-a single-service SQLite deployment: run one game-service instance per database,
-not independent replicas with separate disks. A static-only host cannot run
-multiplayer. `RUMMY_DATA_FILE` selects the private persistent SQLite path.
-The public service has **not** been deployed to an external host from this task.
-Browser multiplayer tests use real local HTTP/SSE service and isolated cookie
-jars, not mocked game responses. Guest games never mint wallet points.
+`npm start` serves the production frontend plus API after `npm run build`.
+`npm run preview` previews the frontend; keep the API running separately.
+For one-click Codespaces setup or ZIP access, see [START_HERE.md](START_HERE.md).
+GitHub Pages alone does not run this app's game API or persistent multiplayer.
 
-Apply all four files in `supabase/migrations/` in timestamp order to a
-**new project**, using your normal migration workflow or Supabase SQL editor.
-The first creates the initial tables; the second adds verified rewards and
-conversions; the third adds Spades points, its collection, equipment, and team
-rewards; the fourth adds the 800-point partnership unlock. For an existing
-project, reconcile its schema and data first rather than applying table creation blindly. No remote migration
-or production database action was executed during development. The project URL
-is now configured locally; live access and the server reward key still require activation.
-
-The migration creates zero-balance wallets and neutral `Player` profiles for
-existing and future authenticated users. It grants no staff roles automatically.
-After creating a real staff account, a trusted database administrator can grant
-the first role in the SQL editor (replace the placeholder with that account’s
-actual `auth.users.id`):
-
-```sql
-insert into public.clubhouse_staff(user_id, role)
-values ('<actual-auth-user-uuid>'::uuid, 'admin');
-```
-
-Other trusted staff may be assigned `moderator` through the same table. Users
-cannot assign their own roles, change moderation flags, or write wallet balances.
-Never put a role in user-editable auth metadata and treat it as authority.
-
-## Store and moderation behavior
-
-- Joker Mode costs **800 Rummy+ points**, permanently adds `rummy-jokers` to
-  ownership, and never changes lifetime earnings. `purchase_store_item` locks
-  the wallet and reads the database price. Concurrent/repeated purchases cannot
-  double-charge; insufficient funds are rejected. No price or amount is trusted
-  from the browser. Real-money purchases and Paddle integration remain on hold.
-- Reports cover posts, chat, and player/display names. `submit_player_report`
-  verifies the target and captures its evidence from database records. Browser
-  evidence is never trusted. Snapshots survive content deletion and name resets.
-- `/moderation` provides pending/resolved/dismissed queues, evidence snapshots,
-  hide/delete, 24-hour mute/unmute, chat ban/unban, name flag/reset, and dismissal.
-  Every action requires a review note and confirmation, is authorized again in
-  PostgreSQL, and leaves an immutable audit record. Moderators cannot review
-  reports about staff; administrators can. Staff cannot review themselves.
-  Reviewed reports support additional actions, such as hiding then muting or
-  later unbanning. Each follow-up supplies the exact latest review timestamp;
-  stale requests are rejected rather than overwriting another moderator’s work.
-- `lounge_feed` derives the current safe author name and omits hidden content.
-  Chat bans hide that author’s existing chat messages and prevent new chat;
-  timed mutes prevent new chat. Posts remain visible unless separately hidden.
-  A flagged name is shown as `Player`; a reset replaces the stored name.
-- The only Realtime publication added is `clubhouse_invalidations`, containing
-  event ID and time, with no content, user identifiers, or report details. It
-  triggers immediate cache clearing/refetch for content/name/permission changes.
-  Keep Supabase Realtime enabled and this table in `supabase_realtime`. The UI
-  hides feeds when live moderation updates disconnect and waits for a successful
-  resubscription before showing content again. A 10-second connected-state
-  refresh and focus refresh provide additional synchronization.
-- Raw message bodies, profiles, reports, and audit records are not public table
-  reads. Owner post deletion and content inserts are separately constrained by
-  grants, RLS, and triggers. Server moderation is the authority; the small UI
-  profanity filter is only a convenience.
-- Friends/activity have no schema or implementation yet. The lounge does not
-  render an unsanitized legacy activity RPC that might leak hidden names.
-
-The backend intentionally does **not** provide arbitrary client-driven
-`award_points`. Browser-supplied amounts or match results are never trusted.
-
-## Verified match rewards and Clubhouse Cash
-
-- A signed-in human winning a complete Classic/Gin match to100 or Rummy500
-  match to500 earns **40 Easy, 70 Normal, 120 Hard, or 150 online human points**.
-  Computer difficulty uses the strongest computer at the table. An online
-  reward requires every participant to be a distinct, verified signed-in human.
-  The winner's `rummy_points` and `lifetime_points` increase together; match
-  scores are not wallet balances. Guests, pass-and-play, hand practice, individual
-  rounds, abandoned matches, and computer winners earn no wallet points.
-- Set **`CLUBHOUSE_REWARD_KEY`** securely on the Node service to a server
-  secret/service-role key for the same Supabase project. `SUPABASE_SECRET_KEY`
-  and `SUPABASE_SERVICE_ROLE_KEY` are supported alternatives. Never put it in
-  a `VITE_*` variable, browser bundle, source file, or chat. Member verification
-  continues to use the public key; only the server reward writer uses this key.
-  In the managed cloud environment, authorize only the actual project hostname
-  and bind this server credential to that HTTPS destination in environment settings.
-- The authoritative winning move and its outbox entry commit in one local
-  SQLite transaction. A server worker syncs it with `credit_rummy_match`, an RPC
-  executable only by `service_role`. PostgreSQL validates the result, determines
-  its fixed tier/amount, locks the wallet, and records one globally unique match
-  receipt and one point award atomically. The browser cannot call this RPC.
-  This trusts the Node service's verified game outcome, not a browser replay.
-- The result keeps the same match UUID and completion evidence across retries,
-  restarts, and ambiguous responses. Leases and backoff protect delivery; a
-  duplicate cannot credit twice. Failed/unconfigured sync stays visibly queued
-  until the service can reconnect. The table changes from queued to credited
-  only after a valid database receipt. Existing matches created before reward
-  support are unranked; start a new match. Queued wins need the private SQLite
-  database retained until delivery succeeds.
-- `/store` shows Rummy+ points, Spades points, Faith3 points, Cash, and lifetime totals.
-  Convert any positive multiple of10 available game points to7 Cash per10,
-  after confirmation. `convert_game_points` verifies the signed-in caller,
-  locks that wallet, and uses a per-account request UUID for idempotent retry.
-  Conversion debits only the chosen game balance, adds Cash, and leaves lifetime
-  totals unchanged. Cash cannot buy the game-specific800-point Joker unlock.
-  Wallets refresh after credit, conversion, purchases, window focus, and
-  same-origin cross-tab notifications; notifications contain no balances.
-- Faith3 cloud earning and badge claims remain separate unfinished integrations.
-  Conversion supports existing verified Faith3 balances without inventing new
-  Faith3 awards. Real-money checkout remains on hold.
-
-No live rewards were minted in development. Activation requires the actual
-project URL, its public key, the server-only reward key, and all reviewed
-migrations applied to that project. The current environment has a public key
-binding and the supplied project URL. Runtime network access, matching-key
-validation, live migrations, and the server reward key remain prerequisites.
-
-## Backend and member UI tests
+## Sites deployment and validation
 
 ```sh
-bash supabase/tests/run_local.sh
+npm run build:sites
 ```
 
-This uses an isolated PostgreSQL17 Docker container with no network or published
-ports. The local auth bootstrap is a test fixture, **not** a Supabase migration.
-The tests exercise actual PostgreSQL permissions, role checks, evidence,
-visibility, restrictions, and wallet transactions. They do not validate a
-deployed Supabase project or its Realtime service.
+The standalone Worker is `dist/server/index.js`. Package it with
+`.openai/hosting.json` and the full `drizzle/` migration journal. The Sites
+project ID and D1 binding in the manifest belong to the existing live site;
+use your own hosting project configuration when deploying a separate copy.
+See [SITES_HOSTING.md](SITES_HOSTING.md).
 
-For the separate browser integration suite, start a second local app with
-fictional public configuration:
+The test suite covers game rules, exact scoring, private hands, deterministic
+Carrom collisions, queen cover/fouls, complete computer games, room concurrency,
+public lobbies, request retries, accounting and collectible trades on SQLite
+and D1. Browser suites use loopback servers and fictional identities, including
+real touch input, shared online replays, viewport fit, audio/mute and lost-reply
+recovery. Run each browser script with the preview/helper documented in it.
 
-```sh
-VITE_SUPABASE_URL=https://clubhouse.test.invalid \
-VITE_SUPABASE_PUBLISHABLE_KEY=public-test-key npm run dev -- --port 5174 --strictPort
-# In another terminal:
-python3 tests/member_features_browser.py
-python3 tests/member_lifecycle_browser.py
-python3 tests/lounge_lifecycle_browser.py
-python3 tests/reward_wallet_browser.py
-python3 tests/spades_collection_browser.py --base-url http://127.0.0.1:5174
-python3 tests/spades_partnership_browser.py --base-url http://127.0.0.1:5174
-```
-
-The test intercepts every HTTP/WebSocket request to that fictional project.
-It checks the real UI with mocked API responses, including cross-tab invalidation,
-restricted chat, unauthorized access, report actions, and checkout. These are
-not live purchases, real accounts, or deployed backend tests.
-
-The lifecycle regressions cover delayed purchases/wallet reads during account
-changes, report drafts surviving feed invalidations without retaining hidden
-names, and typing focus during permission refreshes. Sending waits for current
-permissions; actual mute/ban/error/disconnect states still disable chat access.
-With the regular backend-free dev server running, use
-`python3 tests/game_interactions_browser.py --base-url http://127.0.0.1:5173` for rapid/queued game-input checks
-(pass `--base-url` when using a different local port).
-
-In this cloud environment, npm requires `registry.npmjs.org` (already covered
-by the package-manager network preset). Server-side access to the eventual
-Supabase project requires its exact project hostname in environment network
-settings. No Supabase hostname is guessed or wildcard access added.
-
-## Current scope
-
-- Hub, route metadata, responsive navigation, and lounge interface are present.
-- Wallet/badge rules follow the supplied code, with explicit load errors and
-  guards against stale auth requests.
-- Faith 3 supports deterministic local boards, triple matching, blocked tiles,
-  tray loss, undo, shuffle, magic assistance, and replay verification. The
-  supplied generator’s randomized sort was replaced by a seeded Fisher–Yates
-  shuffle so replays are stable across JavaScript runtimes. Undo restores the
-  match count; invalid actions and incomplete magic matches are rejected.
-- Rummy+ has complete turns, round/match scoring, computer opponents,
-  pass-and-play, saved online rooms, and private/live multiplayer. Its hand
-  table supports mouse, touch, and keyboard reordering,
-  rank/suit sorts, Best Sort, and undo (up to 20 arrangement changes). Changing
-  the variant or dealing a new hand resets its arrangement history. These
-  operations reorder `hands[0]` and never play, draw, discard, duplicate, or
-  remove a card. Joker Mode remains a permanent **800 Rummy+ point** unlock;
-  the practice toggle is enabled only for an account that owns it.
-- `bestArrangement` now computes optimal disjoint melds, minimizing unmatched
-  card value under the selected variant. Ties favor fewer unmatched cards,
-  then fewer meld groups. Runs/sets and wildcard allocation are considered
-  globally, including ace-high runs only in Rummy 500. Output is deterministic
-  for the same physical cards regardless of their manual order. Exact search is
-  explicitly bounded to20 cards; ordinary hands start at10 or13. Larger
-  Rummy500 pickups use a bounded legal-meld suggestion and are labeled Suggested
-  deadwood instead of claiming a proven optimum. All hand sizes remain playable.
-- Auth, moderated lounge, reports, moderation panel, and points checkout are
-  implemented against the included migration; connect and deploy your Supabase
-  project to activate them. Existing projects need a schema reconciliation.
-- Spades is the third hub game: solo or partnerships, 13-card hands, full
-  bidding/tricks/scoring, three computer difficulties, four-seat private rooms,
-  original collectible venues/decks, and an interactive tutorial. See below.
-- Faith 3 reward submission, badge claims, and friends management need
-  remaining integration. Verified Rummy match rewards and game-point conversion
-  are implemented; connect the real project and server key to activate them.
-  The 80 distinct mahjong layout definitions are not in the
-  supplied generator; levels 201–280 use its procedural board rules.
-- Browser checks cover levels201–280 at desktop and mobile sizes, including
-  rendered/legal pointer targets and pick/undo/restart on every level. Six levels
-  per viewport also exercise assistance and bounded sequential play. This does
-  not establish every level’s solvability, original classic layouts, or cloud
-  reward caps.
-
-To exercise hand management on the backend-free development server:
-
-```sh
-python3 tests/rummy_hand_browser.py --base-url http://127.0.0.1:5173
-```
-
-The hand table is horizontally scrollable on narrow screens. Hold a card before
-touch dragging; an ordinary swipe scrolls the hand. Keyboard users can focus a
-card, press Space to lift it, move with arrow keys, and press Space to drop (or
-Escape to cancel). The selected-card left/right buttons offer another way to
-arrange cards. Best Sort lays out suggested meld groups followed by unmatched
-cards; it does not automatically play a meld or submit a reward.
+Current source is maintained on GitHub's `clubhouse-ready-to-run` branch. The
+repository is the complete project; the live Sites URL above is the playable
+service. Local generated data, credentials, dependencies and deployment output
+are excluded from source control.

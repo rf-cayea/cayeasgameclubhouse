@@ -1,0 +1,1 @@
+ALTER TABLE `puzzle_runs` ADD `rules_version` integer DEFAULT 1 NOT NULL;

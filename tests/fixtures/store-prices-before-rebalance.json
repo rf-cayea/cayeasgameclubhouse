@@ -1,0 +1,242 @@
+[
+  {
+    "id": "profile-image-circle",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "profile-image-diamond",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "profile-image-square",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "profile-image-portrait",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "gems-worker-woodlot",
+    "price": 300,
+    "cashPrice": 231,
+    "currency": "gems_points"
+  },
+  {
+    "id": "gems-worker-farm",
+    "price": 300,
+    "cashPrice": 231,
+    "currency": "gems_points"
+  },
+  {
+    "id": "gems-worker-fiber",
+    "price": 300,
+    "cashPrice": 231,
+    "currency": "gems_points"
+  },
+  {
+    "id": "gems-worker-herbs",
+    "price": 300,
+    "cashPrice": 231,
+    "currency": "gems_points"
+  },
+  {
+    "id": "rummy-jokers",
+    "price": 400,
+    "cashPrice": 308,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "spades-partnerships",
+    "price": 400,
+    "cashPrice": 308,
+    "currency": "spades_points"
+  },
+  {
+    "id": "rummy-table-nocturne",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "rummy-table-amethyst",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "rummy-table-lagoon",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "rummy-table-copper",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "rummy-table-riviera",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "rummy-table-sapphire",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "rummy-table-burgundy",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "faith3-skin-celestial",
+    "price": 300,
+    "cashPrice": 300,
+    "currency": "points"
+  },
+  {
+    "id": "faith3-skin-jade",
+    "price": 450,
+    "cashPrice": 450,
+    "currency": "points"
+  },
+  {
+    "id": "faith3-skin-rose",
+    "price": 600,
+    "cashPrice": 600,
+    "currency": "points"
+  },
+  {
+    "id": "spades-table-nocturne",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-amethyst",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-lagoon",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-copper",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-atlas",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-ember",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-grove",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "spades-table-deco",
+    "price": 100,
+    "cashPrice": 77,
+    "currency": "spades_points"
+  },
+  {
+    "id": "card-deck-standard",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-fantasy",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-scifi",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-sultanate",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-four-color",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-chinese",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-egypt",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-merfolk",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-atlas",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-ember",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-grove",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  },
+  {
+    "id": "card-deck-deco",
+    "price": 450,
+    "cashPrice": 347,
+    "currency": "rummy_points"
+  }
+]

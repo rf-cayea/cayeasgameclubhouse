@@ -1,0 +1,8 @@
+.carrom-collection { display:grid; gap:14px; color:#eee5ce; }
+.carrom-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr)); gap:12px; }
+.carrom-collection-grid article { display:grid; justify-items:center; align-content:start; gap:8px; text-align:center; border:1px solid #bfa47455; border-radius:12px; padding:12px; background:#142d26; }
+.carrom-collection-grid h3 { color:#eed39a; font-weight:650; }
+.carrom-item-board { width:min(100%,140px); aspect-ratio:1; margin-inline:auto; }
+.carrom-item-discs { display:block; width:min(100%,140px); margin-inline:auto; }
+.carrom-collection-links { display:flex; flex-wrap:wrap; gap:14px; }
+.carrom-collection-links a { color:#efd08b; text-decoration:underline; }

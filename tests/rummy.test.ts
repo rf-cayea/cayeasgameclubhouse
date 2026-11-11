@@ -27,6 +27,21 @@ describe('Rummy dealing', () => {
   });
 });
 describe('Rummy meld rules', () => {
+  it.each(['classic', 'r500'] as const)('accepts suited ace-low and ace-high runs in any selection order in %s', variant => {
+    for (const suit of 'SHDC') for (const ranks of ['A23', 'QKA', 'TJQKA']) {
+      const cards = [...ranks].map(rank => rank + suit);
+      for (let shift = 0; shift < cards.length; shift++) {
+        const selected = [...cards.slice(shift), ...cards.slice(0, shift)];
+        expect(isMeld(selected, variant)).toBe(true);
+        expect(isMeld([...selected].reverse(), variant)).toBe(true);
+      }
+    }
+    for (const cards of [['KS', 'AS', '2S'], ['QS', 'KH', 'AS'], ['AS', '2H', '3S'], ['AS', 'AS', '2S']]) {
+      expect(isMeld(cards, variant)).toBe(false);
+    }
+    expect(isMeld(['AS', '2S', '3S'], 'gin')).toBe(true);
+    expect(isMeld(['QS', 'KS', 'AS'], 'gin')).toBe(false);
+  });
   it('accepts sets and suited runs including wildcard gaps', () => {
     expect(isSet(['7S', '7H', 'X1'])).toBe(true);
     expect(isRun(['2S', '4S', 'X1'], false)).toBe(true);
@@ -74,10 +89,13 @@ describe('Best Sort', () => {
     expect([...result.melds.flat(), ...result.deadwood].sort()).toEqual([...hand].sort());
   });
 
-  it('places jokers in run gaps and applies ace-high only to Rummy 500', () => {
+  it('places jokers in ace-low and ace-high gaps, with Gin keeping aces low', () => {
     expect(bestArrangement(['4S', 'X1', '2S'], 'classic')).toEqual({ melds: [['2S', 'X1', '4S']], deadwood: [], dw: 0 });
-    expect(bestArrangement(['AS', 'QS', 'X1'], 'r500')).toEqual({ melds: [['QS', 'X1', 'AS']], deadwood: [], dw: 0 });
-    expect(bestArrangement(['AS', 'QS', 'KS'], 'r500').dw).toBe(0);
+    for (const variant of ['classic', 'r500'] as const) {
+      expect(bestArrangement(['AS', 'QS', 'X1'], variant)).toEqual({ melds: [['QS', 'X1', 'AS']], deadwood: [], dw: 0 });
+      expect(bestArrangement(['3S', 'AS', 'X2'], variant)).toEqual({ melds: [['AS', 'X2', '3S']], deadwood: [], dw: 0 });
+      expect(bestArrangement(['AS', 'QS', 'KS'], variant)).toEqual({ melds: [['QS', 'KS', 'AS']], deadwood: [], dw: 0 });
+    }
     expect(bestArrangement(['AS', 'QS', 'KS'], 'gin').dw).toBe(21);
   });
 

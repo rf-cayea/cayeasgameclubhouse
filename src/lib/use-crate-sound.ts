@@ -1,0 +1,6 @@
+import {useRef,useState,useEffect} from 'react';
+export function useCrateSound(){const ctx=useRef<AudioContext|null>(null),[muted,setMuted]=useState(()=>{try{return localStorage.getItem('clubhouse-crate-muted')==='true';}catch{return false;}});useEffect(()=>()=>{void ctx.current?.close();},[]);
+ const quiet=useRef(muted);quiet.current=muted;
+ function play(reveal=false){if(quiet.current)return;try{if(!ctx.current)ctx.current=new AudioContext();const c=ctx.current;void c.resume();const notes=reveal?[523,659,784,1047]:[180,230,290];notes.forEach((hz,i)=>{const oscillator=c.createOscillator(),gain=c.createGain(),t=c.currentTime+i*.095;oscillator.type=reveal?'sine':'triangle';oscillator.frequency.setValueAtTime(hz,t);gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(.07,t+.02);gain.gain.exponentialRampToValueAtTime(.001,t+.3);oscillator.connect(gain);gain.connect(c.destination);oscillator.start(t);oscillator.stop(t+.32);});}catch{/* Opening and rewards remain usable without browser audio. */}}
+ function toggle(){setMuted(value=>{const next=!value;quiet.current=next;try{localStorage.setItem('clubhouse-crate-muted',String(next));}catch{}return next;});}
+ return{muted,toggle,play};}

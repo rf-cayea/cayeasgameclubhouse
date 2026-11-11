@@ -1,0 +1,79 @@
+.monastery-tab-stars { display: inline-block; margin-left: 5px; color: #f1d185; font-size: 9px; white-space: nowrap; }
+.monastery-wallet { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 25px; margin-bottom: 22px; background: linear-gradient(120deg,#4f694b,#284b3b); border: 1px solid #d8c28a77; border-radius: 14px; color: #f2e1b6; }
+.monastery-wallet > span { display: flex; align-items: center; gap: 15px; }
+.monastery-wallet b { font: 42px Georgia,serif; color: #ffe3a0; }
+.monastery-wallet b::before { content: '★ '; font-size: 25px; }
+.monastery-wallet p { font-size: 11px; line-height: 1.8; color: #cad2bc; }
+.monastery-sites { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin: 20px 0 30px; }
+.monastery-sites button { display: flex; flex-direction: column; align-items: start; gap: 8px; padding: 17px 15px; text-align: left; min-width: 0; border-radius: 12px; border: 1px solid #9ca98555; color: #e8d9b5; background: #244335; }
+.monastery-sites button[aria-pressed="true"] { border-color: var(--monastery-accent); background: #41583d; box-shadow: inset 0 0 0 2px #e4cb9322; }
+.monastery-sites .gems-eyebrow { font-size: 7px; line-height: 1.6; color: var(--monastery-accent); }
+.monastery-sites strong { font: 19px Georgia,serif; }
+.monastery-sites small { font-size: 9px; color: #b9c7af; }
+.monastery-location { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin: 24px 0 14px; }
+.monastery-location h3 { font: 32px Georgia,serif; color: #efdfb6; margin-top: 8px; }
+.monastery-location > span { font-size: 11px; color: #d7c28e; white-space: nowrap; }
+.monastery-view-controls { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.monastery-view-controls button { min-height: 40px; border: 1px solid #cbb88255; border-radius: 22px; padding: 8px 17px; color: #bfcbb5; background: #1a382e; font-size: 11px; }
+.monastery-view-controls button[aria-pressed="true"] { color: #203a2e; background: #e0c58c; }
+.monastery-scene { position: relative; width: 100%; aspect-ratio: 2; overflow: hidden; border-radius: 12px; background: #2c4a3c; }
+.monastery-art-fallback,.monastery-atlas { position: absolute; inset: 0; }
+.monastery-art-fallback .monastery-art { width: 100%; height: 100%; }
+.monastery-atlas { background-image: url('/assets/monastery-worlds.webp'); background-size: 200% 400%; background-repeat: no-repeat; }
+.monastery-atlas-restored { transition: opacity 900ms ease; }
+.monastery-region-masks { position: absolute; width: 0; height: 0; pointer-events: none; }
+.monastery-comparison { position: relative; }
+.monastery-comparison-after { position: absolute; inset: 0; }
+.monastery-comparison-divider { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff6d8; box-shadow: 0 0 8px #0008; pointer-events: none; }
+.monastery-comparison-divider::after { content: '↔'; position: absolute; top: 45%; left: -18px; width: 38px; height: 38px; display: grid; place-items: center; color: #274936; background: #f6e4b8; border: 2px solid white; border-radius: 50%; }
+.monastery-before-label,.monastery-after-label { position: absolute; top: 14px; padding: 6px 11px; background: #112c25d9; border: 1px solid #d2bc8a77; border-radius: 6px; color: #f7e5bc; font-size: 11px; pointer-events: none; }
+.monastery-before-label { left: 12px; }.monastery-after-label { right: 12px; }
+.monastery-comparison input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; }
+.monastery-comparison:focus-within { outline: 3px solid #ffe4a6; outline-offset: 3px; }
+.gems-restoration-canvas .gems-art-caption { position: absolute; bottom: 18px; right: 18px; margin: 0; pointer-events: none; background: #16382fed; border: 1px solid #dac28a77; color: #fff0c9; }
+.monastery-work-layout { display: grid; grid-template-columns: minmax(0,.95fr) minmax(0,1.1fr); gap: 20px; margin-top: 24px; }
+.monastery-task-card,.monastery-story-card,.monastery-jewels,.monastery-workshop { min-width: 0; padding: 27px; border: 1px solid #c9b67f55; border-radius: 14px; background: linear-gradient(145deg,#36563e88,#203f3288); }
+.monastery-task-card h3,.monastery-story-card h3,.monastery-jewels h3 { font: 27px Georgia,serif; color: #f0dcad; margin: 12px 0; line-height: 1.3; }
+.monastery-task-card p,.monastery-story-card p,.monastery-jewels p,.monastery-workshop > p { font-size: 12px; line-height: 1.9; color: #c1cdb4; }
+.monastery-task-card > .gems-primary { margin: 15px 0 12px; }
+.monastery-task-steps { display: grid; gap: 10px; margin-top: 20px; padding: 0; list-style: none; }
+.monastery-task-steps li { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: start; font-size: 11px; line-height: 1.5; padding: 10px 7px; border-top: 1px solid #e5cf8e22; color: #9db197; }
+.monastery-task-steps li[aria-current] { color: #fae4af; background: #d7c18711; border-radius: 6px; }
+.monastery-task-steps li[data-done="true"] { color: #b6d2ac; }.monastery-task-steps b { white-space: nowrap; font-size: 10px; }
+.monastery-story-card dl { border-top: 1px solid #ccb37d44; margin: 20px 0; padding-top: 16px; }
+.monastery-story-card dt { font-size: 10px; letter-spacing: .12em; color: #e0c694; margin-top: 12px; text-transform: uppercase; }
+.monastery-story-card dd { margin-top: 5px; font-size: 11px; line-height: 1.8; color: #bbcab0; }
+.monastery-repair-notice { color: #d6e3b5 !important; padding: 12px; border: 1px solid #c1d39855; border-radius: 8px; margin-top: 18px; }
+.monastery-repair-error { color: #ffcfb4 !important; margin-top: 15px; }
+.monastery-jewels { margin-top: 24px; }
+.monastery-jewel-choices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; margin: 20px 0; }
+.monastery-jewel-choices button { text-align: left; color: #e8d5a4; background: #1c3a30; border: 1px solid #a4b28c44; border-radius: 8px; padding: 15px; font: 21px Georgia,serif; }
+.monastery-jewel-choices button[aria-pressed="true"] { border-color: #e6cc8e; background: #4a5e3f; }
+.monastery-jewel-choices small { display: block; margin-top: 8px; color: #bec8ae; font: 9px 'Trebuchet MS',sans-serif; line-height: 1.6; }
+.monastery-context-note { font-size: 10px !important; opacity: .8; margin-top: 22px; }
+.monastery-inspiration { margin: 25px 0; padding: 25px 28px; border-left: 3px solid #dac08a; border-radius: 0 12px 12px 0; background: #b8ba8320; }
+.monastery-inspiration blockquote { margin: 13px 0; font: italic 21px/1.7 Georgia,serif; color: #eeddb3; }
+.monastery-inspiration cite { display: block; font: 11px/1.8 'Trebuchet MS',sans-serif; color: #c3caaa; }
+.monastery-inspiration cite > span { display: block; font-size: 9px; margin-top: 3px; }
+.monastery-inspiration a,.monastery-sources a { text-decoration: underline; text-underline-offset: 3px; color: #ead39a; }
+.monastery-sources { margin-top: 20px; border-top: 1px solid #c8b67f44; padding-top: 17px; color: #d4c392; font-size: 12px; }
+.monastery-sources summary { min-height: 35px; cursor: pointer; }.monastery-sources li { margin: 10px 0 10px 18px; font-size: 11px; }
+.monastery-workshop { margin-top: 24px; }.monastery-workshop .monastery-location { margin-top: 0; }
+.monastery-community-stats { display: flex; flex-wrap: wrap; gap: 12px 25px; padding: 16px 0; border-block: 1px solid #c4b57c33; margin: 18px 0; font-size: 11px; color: #becdb2; }
+.monastery-community-stats b { color: #f0d49a; font: 24px Georgia,serif; margin-right: 4px; }
+.monastery-teacher { color: #e0d0a4 !important; }.monastery-workshop-locked { padding: 17px; margin-top: 17px; background: #102f2680; border-radius: 9px; }
+.monastery-crafts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; margin-top: 22px; }
+.monastery-crafts article { display: flex; flex-direction: column; gap: 12px; padding: 19px; background: #18372c; border: 1px solid #aab58a44; border-radius: 11px; min-width: 0; }
+.monastery-craft-symbol { color: #e9d095; font-size: 34px; line-height: 1; }.monastery-crafts h4 { font: 21px Georgia,serif; color: #eed6a0; }
+.monastery-crafts p,.monastery-crafts article > span:not(.monastery-craft-symbol) { font-size: 11px; line-height: 1.7; color: #b6c5ab; }
+.monastery-crafts button { margin-top: auto; }.monastery-orders-heading { margin: 28px 0 17px; color: #e4d09b; font: 23px Georgia,serif; }
+.monastery-orders { display: grid; gap: 10px; }.monastery-orders article { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 15px; padding: 18px; border: 1px solid #9db18644; border-radius: 10px; background: #1c392e; color: #c6d6b6; }
+.monastery-buyer-avatar { width: 38px; height: 38px; border: 1px solid #e0c18a66; background: #5a6d44; border-radius: 50%; display: grid; place-items: center; color: #f1dbac; font: 21px Georgia,serif; }
+.monastery-orders strong,.monastery-orders article span { display: block; font-size: 12px; }.monastery-orders article span { margin-top: 5px; font-size: 10px; }
+.monastery-orders p { font-size: 10px; line-height: 1.7; color: #acbca1; margin-top: 5px; }.monastery-orders article[data-done="true"] { border-color: #aeca7f66; }
+.gems-restoration-gift { padding: 15px 13px; margin: 15px 0; border: 1px solid #dcc58b66; border-radius: 10px; color: #f2d69b; background: #d3c28211; }
+.gems-restoration-gift strong { font: 20px Georgia,serif; }.gems-restoration-gift p { margin-top: 8px; font-size: 11px; line-height: 1.8; }
+.gems-dialog .monastery-inspiration { padding: 15px; text-align: left; }.gems-dialog .monastery-inspiration blockquote { font-size: 17px; }
+@media (max-width:800px) { .monastery-sites { grid-template-columns: repeat(2,minmax(0,1fr)); }.monastery-work-layout { grid-template-columns: 1fr; }.monastery-crafts { gap: 8px; }.monastery-crafts article { padding: 14px; } }
+@media (max-width:520px) { .monastery-wallet { padding: 17px; gap: 14px; align-items: start; flex-direction: column; }.monastery-wallet b { font-size: 34px; }.monastery-wallet p { font-size: 10px; }.monastery-location h3 { font-size: 25px; }.monastery-task-card,.monastery-story-card,.monastery-workshop,.monastery-jewels { padding: 20px 17px; }.monastery-view-controls { gap: 5px; }.monastery-view-controls button { padding: 8px 12px; font-size: 10px; }.monastery-jewel-choices { gap: 6px; }.monastery-jewel-choices button { padding: 11px 8px; font-size: 18px; }.monastery-crafts { grid-template-columns: 1fr; }.monastery-crafts article { display: grid; grid-template-columns: 36px minmax(0,1fr); }.monastery-crafts h4 { font-size: 20px; }.monastery-crafts p,.monastery-crafts button,.monastery-crafts article > span:not(.monastery-craft-symbol) { grid-column: 2; }.monastery-orders article { grid-template-columns: 30px minmax(0,1fr); padding: 14px; gap: 11px; }.monastery-orders button { grid-column: 2; justify-self: start; }.monastery-buyer-avatar { width: 30px; height: 30px; font-size: 18px; }.monastery-inspiration { padding: 19px; }.monastery-inspiration blockquote { font-size: 19px; }.gems-restoration-canvas .gems-art-caption { bottom: 15px; right: 16px; padding: 7px 10px; gap: 10px; }.gems-restoration-canvas .gems-art-caption span { font-size: 8px; }.gems-restoration-canvas .gems-art-caption strong { font-size: 19px; } }
+@media (prefers-reduced-motion:reduce) { .monastery-atlas-restored { transition: none; } }

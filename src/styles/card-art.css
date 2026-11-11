@@ -1,0 +1,32 @@
+.artist-store-section { padding: clamp(16px, 3vw, 28px); }
+.artist-store-section > h2 { margin: 8px 0 16px; }
+.artist-deck-showcase { --artist-back: #132d3e; --artist-accent: #dcc28b; margin-top: 20px; padding: 20px; border: 1px solid color-mix(in srgb, var(--artist-accent) 50%, transparent); border-radius: 14px; background: radial-gradient(ellipse at 50% 100%, #ffffff0b, transparent 60%), var(--artist-back); box-shadow: inset 0 0 0 4px #0002; color: #e7dbc2; }
+.artist-deck-caption { display: flex; justify-content: space-between; align-items: start; gap: 14px; text-align: left; }
+.artist-deck-caption p { color: var(--artist-accent); font-size: 8px; letter-spacing: .2em; }
+.artist-deck-caption h3, .rummy-collection .artist-deck-caption h3 { margin: 7px 0; color: #f2e4c4; font: 400 27px/1.1 Georgia, serif; }
+.artist-deck-caption span { font-size: 10px; color: #d2ccb9; }
+.artist-deck-caption button { flex-shrink: 0; min-height: 40px; padding: 7px 10px; font-size: 11px; }
+.artist-deck-fan { display: flex; justify-content: center; align-items: center; gap: clamp(6px, 2vw, 16px); padding: 25px 0 10px; }
+.artist-deck-fan > div { width: clamp(44px, 18vw, 112px); aspect-ratio: 5 / 7; overflow: hidden; flex-shrink: 0; border-radius: 7px; box-shadow: 0 3px 0 #b5a88d, 0 8px 18px #0006; }
+.artist-deck-fan > div:first-child { rotate: -5deg; translate: 0 4px; }
+.artist-deck-fan > div:last-child { rotate: 5deg; translate: 0 4px; }
+.artist-deck-fan > div:nth-child(2) { translate: 0 -4px; }
+.artist-deck-thumbnail { display: flex; justify-content: center; gap: 10px; padding: 18px 10px !important; border-bottom: 1px solid #bba46e33; background: radial-gradient(ellipse at center, #62715233, #0d211b); }
+.artist-deck-thumbnail > div { width: clamp(48px, 16vw, 80px); aspect-ratio: 5 / 7; overflow: hidden; border-radius: 6px; box-shadow: 0 3px 0 #9b8b68, 0 8px 14px #0004; }
+.artist-deck-thumbnail > div:first-child { rotate: -5deg; }
+.artist-deck-thumbnail > div:last-child { rotate: 5deg; }
+.rummy-design .artist-preview-button { margin-bottom: 8px; color: #ddc58e; text-decoration: underline; min-height: 34px; }
+.artist-deck-contact-sheet { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 8px; }
+.artist-deck-contact-sheet > div { min-width: 0; aspect-ratio: 5 / 7; overflow: hidden; border-radius: 6px; box-shadow: 0 3px 0 #8e8063; }
+.spades-preview-table > .artist-deck-showcase { margin-top: 16px; }
+@media (max-width: 600px) {
+  .artist-deck-showcase { padding: 14px 10px; }
+  .artist-deck-caption { flex-wrap: wrap; gap: 8px; }
+  .artist-deck-caption h3, .rummy-collection .artist-deck-caption h3 { font-size: 24px; }
+  .artist-deck-caption span { font-size: 9px; }
+  .artist-deck-caption button { min-height: 38px; }
+  .artist-deck-fan { gap: 7px; padding-top: 20px; }
+  .artist-deck-fan > div { width: min(18vw, 64px); }
+  .artist-deck-contact-sheet { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .artist-deck-fan > div { translate: none; rotate: none; } }

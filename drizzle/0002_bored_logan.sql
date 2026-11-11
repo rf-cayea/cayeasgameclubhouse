@@ -1,0 +1,1 @@
+ALTER TABLE `rummy_appearance` ADD `deck_id` text DEFAULT 'rummy-standard' NOT NULL;

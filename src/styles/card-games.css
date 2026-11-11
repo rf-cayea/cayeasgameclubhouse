@@ -153,3 +153,21 @@
 @media (prefers-reduced-motion: reduce) {
   :is(.rummy-scene, .spades-scene) *, :is(.rummy-scene, .spades-scene) *::before { transition-duration: 0s !important; animation: none !important; }
 }
+
+/* Drop feedback overlays the table and never adds to its height budget.
+   Disabled native buttons can swallow mouseup; drops must reach the table wrapper. */
+.card-table-dragging :disabled, .card-drop-zone[data-drag-state] > * { pointer-events: none; }
+.card-drop-zone { position: relative; }
+.card-drop-zone[data-drag-state="ready"] { outline: 2px dashed #f4d68c; outline-offset: 4px; border-radius: 8px; }
+.card-drop-zone[data-drag-state="over"] { outline: 3px solid #ffe6a3; outline-offset: 5px; border-radius: 8px; box-shadow: 0 0 24px #f2c86c55, inset 0 0 24px #f2c86c22; }
+.card-drop-zone[data-drag-state="blocked"] { outline: 2px solid #f29787; outline-offset: 4px; border-radius: 8px; }
+.card-drop-label { position: absolute; z-index: 5; bottom: 100%; left: 50%; translate: -50% -7px; display: none; padding: 4px 8px; border: 1px solid #e8c67f; border-radius: 6px; background: #10261ff2; color: #fff0c1; font-size: 11px; line-height: 1.2; white-space: nowrap; pointer-events: none; }
+.card-drop-zone:is([data-drag-state="ready"], [data-drag-state="over"], [data-drag-state="blocked"]) > .card-drop-label { display: block; }
+.spades-trick-stage > .card-drop-label { bottom: auto; top: 8px; translate: -50% 0; }
+.card-drag-overlay { pointer-events: none; z-index: 1000; }
+.card-drag-art { position: relative; width: 100%; height: 100%; border-radius: 6px; overflow: visible; filter: drop-shadow(0 8px 8px #0008); }
+.card-drag-art > svg, .card-drag-art > div { width: 100%; height: 100%; border-radius: inherit; }
+.card-drag-count { position: absolute; right: -8px; bottom: -10px; border: 1px solid #ffe2a1; border-radius: 10px; padding: 4px 8px; background: #123a2e; color: #ffe5a6; font: 11px/1.2 sans-serif; white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) {
+  .card-drop-zone { transition: outline-color .15s, box-shadow .15s; }
+}

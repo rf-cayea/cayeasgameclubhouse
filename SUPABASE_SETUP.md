@@ -1,77 +1,75 @@
-# Connect the Clubhouse to Supabase
+# Connect a new Supabase project
 
-Project: `spjxaghfxomgafgbrnkr`
+The hosted Clubhouse reads `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from
+Sites environment settings. These are the project's HTTPS URL and browser-safe
+publishable key. The Worker serves them to the browser at `/clubhouse-config.js`.
+Local Vite development continues to support the `VITE_SUPABASE_*` names in
+`.env.example`.
 
-Project URL: `https://spjxaghfxomgafgbrnkr.supabase.co`
+## Initialize the database
 
-[Open the project dashboard](https://supabase.com/dashboard/project/spjxaghfxomgafgbrnkr).
+1. Open your new project in the Supabase dashboard, then open **SQL Editor**.
+2. Download `/clubhouse-supabase-setup.sql` from your Clubhouse Site.
+3. Open the downloaded file, copy its complete contents into a new query, and run
+   it once. It combines the included SQL migrations in timestamp order,
+   inside one transaction. It creates the profiles, zero-balance wallets, lounge,
+   moderation policies, store and verified reward functions.
 
-## Application settings
+This script is for an empty project. An existing database needs schema review
+instead of blindly re-running initial table creation. A failed query rolls back
+all migrations. Existing migration source files remain unchanged.
 
-Set these in the environment where the frontend and game server run:
-
-```dotenv
-VITE_SUPABASE_URL=https://spjxaghfxomgafgbrnkr.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-projects-public-publishable-key
-```
-
-The current cloud workspace already has a public-key binding. It still needs
-to be checked against this project after network access is applied. GitHub
-source uploads do not transfer environment settings to Codespaces or a live site.
-
-Verified match rewards additionally require `CLUBHOUSE_REWARD_KEY` on the
-Node game server, supplied securely using this project's secret/server key
-or legacy service-role key. Keep this key out of `VITE_*`, browser code, chat,
-and Git. A secret requirement has been saved in the cloud environment draft;
-the value itself has not been supplied.
-
-The draft also adds this exact Supabase hostname to the network allowlist.
-Review/save the changes in environment settings and publish the environment
-to apply them. Saving the draft alone does not change the running network policy.
-
-## Check the existing database first
-
-The live schema has not been inspected or changed. In the Supabase SQL editor,
-run `supabase/inspect_project.sql` to inspect table columns, row-security flags,
-and available function names. This script is read-only and does not read player
-records or change balances.
-
-For a new, empty project, apply these migrations in order:
-
-1. `20261101000000_clubhouse_moderation_store.sql`
-2. `20261101010000_verified_rewards.sql`
-3. `20261101020000_spades_collection_rewards.sql`
-4. `20261102000000_spades_partnership_unlock.sql`
-
-For an existing project, compare its schema first and reconcile differences.
-The first migration creates tables and should not be applied blindly over
-an existing Clubhouse database.
-
-After setup, check that the public store catalog contains:
-
-| Item | Price | Currency |
-| --- | ---: | --- |
-| `rummy-jokers` | 800 | `rummy_points` |
-| `spades-partnerships` | 800 | `spades_points` |
-
-Reward credits use server-only `credit_rummy_match` and `credit_spades_match`.
-Browser code cannot submit a match result to award itself points.
+After changing migration source, run `node scripts/prepare-supabase-setup.mjs`
+to regenerate the downloadable script.
 
 ## Authentication
 
-Enable the email/password provider. In **Authentication → URL Configuration**,
-include your actual app address among the allowed redirect URLs:
+In **Authentication → URL Configuration**, use these production settings:
 
-`https://cayeas-game-clubhouse.r-f-cayea.chatgpt.site/`
+- **Site URL:** `https://cayeas-game-clubhouse.r-f-cayea.chatgpt.site`
+- **Redirect URLs:** allow both `https://cayeas-game-clubhouse.r-f-cayea.chatgpt.site/auth/confirm` and `https://cayeas-game-clubhouse.r-f-cayea.chatgpt.site/auth/reset`
 
-Use it as the Site URL if this is your primary live app. Preserve any other
-app addresses you still use. A Codespace's forwarded address is different and
-must also be allowed when testing sign-in there.
+Enable the Email provider and keep email confirmation enabled. The app supplies
+the confirmation redirect for sign-up and resend requests. In the **Confirm
+signup** email template, keep the confirmation link set to
+`{{ .ConfirmationURL }}` so Supabase verifies the link before returning to the
+Clubhouse. After changing URL settings, request a fresh email from the sign-in
+page and use its newest link. Previously issued emails keep their old URLs.
 
-Restart/rebuild the app after changing its public environment variables.
-Then check sign-in, wallet loading, a store purchase, and a verified complete
-match reward. No live login, purchase, migration, or reward credit has been
-verified yet in this workspace.
+The `/auth/confirm` page completes the return, checks the member with Supabase,
+and removes tokens and codes from the address bar. Expired links show a return
+to sign-in, where **Resend confirmation email** works without a password. A
+60-second resend cooldown avoids accidental repeat requests. Profiles and
+wallets initialize automatically; new wallets start at zero.
 
-3 Gems' stars, boosters, and monastery restoration remain saved on the device;
-they are separate from Supabase wallet balances.
+If no email arrives, check **Authentication → Logs** and your spam folder.
+Supabase's default email sender only sends to project-team addresses and is
+currently limited to two emails per hour. To send confirmation emails to other
+members, configure a production email provider under **Authentication → Email
+→ SMTP Settings**, verify its sending domain, and enter its SMTP credentials
+privately in Supabase. See the [official SMTP setup and default sender
+limits](https://supabase.com/docs/guides/auth/auth-smtp). The site cannot change
+those dashboard settings; its public or server Supabase API keys do not
+configure SMTP. A sending-limit or unauthorized-address error is shown in the
+app without claiming the email was delivered.
+
+## Trusted match rewards
+
+Configure `CLUBHOUSE_REWARD_KEY` as a **secret** in the Site's environment settings,
+using the server secret/service-role credential for the same Supabase project.
+Redeploy the saved Site version after environment changes. Keep this credential
+out of chat, browser code, source files and every public environment variable.
+Without it, sign-in and member features can use the public connection settings,
+but verified Rummy and Spades reward delivery waits in the durable outbox.
+
+The optional first moderation role is assigned by a trusted administrator using
+the `clubhouse_staff` table defined in the moderation migration; sign-up does not grant staff privileges.
+
+## Current game database
+
+The current wallets, profiles/friends, authoritative rooms, achievements, crates,
+card albums and trades use Sites D1, or SQLite for local development. Existing
+Supabase wallets are imported once; the current balance then belongs to the game
+economy. Deploy the complete `drizzle/` journal with the Worker. The new
+collectible and Carrom tables are D1 migrations, not an extra Supabase SQL step.
+See [SITES_HOSTING.md](SITES_HOSTING.md).

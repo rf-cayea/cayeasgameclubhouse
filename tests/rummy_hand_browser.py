@@ -77,8 +77,8 @@ def mouse_drag(page, source, target, outside=False):
     start = card_button(page, source).bounding_box()
     end = card_button(page, target).bounding_box()
     assert start and end
-    sx, sy = start['x'] + start['width'] / 2, start['y'] + start['height'] / 2
-    ex, ey = end['x'] + end['width'] / 2, end['y'] + end['height'] / 2
+    sx, sy = start['x'] + 5, start['y'] + start['height'] / 2
+    ex, ey = end['x'] + 5, end['y'] + end['height'] / 2
     page.mouse.move(sx, sy)
     page.mouse.down()
     page.mouse.move(sx + 9, sy, steps=3)
@@ -93,8 +93,8 @@ def touch_drag(page, session, source, target, long_press=True):
     start = card_button(page, source).bounding_box()
     end = card_button(page, target).bounding_box()
     assert start and end
-    sx, sy = start['x'] + start['width'] / 2, start['y'] + start['height'] / 2
-    ex, ey = end['x'] + end['width'] / 2, end['y'] + end['height'] / 2
+    sx, sy = start['x'] + 5, start['y'] + start['height'] / 2
+    ex, ey = end['x'] + 5, end['y'] + end['height'] / 2
     session.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': sx, 'y': sy}]})
     if long_press:
         page.wait_for_timeout(300)
@@ -156,7 +156,7 @@ def run(base_url):
         expect_order(page, initial)
         checks.append('Escape and dropping outside the hand cancel without changing cards')
 
-        card_button(page, 1).click()
+        card_button(page, 1).click(position={'x':5,'y':25})
         page.get_by_role('button', name='Move selected card left', exact=True).click()
         expect_order(page, [initial[1], initial[0], *initial[2:]])
         page.get_by_role('button', name='Undo arrangement', exact=True).click()

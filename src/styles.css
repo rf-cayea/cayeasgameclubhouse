@@ -1,6 +1,17 @@
+@import "./styles/rewards.css";
 @import "tailwindcss";
 @import "./styles/card-games.css";
 @import "./styles/gems.css";
+@import "./styles/faith.css";
+@import "./styles/game-viewport.css";
+@import "./styles/card-art.css";
+@import "./styles/table-scenes.css";
+@import "./styles/branding.css";
+@import "./styles/gems-effects.css";
+@import "./styles/monastery.css";
+@import "./styles/monastery-menu.css";
+@import "./styles/social.css";
+@import "./styles/store.css";
 
 @theme {
   --color-background: #101e1c;

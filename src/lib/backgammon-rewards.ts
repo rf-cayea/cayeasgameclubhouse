@@ -1,0 +1,7 @@
+import {CARD_WIN_POINTS} from './reward-rates';
+import type {Level} from './rummy';
+export interface BGMatchReward{version:1;match_id:string;mode:'bot'|'online';players:{user_id:string|null;bot:boolean;level:Level|null}[];winner:number;target:number;scores:number[];completed_at:string}
+export interface BGReceipt{match_id:string;user_id:string;amount:number;tier:keyof typeof CARD_WIN_POINTS;source:string;already_credited:boolean}
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+export function bgRewardTier(mode:BGMatchReward['mode'],players:BGMatchReward['players']):keyof typeof CARD_WIN_POINTS|null{if(!Array.isArray(players)||players.length!==2||players.some(p=>!p||typeof p.bot!=='boolean'))return null;const humans=players.filter(p=>!p.bot),bots=players.filter(p=>p.bot);if(humans.some(p=>!p.user_id||!UUID.test(p.user_id))||new Set(humans.map(p=>p.user_id)).size!==humans.length)return null;if(mode==='online')return humans.length===2?'humans':null;if(mode!=='bot'||humans.length!==1||bots.length!==1||!['easy','normal','hard'].includes(bots[0]?.level??''))return null;return bots[0]!.level!;}
+export function bgWinner(r:BGMatchReward):string|null{if(!r||r.version!==1||!UUID.test(r.match_id)||!bgRewardTier(r.mode,r.players)||![1,3,5,7,9].includes(r.target)||![0,1].includes(r.winner)||!Array.isArray(r.scores)||r.scores.length!==2||r.scores.some(n=>!Number.isSafeInteger(n)||n<0||n>1000)||r.scores[r.winner]!<r.target||r.scores[1-r.winner]!>=r.target)return null;return r.players[r.winner]!.bot?null:r.players[r.winner]!.user_id;}

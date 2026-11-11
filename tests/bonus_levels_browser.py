@@ -23,7 +23,7 @@ def tray_symbols(page):
         label.split(": ", 1)[1]
         for label in page.get_by_role("list", name="Tray slots", exact=True)
         .locator("li").evaluate_all("items => items.map(item => item.getAttribute('aria-label'))")
-        if not label.endswith(": empty")
+        if not label.endswith(": empty") and not label.endswith(": locked for this challenge")
     ]
 
 
@@ -87,13 +87,19 @@ try:
                     page.screenshot(path=screenshot, full_page=True)
                     results["screenshots"].append(screenshot)
 
-                first_label = enabled.first.get_attribute("aria-label")
+                first = enabled.first
+                if first.get_attribute("data-veiled"):
+                    first.click()
+                    expect(first).not_to_have_attribute("data-veiled", "true")
+                    expect(tiles).to_have_count(initial)
+                first_label = first.get_attribute("aria-label")
                 page.get_by_role("button", name=first_label, exact=True).click()
                 expect(tiles).to_have_count(initial - 1)
-                expect(page.get_by_text("1 of 7 slots filled", exact=True)).to_be_visible()
+                capacity = 6 if level < 221 else 5
+                expect(page.get_by_text(f"1 of {capacity} slots filled", exact=True)).to_be_visible()
                 page.get_by_role("button", name="Undo · 2 left", exact=True).click()
                 expect(tiles).to_have_count(initial)
-                expect(page.get_by_text("0 of 7 slots filled", exact=True)).to_be_visible()
+                expect(page.get_by_text(f"0 of {capacity} slots filled", exact=True)).to_be_visible()
                 expect(page.get_by_role("button", name=first_label, exact=True)).to_be_enabled()
                 page.get_by_role("button", name="Restart level", exact=True).click()
                 expect(tiles).to_have_count(initial)
@@ -101,12 +107,10 @@ try:
 
                 detail = {"viewport": name, "level": level, "initial_tiles": initial, "opening_undo_restart": "passed", "visible_pointer_targets": "passed"}
                 if level in sample_levels:
-                    before_labels = sorted(tiles.evaluate_all("items => items.map(item => item.getAttribute('aria-label'))"))
                     page.get_by_role("button", name="Shuffle · 2 left", exact=True).click()
                     expect(tiles).to_have_count(initial)
                     expect(page.get_by_role("button", name="Shuffle · 1 left", exact=True)).to_be_enabled()
-                    after_labels = tiles.evaluate_all("items => items.map(item => item.getAttribute('aria-label'))")
-                    assert Counter(map(symbol_of, before_labels)) == Counter(map(symbol_of, after_labels)), (name, level, "Shuffle altered tile types")
+                    expect(page.locator(".faith-tile[data-frost], .faith-tile[data-seal], .faith-tile[data-veiled]")).to_have_count(0)
                     page.get_by_role("button", name="Magic clear · 3 left", exact=True).click()
                     expect(tiles).to_have_count(initial - 3)
                     expect(page.get_by_text(f"{initial - 3} tiles left · 1 triples matched", exact=True)).to_be_visible()

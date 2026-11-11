@@ -1,0 +1,42 @@
+.clubhouse-logo { display: block; object-fit: contain; flex-shrink: 0; }
+.clubhouse-nav-brand { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; }
+.clubhouse-nav-brand .clubhouse-logo { width: 56px; height: 56px; border-radius: 8px; }
+.clubhouse-hero-logo { width: min(100%, 430px); height: auto; margin: auto; border-radius: 24px; box-shadow: 0 18px 60px #0005; }
+.clubhouse-hero-brand { position: relative; isolation: isolate; width: min(100%, 430px); margin: auto; animation: clubhouse-logo-arrive 900ms cubic-bezier(.2,.7,.2,1) both; }
+.clubhouse-logo-float { position: relative; animation: clubhouse-logo-float 6s ease-in-out 900ms infinite; }
+.clubhouse-logo-aura { position: absolute; z-index: -1; inset: 10% 5%; border-radius: 50%; background: radial-gradient(ellipse at 24% 32%, #45b8ff66, transparent 65%), radial-gradient(ellipse at 76% 70%, #e9c77d88, transparent 65%); filter: blur(28px); opacity: .45; animation: clubhouse-logo-glow 6s ease-in-out 900ms infinite; pointer-events: none; }
+.clubhouse-logo-surface { position: relative; overflow: hidden; border-radius: 24px; box-shadow: 0 18px 60px #0005; }
+.clubhouse-logo-surface .clubhouse-hero-logo { width: 100%; box-shadow: none; }
+.clubhouse-logo-sheen { position: absolute; inset: -20% -55%; background: linear-gradient(110deg, transparent 38%, #fff7d916 46%, #fff7d93d 50%, #fff7d916 54%, transparent 62%); opacity: 0; transform: translateX(-65%); animation: clubhouse-logo-sheen 8s ease-in-out 1200ms infinite; pointer-events: none; }
+.clubhouse-logo-motion { position: absolute; right: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 7px 10px; border: 1px solid #e9c77d4d; border-radius: 999px; background: #0c211ee8; color: #e9d39e; font-size: 11px; line-height: 1.2; cursor: pointer; }
+.clubhouse-logo-motion:hover { background: #183a30; border-color: #e9c77d; }
+.clubhouse-logo-motion:focus-visible { outline: 2px solid #e9c77d; outline-offset: 4px; }
+.clubhouse-hero-brand[data-paused="true"] { animation: none; }
+.clubhouse-hero-brand[data-paused="true"] .clubhouse-logo-float,
+.clubhouse-hero-brand[data-paused="true"] .clubhouse-logo-aura,
+.clubhouse-hero-brand[data-paused="true"] .clubhouse-logo-sheen { animation-play-state: paused; }
+@keyframes clubhouse-logo-arrive { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes clubhouse-logo-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes clubhouse-logo-glow { 0%, 100% { opacity: .35; } 50% { opacity: .75; } }
+@keyframes clubhouse-logo-sheen { 0%, 10% { opacity: 0; transform: translateX(-65%); } 18% { opacity: .7; } 36% { opacity: 0; transform: translateX(65%); } 100% { opacity: 0; transform: translateX(65%); } }
+.clubhouse-footer-brand { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.clubhouse-footer-brand .clubhouse-logo { width: 64px; height: 64px; border-radius: 8px; }
+.game-play-header > a { display: inline-flex; align-items: center; gap: 5px; padding-block: 4px; }
+.game-play-header .clubhouse-logo { width: 24px; height: 24px; border-radius: 4px; }
+.clubhouse-error-logo { width: 120px; height: 120px; margin-bottom: 24px; border-radius: 12px; }
+@media (max-width: 600px) {
+  .clubhouse-nav-brand { font-size: 18px; gap: 9px; }
+  .clubhouse-nav-brand .clubhouse-logo { width: 44px; height: 44px; }
+  .clubhouse-hero-logo { max-width: 300px; }
+  .clubhouse-hero-brand { max-width: 300px; order: -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clubhouse-hero-brand,
+  .clubhouse-hero-brand .clubhouse-logo-float,
+  .clubhouse-hero-brand .clubhouse-logo-aura,
+  .clubhouse-hero-brand .clubhouse-logo-sheen { animation: none; }
+  .clubhouse-logo-sheen, .clubhouse-logo-motion { display: none; }
+}
+
+.home-about{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:28px;margin-top:48px;border:1px solid var(--color-border);border-radius:16px;background:#e9c77d06}.home-about h2{font-family:var(--font-display);font-size:1.6rem;color:var(--color-gold);margin-bottom:8px}.home-about p{color:var(--color-muted-foreground);max-width:650px}.home-about>a{flex-shrink:0}@media(max-width:850px){.home-about{flex-direction:column;align-items:flex-start}}
