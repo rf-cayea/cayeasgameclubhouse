@@ -1,0 +1,26 @@
+.poker-collection { display:grid; gap:1rem; }
+.poker-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:1rem; }
+.poker-collection-grid article { display:grid; justify-items:start; gap:.75rem; border:1px solid #ad895766; padding:1rem; border-radius:1rem; background:#142b28; color:#f9edce; }
+.poker-master-art { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.35rem; width:min(100%,230px); margin-inline:auto; }
+.poker-master-art svg { width:100%; display:block; filter:drop-shadow(0 3px 2px #0007); }
+.chance-main { max-width:960px; margin:auto; padding:1rem; width:100%; color:#fff2d0; }
+.chance-setup,.chance-table { background:#132e2b; border:1px solid #ae8c54; border-radius:1.2rem; padding:clamp(1rem,3vw,2rem); display:grid; gap:1rem; }
+.chance-setup { grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr)); }
+.chance-setup h2 { font-size:clamp(2.4rem,6vw,4rem); font-family:Georgia,serif; line-height:1; margin:.5rem 0; }
+.chance-intro { display:grid; align-content:center; justify-items:start; gap:.65rem; }
+.chance-setup-fields { display:grid; gap:.75rem; }
+.chance-setup-fields label { display:grid; gap:.25rem; }
+.chance-setup-fields :is(input,select) { width:100%; background:#0c211f; color:#fff2d0; border:1px solid #ae8c54; border-radius:.4rem; padding:.5rem; }
+.chance-scores { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:.5rem; }
+.chance-scores article { border:1px solid #856c49; border-radius:.6rem; padding:.55rem; display:grid; }
+.chance-scores article[data-turn=true] { border-color:#ffdb82; background:#344b3c; }
+.chance-dice { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:.45rem; max-width:590px; width:100%; margin-inline:auto; }
+.chance-dice button { min-width:0; text-align:center; border:2px solid transparent; border-radius:.55rem; }
+.chance-dice button[aria-pressed=true] { border-color:#ffe49f; }
+.chance-dice button[data-claimed=true] { opacity:.56; }
+.chance-dice svg { width:100%; display:block; }
+.chance-actions { display:flex; flex-wrap:wrap; gap:.55rem; }
+.chance-feedback { min-height:1.5em; }
+.chance-rules table { width:100%; margin-block:1rem; }
+.chance-rules td { padding:.25rem; border-bottom:1px solid #ad895766; }
+.chance-rules td:last-child { text-align:right; }

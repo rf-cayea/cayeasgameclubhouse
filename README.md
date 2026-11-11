@@ -121,6 +121,20 @@ commits both sides atomically. `drizzle/0018_cayea_collectibles.sql` is additive
 Original paintings are local assets; [artwork notes](art/README.md) document
 atlas panels and deployment encodings.
 
+## Crown & Chance
+
+An original game by Richard Cayea. Roll six poker dice and bank scoring hands or
+risk another roll. The first bank in every mode requires a pair or better.
+Play Fast (4,000 points), Long (12,000 points), or solo Score Attack (ten turns).
+Play solo, pass-and-play, against a computer, or by private online table code.
+The current multiplayer round finishes after a player reaches the target.
+Tied leaders play additional rounds until the tie breaks.
+
+Crown & Court and Crown & Chance share the Poker dice Store collection and
+equipment slot. Each set shows the same six ranks, with cosmetic Ace suits
+and deck-themed artwork. Account achievements track each game separately.
+Verified wins in either game count toward the same poker dice crate milestones.
+
 ## Store and customization
 
 Paid prices increased by 25%, with fractional prices rounded up to whole units.
@@ -148,7 +162,7 @@ Decks, Shared D6 dice, Dominoes, Faith 3, Game modes, Frames and Wallet.
   purchases of 125 points / 97 Cash each**. Upload the image on My profile.
 - Faith 3 skins cost **375, 563 or 750 Cash**. Equipping changes artwork only.
 
-Carrom and Disc Pool share a collection of boards, pip-free puck sets and strikers, plus a reward crate with one design fragment per opening. Equip each piece independently. The eight table games have an optional four-track instrumental loop with crossfades.
+Carrom and Disc Pool share a collection of boards, pip-free puck sets and strikers, plus a reward crate with one design fragment per opening. Equip each piece independently. The nine table games have an optional four-track instrumental loop with crossfades.
 
 Owned designs are selectable before a match and in each game's collection
 controls. The Store retains Equip/Use after purchase. The server catalog,

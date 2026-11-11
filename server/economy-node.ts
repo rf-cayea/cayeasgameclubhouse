@@ -1,3 +1,4 @@
+import { initializeCrownChanceNode } from './crown-chance-node';
 import { initializeCrownCourtNode } from './crown-court-node';
 import { initializeFarkleNode } from './farkle-node';
 import { initializeDominoNode } from './dominoes-node';
@@ -11,6 +12,7 @@ export function initializeEconomyNode(db: DatabaseSync) {
   db.exec(ECONOMY_SCHEMA);
   initializeFiveDiceNode(db); initializeFarkleNode(db);
   initializeCrownCourtNode(db);
+  initializeCrownChanceNode(db);
   initializeDominoNode(db);
   if (!(db.prepare('PRAGMA table_info(economy_wallets)').all() as { name: string }[]).some(column => column.name === 'domino_points')) db.exec('ALTER TABLE economy_wallets ADD COLUMN domino_points INTEGER NOT NULL DEFAULT 0');
   if (!(db.prepare('PRAGMA table_info(economy_wallets)').all() as { name: string }[]).some(column => column.name === 'dice_points')) db.exec('ALTER TABLE economy_wallets ADD COLUMN dice_points INTEGER NOT NULL DEFAULT 0');

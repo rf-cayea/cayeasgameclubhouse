@@ -2,7 +2,9 @@ import {CarromRoomStore} from './carrom-rooms';
 import {CollectiblesStore} from './collectibles';
 import {BackgammonRoomStore} from './backgammon-rooms';
 import { CrownCourtRoomStore } from './crown-court-rooms';
+import { CrownChanceRoomStore } from './crown-chance-rooms';
 import { initializeCrownCourtNode } from './crown-court-node';
+import { initializeCrownChanceNode } from './crown-chance-node';
 import { FarkleRoomStore } from './farkle-rooms';
 import { initializeFarkleNode } from './farkle-node';
 import { MatchmakingStore, matchGame } from './matchmaking';
@@ -67,9 +69,11 @@ export function createGameServer(options: ServerOptions) {
   initializeFiveDiceNode(options.store.db);
   initializeFarkleNode(options.store.db);
   initializeCrownCourtNode(options.store.db);
+  initializeCrownChanceNode(options.store.db);
   initializeMatchmakingNode(options.store.db);
   const dice = new FiveDiceRoomStore(binding);
   const farkle = new FarkleRoomStore(binding);const backgammon=new BackgammonRoomStore(binding);const carrom=new CarromRoomStore(binding);
+  const crownChance = new CrownChanceRoomStore(binding);
   const crownCourt = new CrownCourtRoomStore(binding);
   const domino = new DominoRoomStore(binding);
   const economy = new EconomyStore(binding), puzzles = new PuzzleRewardStore(binding, economy);
@@ -108,6 +112,7 @@ export function createGameServer(options: ServerOptions) {
       if (path === '/api/rummy/health') { json(response, 200, { app: 'cayea-rummy', version: 1 }); return; }
       if (path === '/api/dominoes/health') { json(response, 200, { app: 'clubhouse-dominoes', version: 1 }); return; }
       if (path === '/api/crown-court/health') { json(response, 200, { app: 'clubhouse-crown-court', version: 1 }); return; }
+      if (path === '/api/crown-chance/health') { json(response, 200, { app: 'clubhouse-crown-chance', version: 1 }); return; }
       if(path==='/api/carrom/health'){json(response,200,{app:'clubhouse-carrom',version:1});return;}
       if(path==='/api/backgammon/health'){json(response,200,{app:'clubhouse-backgammon',version:1});return;}
       if (path === '/api/farkle/health') { json(response, 200, { app: 'clubhouse-farkle', version: 1 }); return; }
@@ -209,6 +214,32 @@ export function createGameServer(options: ServerOptions) {
           const input=await body(request);await discovery.checkPublicJoin('crown-court',actor,input);
           const result = await crownCourt.command(actor, await namedGameCommand(social, actor, input));
           if (result.view.status === 'finished' && actor.principal.startsWith('member:')) { await economy.syncTrustedRewards(actor); result.view = await crownCourt.get(result.view.code, actor.principal, actor.owned); }
+          json(response, 200, result); return;
+        }
+        if (path === '/api/crown-chance/session' && request.method === 'GET') { json(response, 200, { member: actor.principal.startsWith('member:'), crownChance: true }); return; }
+        const crownChanceMatch = /^\/api\/crown-chance\/room\/([A-Fa-f0-9]{8})(\/events)?$/.exec(path);
+        if (crownChanceMatch && request.method === 'GET') {
+          const code = crownChanceMatch[1]!.toUpperCase();
+          let view = await crownChance.get(code, actor.principal, actor.owned);
+          if (view.status === 'finished' && actor.principal.startsWith('member:')) { await economy.syncTrustedRewards(actor); view = await crownChance.get(code, actor.principal, actor.owned); }
+          if (!crownChanceMatch[2]) { json(response, 200, view); return; }
+          response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+          response.write(`data: ${JSON.stringify({ revision: view.revision })}\n\n`);
+          const stream = { response, principal: actor.principal }, key = `crown-chance:${code}`;
+          if (!streams.has(key)) streams.set(key, new Set()); streams.get(key)!.add(stream);
+          let reading = false, ticks = 0;
+          const timer = setInterval(async () => {
+            if (reading) return; reading = true;
+            try { const next = await crownChance.get(code, actor.principal, actor.owned); if (next.revision !== view.revision || next.reward.status !== view.reward.status) { view = next; response.write(`data: ${JSON.stringify({ revision: next.revision })}\n\n`); } else if (++ticks % 10 === 0) response.write(': heartbeat\n\n'); }
+            catch { response.end(); } finally { reading = false; }
+          }, 1500);
+          response.on('close', () => { clearInterval(timer); const set = streams.get(key); set?.delete(stream); if (!set?.size) streams.delete(key); });
+          return;
+        }
+        if (path === '/api/crown-chance' && request.method === 'POST') {
+          const input=await body(request);
+          const result = await crownChance.command(actor, await namedGameCommand(social, actor, input));
+          if (result.view.status === 'finished' && actor.principal.startsWith('member:')) { await economy.syncTrustedRewards(actor); result.view = await crownChance.get(result.view.code, actor.principal, actor.owned); }
           json(response, 200, result); return;
         }
         if (path === '/api/carrom/session' && request.method === 'GET') { json(response, 200, { member: actor.principal.startsWith('member:'), carrom: true }); return; }

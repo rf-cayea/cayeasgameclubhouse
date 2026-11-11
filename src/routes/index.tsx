@@ -30,7 +30,7 @@ function Hub() {
             <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Welcome to</p>
             <h1 className="mt-2 font-display text-5xl leading-tight text-gold md:text-6xl">{HUB_NAME}</h1>
             <p className="mt-4 max-w-xl text-lg text-foreground/85">
-              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn points from all nine games into Clubhouse Cash, or follow a 200-level journey to restore the monastery in 3 Gems of Buddhism.
+              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn points from all eleven games into Clubhouse Cash, or follow a 200-level journey to restore the monastery in 3 Gems of Buddhism.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link to="/games/faith-3" className="btn-gold">Play Faith 3 Tile Match</Link>
@@ -44,7 +44,7 @@ function Hub() {
           <AnimatedClubhouseLogo />
         </section>
 
-        <p role="status" className="mt-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Crown &amp; Court, Rummy+, Spades and Quintsee, or restore a monastery in 3 Gems of Buddhism. Sign in before an eligible match to earn points. Guests can try the puzzles; signed-in puzzle runs save verified first clears and rewards to your account.</p>
+        <p role="status" className="mt-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Crown &amp; Chance, Crown &amp; Court, Rummy+, Spades and Quintsee, or restore a monastery in 3 Gems of Buddhism. Sign in before an eligible match to earn points. Guests can try the puzzles; signed-in puzzle runs save verified first clears and rewards to your account.</p>
 
         <h2 className="mt-14 font-display text-3xl text-gold">Games</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -60,6 +60,8 @@ function Hub() {
                   <Link to="/games/spades" className="btn-gold mt-4 inline-block text-sm">Play Spades</Link>
                 ) : g.slug === 'dominoes' ? (
                   <Link to="/games/dominoes" className="btn-gold w-full justify-center">Play Dominoes →</Link>
+                ) : g.slug === 'crown-chance' ? (
+                  <Link to="/games/crown-chance" className="btn-gold mt-4 inline-block text-sm">Play Crown &amp; Chance</Link>
                 ) : g.slug === 'crown-court' ? (
                   <Link to="/games/crown-court" className="btn-gold mt-4 inline-block text-sm">Play Crown &amp; Court</Link>
                 ) : g.slug === 'carrom' ? (<Link to="/games/carrom" className="btn-gold mt-4 inline-block text-sm">Play Carrom &amp; Disc Pool</Link>) : g.slug === 'backgammon' ? (<Link to="/games/backgammon" className="btn-gold mt-4 inline-block text-sm">Play Backgammon</Link>) : g.slug === 'farkle' ? (
@@ -96,7 +98,7 @@ function Hub() {
             <p className="text-sm text-muted-foreground">Shared card decks cost 563 Rummy+ or Spades points, or 434 Cash. Buy once and use them in both card games. Joker Mode and Spades Partnerships each cost 500 game points or 385 Cash.</p>
           </div>
         </div>
-        <section className="home-about" aria-labelledby="home-about-title"><div><h2 id="home-about-title">New to the Clubhouse?</h2><p>Get to know all nine games, monastery restoration, points, Clubhouse Cash, shared decks, achievements, profiles, and playing with friends.</p></div><Link to="/about" className="btn-ghost-gold">About &amp; player guide →</Link></section>
+        <section className="home-about" aria-labelledby="home-about-title"><div><h2 id="home-about-title">New to the Clubhouse?</h2><p>Get to know all eleven games, monastery restoration, points, Clubhouse Cash, shared decks, achievements, profiles, and playing with friends.</p></div><Link to="/about" className="btn-ghost-gold">About &amp; player guide →</Link></section>
       </main>
     </>
   );

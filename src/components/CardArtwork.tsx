@@ -24,7 +24,7 @@ function SuitMark({ suit, x, y, size = 18, flip = false }: { suit: string; x: nu
   </g></g>;
 }
 /** One cached, original painted atlas per theme; every royal rank/suit is unique. */
-function AtlasPanel({ deck, index, x = 0, y = 0, width = 100, height = 140 }: { deck: SpadesDeck; index: number; x?: number; y?: number; width?: number; height?: number }) {
+export function AtlasPanel({ deck, index, x = 0, y = 0, width = 100, height = 140 }: { deck: SpadesDeck; index: number; x?: number; y?: number; width?: number; height?: number }) {
   const sheet = DECK_ART_SHEETS[DECK_ART_THEMES[deck.motif]], column = index % 4, row = Math.floor(index / 4);
   const left = sheet.columns[column]! + 3, top = sheet.rows[row]! + 3;
   const panelWidth = sheet.columns[column + 1]! - left - 3, panelHeight = sheet.rows[row + 1]! - top - 3;

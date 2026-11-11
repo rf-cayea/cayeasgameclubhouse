@@ -19,6 +19,7 @@ export interface Game {
 export const GAMES: Game[] = [
  {slug:"carrom",name:"Clubhouse Carrom & Disc Pool",tagline:"Slide your striker. Pull back to aim. Pocket your color with touch controls, bank shots, three computer difficulties or online rivals.",status:"live",icon:"◉"},
   {slug:"backgammon",name:"Clubhouse Backgammon",tagline:"Smart moves, doubling cube, Crawford matches and Nackgammon. Collect boards and engraved checkers.",status:"live",icon:"◈"},
+  { slug: "crown-chance", name: "Crown & Chance", tagline: "Richard Cayea’s six-dice game of poker hands, bold rerolls and safe banks.", status: "live", icon: "♠" },
   { slug: "crown-court", name: "Crown & Court", tagline: "A Clubhouse Original. Five poker dice, three match lengths, and a royal scorecard. Roll 9, 10, J, Q, K, A.", status: "live", icon: "♛" },
   { slug: "farkle", name: "Farkle", tagline: "Six dice. Smart scoring. Bank your points or risk a Farkle. Three computer difficulties and online tables for 2–4.", status: "live", icon: "⚅" },
   { slug: "dominoes", name: "Clubhouse Dominoes", tagline: "Draw, Block and Muggins. Three computer difficulties or private online matches for two.", status: "live", icon: "▣" },
@@ -42,7 +43,7 @@ export const GAME_POINTS = {
   "3-gems": { name: "3 Gems points", short: "Gems pts", icon: "🪷", key: "gems_points" },
   "faith-3": { name: "Faith 3 points", short: "F3 pts", icon: "🙏", key: "f3_points" },
   rummy: { name: "Rummy+ points", short: "Rummy pts", icon: "🃏", key: "rummy_points" },
-  "five-dice": { name: "Shared Dice points (Quintsee, Farkle, Crown & Court, Backgammon, Carrom)", short: "Dice pts", icon: "⚄", key: "dice_points" },
+  "five-dice": { name: "Shared Dice points (Quintsee, Farkle, Crown & Court, Crown & Chance, Backgammon, Carrom)", short: "Dice pts", icon: "⚄", key: "dice_points" },
   spades: { name: "Spades points", short: "Spades pts", icon: "♠", key: "spades_points" },
 } as const;
 export type PointGame = keyof typeof GAME_POINTS;

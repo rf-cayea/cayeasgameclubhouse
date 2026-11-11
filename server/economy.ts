@@ -6,6 +6,7 @@ import {bgRewardTier,bgWinner,type BGMatchReward,type BGReceipt} from '../src/li
 import {REWARD_CRATE_POOLS,REWARD_CRATE_META,crateCollectionForGame,type RewardCrateCollection} from '../src/lib/reward-crates';
 import { DICE_CRATE_DESIGNS, DICE_CRATE_CASH, DICE_FRAGMENTS_REQUIRED, type DiceCrateView, type DiceCrateReward } from '../src/lib/dice-crates';
 import { crownCourtRewardTier, crownCourtWinner, type CrownCourtMatchReward, type CrownCourtReceipt } from '../src/lib/crown-court-rewards';
+import { crownChanceRewardTier, crownChanceWinner, type CrownChanceMatchReward, type CrownChanceReceipt } from '../src/lib/crown-chance-rewards';
 import { farkleRewardTier, farkleWinner, type FarkleMatchReward, type FarkleReceipt } from '../src/lib/farkle-rewards';
 import { D6_DICE_SLOT, CLASSIC_D6_DICE } from '../src/lib/d6-dice';
 import { nauticalBundle } from '../src/lib/nautical-sets';
@@ -155,15 +156,15 @@ export class EconomyStore {
     });
     return {...result,wallet:await this.wallet(identity)};
   }
-  private async creditCard(id:string,source:string,game:'rummy'|'spades'|'five-dice'|'farkle'|'crown-court'|'dominoes'|'backgammon'|'carrom',tier:keyof typeof WIN_POINTS,amount:number) {
+  private async creditCard(id:string,source:string,game:'rummy'|'spades'|'five-dice'|'farkle'|'crown-court'|'crown-chance'|'dominoes'|'backgammon'|'carrom',tier:keyof typeof WIN_POINTS,amount:number) {
     return this.transact(id,async({wallet})=>{
       const prior=await this.prior(id,source);
       if(prior) {
         const detail=parse<{tier?:string}>(prior.detail,{});
         return {statements:detail.tier===tier?[]:[this.stmt("UPDATE economy_ledger SET detail=json_set(detail,'$.tier',?) WHERE user_id=? AND source=?",tier,id,source)],result:{already:true,amount:prior.amount>0?prior.amount:amount}};
       }
-      const currency=(game==='carrom'||game==='backgammon'||game==='farkle'||game==='crown-court')?'dice_points':POINT_FIELDS[game];
-      return {wallet:{...wallet,[currency]:wallet[currency]+amount,lifetime_points:wallet.lifetime_points+amount},statements:[this.ledger(id,source,'reward',currency,amount,`${game==='carrom'?'Carrom / Disc Pool':game==='backgammon'?'Backgammon':game==='rummy'?'Rummy+':game==='five-dice'?'Quintsee':game==='crown-court'?'Crown & Court':game==='farkle'?'Farkle':game==='dominoes'?'Dominoes':'Spades'} · ${tier==='humans'?'online':tier} match win`,{tier}),...await this.crateProgressStatements(id,game,source.split(':').at(-1)!,tier==='humans'?'human':'bot')],result:{already:false,amount}};
+      const currency=(game==='carrom'||game==='backgammon'||game==='farkle'||game==='crown-court'||game==='crown-chance')?'dice_points':POINT_FIELDS[game];
+      return {wallet:{...wallet,[currency]:wallet[currency]+amount,lifetime_points:wallet.lifetime_points+amount},statements:[this.ledger(id,source,'reward',currency,amount,`${game==='carrom'?'Carrom / Disc Pool':game==='backgammon'?'Backgammon':game==='rummy'?'Rummy+':game==='five-dice'?'Quintsee':game==='crown-court'?'Crown & Court':game==='crown-chance'?'Crown & Chance':game==='farkle'?'Farkle':game==='dominoes'?'Dominoes':'Spades'} · ${tier==='humans'?'online':tier} match win`,{tier}),...await this.crateProgressStatements(id,game,source.split(':').at(-1)!,tier==='humans'?'human':'bot')],result:{already:false,amount}};
     });
   }
   private async crateProgressStatements(id:string,game:string,matchId:string,channel:'human'|'bot'):Promise<D1Statement[]>{
@@ -202,6 +203,13 @@ export class EconomyStore {
     const tier=crownCourtRewardTier(result.mode,result.players),winner=crownCourtWinner(result);
     if(!row||JSON.stringify(parse(row.payload,null))!==JSON.stringify(result)||!tier||!winner)throw new RummyError('This match has no verified reward.',403,'reward_unverified');
     const source=`crown-court:win:${result.match_id}`,paid=await this.creditCard(winner,source,'crown-court',tier,CARD_WIN_POINTS[tier]);
+    return {match_id:result.match_id,user_id:winner,amount:paid.amount,tier,source,already_credited:paid.already};
+  }
+  async claimCrownChanceReward(result:CrownChanceMatchReward):Promise<CrownChanceReceipt> {
+    const row=await this.first<{payload:string}>('SELECT payload FROM crown_chance_rewards WHERE match_id=?',result.match_id);
+    const tier=crownChanceRewardTier(result.mode,result.players),winner=crownChanceWinner(result);
+    if(!row||JSON.stringify(parse(row.payload,null))!==JSON.stringify(result)||!tier||!winner)throw new RummyError('This match has no verified reward.',403,'reward_unverified');
+    const source=`crown-chance:win:${result.match_id}`,paid=await this.creditCard(winner,source,'crown-chance',tier,CARD_WIN_POINTS[tier]);
     return {match_id:result.match_id,user_id:winner,amount:paid.amount,tier,source,already_credited:paid.already};
   }
   async claimBackgammonReward(result:BGMatchReward):Promise<BGReceipt> {
@@ -255,6 +263,8 @@ export class EconomyStore {
 
     const crownCourt=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM crown_court_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
     for(const row of crownCourt){const result=parse<CrownCourtMatchReward|null>(row.payload,null);if(result&&crownCourtWinner(result)===id)await this.claimCrownCourtReward(result);}
+    const crownChance=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM crown_chance_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
+    for(const row of crownChance){const result=parse<CrownChanceMatchReward|null>(row.payload,null);if(result&&crownChanceWinner(result)===id)await this.claimCrownChanceReward(result);}
     const backgammon=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM backgammon_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
     for(const row of backgammon){const result=parse<BGMatchReward|null>(row.payload,null);if(result&&bgWinner(result)===id)await this.claimBackgammonReward(result);}
     const carrom=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM carrom_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
@@ -284,12 +294,14 @@ export class EconomyStore {
     const row=await this.first<{created_at:number}>('SELECT created_at FROM economy_wallets WHERE user_id=?',id);
     const faith=await this.puzzleProgress({principal:`member:${id}`},'faith-3'),gems=await this.puzzleProgress({principal:`member:${id}`},'3-gems');
     const chapters=(levels:number[],size:number,max:number)=>Array.from({length:max/size},(_,chapter)=>Array.from({length:size},(_,n)=>chapter*size+n+1).every(level=>levels.includes(level))).filter(Boolean).length;
-    const result:EconomyStats={faithLevels:0,faithChapters:chapters(faith.levels,20,280),gemsLevels:0,gemsStars:0,gemsChapters:chapters(gems.levels,50,GEMS_LEVEL_COUNT),rummyWins:0,rummyHumanWins:0,rummyHardWins:0,spadesWins:0,spadesHumanWins:0,spadesHardWins:0,diceWins:0,diceHumanWins:0,diceHardWins:0,dominoWins:0,dominoHumanWins:0,dominoHardWins:0,farkleWins:0,farkleHumanWins:0,farkleHardWins:0,crownWins:0,crownHumanWins:0,crownHardWins:0,carromWins:0,carromHumanWins:0,carromHardWins:0,backgammonWins:0,backgammonHumanWins:0,backgammonHardWins:0,lifetime:wallet.lifetime_points,cosmetics:wallet.owned.filter(id=>ECONOMY_CATALOG.some(item=>item.id===id&&item.slot!==null)).length,friends:0,memberDays:Math.max(0,Math.floor((this.now()-(row?.created_at??this.now()))/86400000)),visits:0,profileComplete:0,gamesPlayed:0};
+    const result:EconomyStats={faithLevels:0,faithChapters:chapters(faith.levels,20,280),gemsLevels:0,gemsStars:0,gemsChapters:chapters(gems.levels,50,GEMS_LEVEL_COUNT),rummyWins:0,rummyHumanWins:0,rummyHardWins:0,spadesWins:0,spadesHumanWins:0,spadesHardWins:0,diceWins:0,diceHumanWins:0,diceHardWins:0,dominoWins:0,dominoHumanWins:0,dominoHardWins:0,farkleWins:0,farkleHumanWins:0,farkleHardWins:0,crownWins:0,crownHumanWins:0,crownHardWins:0,chanceWins:0,chanceHumanWins:0,chanceHardWins:0,carromWins:0,carromHumanWins:0,carromHardWins:0,backgammonWins:0,backgammonHumanWins:0,backgammonHardWins:0,lifetime:wallet.lifetime_points,cosmetics:wallet.owned.filter(id=>ECONOMY_CATALOG.some(item=>item.id===id&&item.slot!==null)).length,friends:0,memberDays:Math.max(0,Math.floor((this.now()-(row?.created_at??this.now()))/86400000)),visits:0,profileComplete:0,gamesPlayed:0};
     for(const key of Object.keys(counts??{}) as (keyof EconomyStats)[])result[key]=Number(counts?.[key]??0);
     const dice=await this.first<{diceWins:number;diceHumanWins:number;diceHardWins:number}>(`SELECT count(*) diceWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) diceHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) diceHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'five-dice:win:%'`,id);
     if(dice)Object.assign(result,dice);
     const crown=await this.first<{crownWins:number;crownHumanWins:number;crownHardWins:number}>(`SELECT count(*) crownWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) crownHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) crownHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'crown-court:win:%'`,id);
     if(crown)Object.assign(result,crown);
+    const chance=await this.first<{chanceWins:number;chanceHumanWins:number;chanceHardWins:number}>(`SELECT count(*) chanceWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) chanceHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) chanceHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'crown-chance:win:%'`,id);
+    if(chance)Object.assign(result,chance);
     const backgammon=await this.first<{backgammonWins:number;backgammonHumanWins:number;backgammonHardWins:number}>(`SELECT count(*) backgammonWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) backgammonHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) backgammonHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'backgammon:win:%'`,id);
     if(backgammon)Object.assign(result,backgammon);
     const carrom=await this.first<{carromWins:number;carromHumanWins:number;carromHardWins:number}>(`SELECT count(*) carromWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) carromHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) carromHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'carrom:win:%'`,id);
@@ -302,7 +314,7 @@ export class EconomyStore {
     const cosmetics=new Set(wallet.owned.filter(id=>ECONOMY_CATALOG.some(item=>item.id===id&&item.slot!==null)));
     for(const design of RUMMY_DESIGNS)if(design.wins>0&&design.wins<=Number(earned?.n??0))cosmetics.add(design.id);
     result.cosmetics=cosmetics.size;
-    result.gamesPlayed=[result.carromWins,result.faithLevels,result.gemsLevels,result.rummyWins,result.spadesWins,result.diceWins,result.farkleWins,result.backgammonWins,result.crownWins,result.dominoWins].filter(n=>n>0).length;
+    result.gamesPlayed=[result.carromWins,result.faithLevels,result.gemsLevels,result.rummyWins,result.spadesWins,result.diceWins,result.farkleWins,result.backgammonWins,result.crownWins,result.chanceWins,result.dominoWins].filter(n=>n>0).length;
     return result;
   }
   private async badgeViews(id:string,stats:EconomyStats) {
@@ -352,7 +364,7 @@ export class EconomyStore {
     const sources=await this.rows<{source:string;tier:string|null}>(`SELECT json_group_array(json_object('source',source,'tier',json_extract(detail,'$.tier'))) AS data FROM (SELECT source,detail FROM economy_ledger WHERE user_id=? AND kind IN ('legacy','reward','achievement') AND source<>'legacy:shared-playing-decks' ORDER BY created_at DESC LIMIT 10000)`,id);
     const history=await this.rows<EconomyHistory>(`SELECT json_group_array(json_object('id',id,'source',source,'kind',kind,'currency',currency,'amount',amount,'cash',cash,'label',label,'createdAt',created_at)) AS data FROM (SELECT * FROM economy_ledger WHERE user_id=? AND source<>'legacy:shared-playing-decks' ORDER BY created_at DESC,id DESC LIMIT 50)`,id);
     const faith=await this.puzzleProgress(identity,'faith-3'),gems=await this.puzzleProgress(identity,'3-gems');
-    const rewardCrates={carrom:await this.diceCrates(id,'carrom'),backgammon:await this.diceCrates(id,'backgammon'),dice:await this.diceCrates(id,'dice'),dominoes:await this.diceCrates(id,'dominoes'),cards:await this.diceCrates(id,'cards')};
+    const rewardCrates={poker:await this.diceCrates(id,'poker'),carrom:await this.diceCrates(id,'carrom'),backgammon:await this.diceCrates(id,'backgammon'),dice:await this.diceCrates(id,'dice'),dominoes:await this.diceCrates(id,'dominoes'),cards:await this.diceCrates(id,'cards')};
     return {rewardCrates,diceCrates:rewardCrates.dice,wallet,sources:sources.map(s=>s.source),humanWinSources:sources.filter(s=>s.tier==='humans'&&s.source.startsWith('rummy:win:')).map(s=>s.source),stats,achievements:await this.badgeViews(id,stats),history:history.map(item=>({...item,label:item.source.startsWith('five-dice:')?item.label.replace(/\bFarkle\b/g,'Quintsee'):item.label})),progress:{'faith-3':faith,'3-gems':gems},conversionRate:CONVERSION_RATE};
   }
   private async diceFragments(id:string,collection:RewardCrateCollection='dice'):Promise<Record<string,number>> {
@@ -457,7 +469,7 @@ export class EconomyStore {
         return {wallet:{...wallet,[currency]:wallet[currency]-price,owned:[...new Set([...wallet.owned,item.id,...(bundle?.items??[])])]},statements:[this.ledger(id,`purchase:${item.id}`,'purchase',currency,-price,item.name)],result:{type:'purchase',alreadyApplied:false,itemId:item.id,amount:price,currency} as EconomyReceipt};
       });
     } else if(value.operation==='equip') {
-      const slot=typeof value.slot==='string'?value.slot:'',itemId=typeof value.itemId==='string'?value.itemId:'',defaults:Record<string,string>={[CARROM_STRIKER_SLOT]:CLASSIC_CARROM_STRIKER.id,[CARROM_BOARD_SLOT]:CLASSIC_CARROM_BOARD.id,[CARROM_PUCK_SLOT]:CLASSIC_CARROM_PUCKS.id,[D6_DICE_SLOT]:CLASSIC_D6_DICE.id,domino_skin:'domino-skin-classic',bg_board:'bg-board-classic',bg_checkers:'bg-checkers-classic',farkle_dice:'farkle-dice-classic',faith3_skin:'faith3-classic',spades_table:'spades-table-classic',spades_deck:'spades-deck-classic'};
+      const slot=typeof value.slot==='string'?value.slot:'',itemId=typeof value.itemId==='string'?value.itemId:'',defaults:Record<string,string>={poker_dice:'poker-dice-ivory',[CARROM_STRIKER_SLOT]:CLASSIC_CARROM_STRIKER.id,[CARROM_BOARD_SLOT]:CLASSIC_CARROM_BOARD.id,[CARROM_PUCK_SLOT]:CLASSIC_CARROM_PUCKS.id,[D6_DICE_SLOT]:CLASSIC_D6_DICE.id,domino_skin:'domino-skin-classic',bg_board:'bg-board-classic',bg_checkers:'bg-checkers-classic',farkle_dice:'farkle-dice-classic',faith3_skin:'faith3-classic',spades_table:'spades-table-classic',spades_deck:'spades-deck-classic'};
       if(!Object.hasOwn(defaults,slot))throw new RummyError('Choose a valid collection slot.');
       const item=ECONOMY_CATALOG.find(item=>item.id===itemId&&(item.slot===slot||(slot==='spades_deck'&&item.slot==='card_deck')||(slot==='farkle_dice'&&item.slot===D6_DICE_SLOT)));
       if(!item&&defaults[slot]!==itemId&&!(slot===DOMINO_SKIN_SLOT&&DOMINO_INCLUDED_SKINS.some(skin=>skin.id===itemId)))throw new RummyError('That design does not belong in this slot.');

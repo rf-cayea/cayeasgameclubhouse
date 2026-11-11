@@ -88,9 +88,9 @@ export interface AlbumView extends AlbumState{unique:number;complete:boolean;jac
 export interface CardReceipt{alreadyApplied:boolean;cards?:string[];packId?:string;tradeId?:string;cash?:number}
 export type CollectibleCommand={operation:'buy_booster';stars:CardStars;requestId:string}|{operation:'open_booster';packId:string}|{operation:'claim_jackpot'}|{operation:'offer_trade';recipient:string;give:string;want?:string;requestId:string}|{operation:'accept_trade'|'cancel_trade'|'decline_trade';tradeId:string};
 export function achievementCardBonus(id:string):{pack?:CardStars;card?:CardStars}|null{
- if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court)-victory-1$/.test(id))return{card:1};
- if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court)-victory-5$/.test(id))return{pack:2};
- if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court)-victory-10$/.test(id))return{pack:3};
- if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court)-(hard|rivals)-10$/.test(id))return{pack:4};
+ if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court|crown-chance)-victory-1$/.test(id))return{card:1};
+ if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court|crown-chance)-victory-5$/.test(id))return{pack:2};
+ if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court|crown-chance)-victory-10$/.test(id))return{pack:3};
+ if(/^(carrom|rummy|spades|five-dice|farkle|dominoes|backgammon|crown-court|crown-chance)-(hard|rivals)-10$/.test(id))return{pack:4};
  const special:Record<string,CardStars>={'faith-clear-10':1,'faith-clear-25':2,'faith-clear-100':3,'faith-clear-280':4,'gems-clear-15':1,'gems-clear-30':2,'gems-clear-100':3,'gems-clear-200':4,'member-explorer-4':2,'member-explorer-9':4,'member-explorer-10':4};return special[id]?{pack:special[id]}:null;
 }

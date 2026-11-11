@@ -13,9 +13,9 @@ describe('supplied Clubhouse reward rules', () => {
     expect([0, 12, 13, 25, 26, 130].map(cashFor)).toEqual([0, 0, 10, 10, 20, 100]);
   });
 
-  it('covers all six point currencies and all eleven achievement groups', () => {
+  it('covers all six point currencies and all twelve achievement groups', () => {
     expect(Object.keys(GAME_POINTS).sort()).toEqual(['3-gems', 'dominoes', 'faith-3', 'five-dice', 'rummy', 'spades']);
-    expect([...new Set(BADGES.map(badge => badge.group))].sort()).toEqual(['3-gems', 'backgammon', 'carrom', 'clubhouse', 'crown-court', 'dominoes', 'faith-3', 'farkle', 'five-dice', 'rummy', 'spades']);
+    expect([...new Set(BADGES.map(badge => badge.group))].sort()).toEqual(['3-gems', 'backgammon', 'carrom', 'clubhouse', 'crown-chance', 'crown-court', 'dominoes', 'faith-3', 'farkle', 'five-dice', 'rummy', 'spades']);
     expect(new Set(BADGES.map(badge => badge.id)).size).toBe(BADGES.length);
     expect(BADGES.every(badge => Number.isSafeInteger(badge.reward) && badge.reward > 0)).toBe(true);
   });

@@ -1,3 +1,4 @@
+import { POKER_DICE_SETS, POKER_DICE_SLOT } from './poker-dice-sets';
 import { CARROM_COLLECTIBLES } from './carrom-sets';
 import {BG_COLLECTIBLES} from './backgammon-sets';
 import type {RewardCrateCollection} from './reward-crates';
@@ -24,7 +25,7 @@ export interface EconomyWallet {
   points: number; f3_points: number; gems_points: number; rummy_points: number; spades_points: number; dice_points: number; domino_points: number; lifetime_points: number;
   owned: string[]; equipped: Record<string, string>; pending_perks: Record<string, number>;
 }
-export type AchievementGroup = PointGame | 'farkle' | 'crown-court' | 'backgammon' | 'carrom' | 'clubhouse';
+export type AchievementGroup = PointGame | 'farkle' | 'crown-court' | 'crown-chance' | 'backgammon' | 'carrom' | 'clubhouse';
 export interface AchievementDefinition {
   id: string; name: string; description: string; group: AchievementGroup; icon: string; tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   stat: keyof EconomyStats; goal: number; reward: number; currency: Currency; cashReward: number;
@@ -34,6 +35,7 @@ export interface EconomyStats {
   faithLevels: number; faithChapters: number; gemsLevels: number; gemsStars: number; gemsChapters: number;
   rummyWins: number; rummyHumanWins: number; rummyHardWins: number; spadesWins: number; spadesHumanWins: number; spadesHardWins: number; diceWins: number; diceHumanWins: number; diceHardWins: number; dominoWins: number; dominoHumanWins: number; dominoHardWins: number;
   farkleWins: number; farkleHumanWins: number; farkleHardWins: number; crownWins: number; crownHumanWins: number; crownHardWins: number;
+  chanceWins:number; chanceHumanWins:number; chanceHardWins:number;
   carromWins:number;carromHumanWins:number;carromHardWins:number;backgammonWins:number;backgammonHumanWins:number;backgammonHardWins:number;
   lifetime: number; cosmetics: number; friends: number; memberDays: number; visits: number; profileComplete: number; gamesPlayed: number;
 }
@@ -62,6 +64,7 @@ export type EconomyCommand =
 export interface EconomyCommandResult extends EconomyView { ok: true; receipt: EconomyReceipt }
 export interface EconomyCatalogItem { id: string; name: string; price: number; currency: Currency; slot: string | null; cashPrice: number }
 const primaryCatalog: Omit<EconomyCatalogItem, 'cashPrice'>[] = [
+ ...POKER_DICE_SETS.map(item=>({id:item.id,name:item.name,price:item.price,slot:POKER_DICE_SLOT,currency:'dice_points' as const})),
  ...CARROM_COLLECTIBLES.map(item=>({id:item.id,name:item.name,price:item.price,slot:item.slot,currency:'dice_points' as const})),
  ...BG_COLLECTIBLES.map(d=>({id:d.id,name:d.name,price:d.price,currency:'dice_points' as const,slot:d.slot})),
   ...NAUTICAL_BUNDLES.map(item=>({id:item.id,name:item.name,price:NAUTICAL_BUNDLE_PRICE,currency:item.currency,slot:null})),

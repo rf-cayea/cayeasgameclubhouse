@@ -2,6 +2,7 @@ import {CarromRoomStore} from '../server/carrom-rooms';
 import {CollectiblesStore} from '../server/collectibles';
 import {BackgammonRoomStore} from '../server/backgammon-rooms';
 import { CrownCourtRoomStore } from '../server/crown-court-rooms';
+import { CrownChanceRoomStore } from '../server/crown-chance-rooms';
 import { FarkleRoomStore } from '../server/farkle-rooms';
 import { MatchmakingStore, matchGame } from '../server/matchmaking';
 import { DominoRoomStore } from '../server/dominoes-rooms';
@@ -133,8 +134,9 @@ async function api(request: Request, env: Environment, context: Context) {
   const headers = new Headers();
   try {
     if (!['GET', 'POST'].includes(request.method)) throw new RummyError('Method not allowed.', 405);
-    if (!/^\/api\/(rummy|spades|five-dice|farkle|backgammon|carrom|crown-court|dominoes|social|economy|collectibles|puzzles)(?:\/|$)/.test(path)) throw new RummyError('Endpoint not found.', 404);
+    if (!/^\/api\/(rummy|spades|five-dice|farkle|backgammon|carrom|crown-court|crown-chance|dominoes|social|economy|collectibles|puzzles)(?:\/|$)/.test(path)) throw new RummyError('Endpoint not found.', 404);
     const game = path.startsWith('/api/carrom')?'carrom':path.startsWith('/api/backgammon')?'backgammon':path.startsWith('/api/crown-court') ? 'crown-court' : path.startsWith('/api/farkle') ? 'farkle' : path.startsWith('/api/dominoes') ? 'dominoes' : path.startsWith('/api/five-dice') ? 'five-dice' : path.startsWith('/api/spades') ? 'spades' : 'rummy';
+    if (path === '/api/crown-chance/health') return json({ app: 'clubhouse-crown-chance', version: 1 }, 200, headers);
     if (path === `/api/${game}/health`) return json({ app: `cayea-${game}`, version: 1 }, 200, headers);
     if (!env.DB) throw new RummyError('The game database is not connected yet.', 503);
     if (request.method === 'POST') {
@@ -220,6 +222,23 @@ async function api(request: Request, env: Environment, context: Context) {
       const input=await readCommand(request);await discovery.checkPublicJoin('crown-court',actor,input);
       const result = await crownCourt.command(actor, await namedGameCommand(social, actor, input));
       if (result.view.status === 'finished' && actor.principal.startsWith('member:')) { await economy.syncTrustedRewards(actor); result.view = await crownCourt.get(result.view.code, actor.principal, actor.owned); }
+      return json(result, 200, headers);
+    }
+    if (path === '/api/crown-chance/session' && request.method === 'GET') return json({ member: actor.principal.startsWith('member:'), crownChance: true }, 200, headers);
+    const crownChance = new CrownChanceRoomStore(env.DB), crownChanceMatch = /^\/api\/crown-chance\/room\/([A-Fa-f0-9]{8})(\/events)?$/.exec(path);
+    const readCrownChance = async (code: string) => {
+      let view = await crownChance.get(code, actor.principal, actor.owned);
+      if (view.status === 'finished' && actor.principal.startsWith('member:')) { await economy.syncTrustedRewards(actor); view = await crownChance.get(code, actor.principal, actor.owned); }
+      return view;
+    };
+    if (crownChanceMatch && request.method === 'GET') {
+      const code = crownChanceMatch[1].toUpperCase(), view = await readCrownChance(code);
+      return crownChanceMatch[2] ? events(request, view, () => readCrownChance(code), headers) : json(view, 200, headers);
+    }
+    if (path === '/api/crown-chance' && request.method === 'POST') {
+      const input=await readCommand(request);
+      const result = await crownChance.command(actor, await namedGameCommand(social, actor, input));
+      if (result.view.status === 'finished' && actor.principal.startsWith('member:')) { await economy.syncTrustedRewards(actor); result.view = await crownChance.get(result.view.code, actor.principal, actor.owned); }
       return json(result, 200, headers);
     }
     if (path === '/api/carrom/session' && request.method === 'GET') return json({ member: actor.principal.startsWith('member:'), carrom: true }, 200, headers);

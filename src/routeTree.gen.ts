@@ -25,6 +25,7 @@ import { Route as AuthResetRouteImport } from './routes/auth_.reset'
 import { Route as Games3GemsRouteImport } from './routes/games.3-gems'
 import { Route as GamesBackgammonRouteImport } from './routes/games.backgammon'
 import { Route as GamesCarromRouteImport } from './routes/games.carrom'
+import { Route as GamesCrownChanceRouteImport } from './routes/games.crown-chance'
 import { Route as GamesCrownCourtRouteImport } from './routes/games.crown-court'
 import { Route as GamesDominoesRouteImport } from './routes/games.dominoes'
 import { Route as GamesFaith3RouteImport } from './routes/games.faith-3'
@@ -115,6 +116,11 @@ const GamesCarromRoute = GamesCarromRouteImport.update({
   path: '/games/carrom',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesCrownChanceRoute = GamesCrownChanceRouteImport.update({
+  id: '/games/crown-chance',
+  path: '/games/crown-chance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesCrownCourtRoute = GamesCrownCourtRouteImport.update({
   id: '/games/crown-court',
   path: '/games/crown-court',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/games/3-gems': typeof Games3GemsRoute
   '/games/backgammon': typeof GamesBackgammonRoute
   '/games/carrom': typeof GamesCarromRoute
+  '/games/crown-chance': typeof GamesCrownChanceRoute
   '/games/crown-court': typeof GamesCrownCourtRoute
   '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/games/3-gems': typeof Games3GemsRoute
   '/games/backgammon': typeof GamesBackgammonRoute
   '/games/carrom': typeof GamesCarromRoute
+  '/games/crown-chance': typeof GamesCrownChanceRoute
   '/games/crown-court': typeof GamesCrownCourtRoute
   '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/games/3-gems': typeof Games3GemsRoute
   '/games/backgammon': typeof GamesBackgammonRoute
   '/games/carrom': typeof GamesCarromRoute
+  '/games/crown-chance': typeof GamesCrownChanceRoute
   '/games/crown-court': typeof GamesCrownCourtRoute
   '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/games/3-gems'
     | '/games/backgammon'
     | '/games/carrom'
+    | '/games/crown-chance'
     | '/games/crown-court'
     | '/games/dominoes'
     | '/games/faith-3'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/games/3-gems'
     | '/games/backgammon'
     | '/games/carrom'
+    | '/games/crown-chance'
     | '/games/crown-court'
     | '/games/dominoes'
     | '/games/faith-3'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/games/3-gems'
     | '/games/backgammon'
     | '/games/carrom'
+    | '/games/crown-chance'
     | '/games/crown-court'
     | '/games/dominoes'
     | '/games/faith-3'
@@ -344,6 +356,7 @@ export interface RootRouteChildren {
   Games3GemsRoute: typeof Games3GemsRoute
   GamesBackgammonRoute: typeof GamesBackgammonRoute
   GamesCarromRoute: typeof GamesCarromRoute
+  GamesCrownChanceRoute: typeof GamesCrownChanceRoute
   GamesCrownCourtRoute: typeof GamesCrownCourtRoute
   GamesDominoesRoute: typeof GamesDominoesRoute
   GamesFaith3Route: typeof GamesFaith3Route
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesCarromRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/crown-chance': {
+      id: '/games/crown-chance'
+      path: '/games/crown-chance'
+      fullPath: '/games/crown-chance'
+      preLoaderRoute: typeof GamesCrownChanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/crown-court': {
       id: '/games/crown-court'
       path: '/games/crown-court'
@@ -552,6 +572,7 @@ const rootRouteChildren: RootRouteChildren = {
   Games3GemsRoute: Games3GemsRoute,
   GamesBackgammonRoute: GamesBackgammonRoute,
   GamesCarromRoute: GamesCarromRoute,
+  GamesCrownChanceRoute: GamesCrownChanceRoute,
   GamesCrownCourtRoute: GamesCrownCourtRoute,
   GamesDominoesRoute: GamesDominoesRoute,
   GamesFaith3Route: GamesFaith3Route,
