@@ -1,4 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
+import { settlePresence } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -9,7 +10,7 @@ import { applyFiveDiceMove, fiveDiceBotMove, fiveDiceTotals, newFiveDice, parseF
 import type { FiveDiceCommand, FiveDiceOptions, FiveDiceRoomView } from '../src/lib/five-dice-protocol';
 import { FIVE_DICE_PARTY, fiveDiceRewardTier, fiveDiceWinner, type FiveDiceMatchReward } from '../src/lib/five-dice-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number }
+interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
 interface Room { cratePolicy?:number; code: string; matchId: string; owner: string; options: FiveDiceOptions; members: Member[]; state: FiveDiceState | null; revision: number; status: FiveDiceRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface FiveDiceCommandResult { view: FiveDiceRoomView; changed: boolean }
@@ -131,7 +132,9 @@ export class FiveDiceRoomStore {
       }),state:room.state,reward:await this.reward(room,principal)};
   }
   async get(code:string,principal:string,owned?:readonly string[]) {
-    const room=await this.load(code);this.member(room,principal);await this.partyAccess(principal,room.options,owned);return this.view(room,principal);
+    const room=await this.load(code);this.member(room,principal);
+    if(settlePresence(room,principal,this.now()))await this.stmt('UPDATE five_dice_rooms SET data=? WHERE code=?',JSON.stringify(room),code).run();
+    await this.partyAccess(principal,room.options,owned);return this.view(room,principal);
   }
   private prior(principal:string,requestId:string) {return this.first<StoredRequest>('SELECT payload,response FROM five_dice_requests WHERE principal=? AND request_id=?',principal,requestId);}
   private async repeated(identity:Identity,command:FiveDiceCommand,payload:string,prior:StoredRequest):Promise<FiveDiceCommandResult> {
@@ -149,10 +152,11 @@ export class FiveDiceRoomStore {
       const active=await this.first<{n:number}>("SELECT count(*) AS n FROM five_dice_rooms WHERE json_extract(data,'$.updatedAt')>?",this.now()-86400000);
       if(Number(active?.n??0)>=5000)throw new RummyError('Quintsee is busy. Please try again later.',503);
       let code:string;do {code=randomBytes(4).toString('hex').toUpperCase();}while(await this.first('SELECT code FROM five_dice_rooms WHERE code=?',code));
-      oldRevision=0;room={code,cratePolicy:2,matchId:randomUUID(),owner:identity.principal,options:command.options,members:[{id:randomUUID(),principal:identity.principal,name:command.name,seat:0,ready:true}],state:null,revision:1,status:'waiting',createdAt:this.now(),updatedAt:this.now()};
+      oldRevision=0;room={code,cratePolicy:2,matchId:randomUUID(),owner:identity.principal,options:command.options,members:[{id:randomUUID(),principal:identity.principal,name:command.name,seat:0,ready:true,seenAt:this.now()}],state:null,revision:1,status:'waiting',createdAt:this.now(),updatedAt:this.now()};
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
+      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
       if(command.operation!=='leave')await this.partyAccess(identity.principal,room.options,identity.owned);
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
@@ -160,7 +164,7 @@ export class FiveDiceRoomStore {
           if(room.options.mode!=='online'||room.status!=='waiting')throw new RummyError('This table is no longer accepting players.',409,'table_closed');
           if(room.members.length>=room.options.seats)throw new RummyError('This table is full.',409,'table_full');
           const seat=Array.from({length:room.options.seats},(_,seat)=>seat).find(seat=>!room.members.some(member=>member.seat===seat))!;
-          room.members.push({id:randomUUID(),principal:identity.principal,name:command.name,seat,ready:false});
+          room.members.push({id:randomUUID(),principal:identity.principal,name:command.name,seat,ready:false,seenAt:this.now()});
         }
       } else {
         const me=this.member(room,identity.principal);

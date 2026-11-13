@@ -1,4 +1,5 @@
 import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
+import { settlePresence } from './room-presence';
 import { validCardRewardAmount } from '../src/lib/reward-rates';
 import { canonicalDeckId, ownsPlayingDeck } from '../src/lib/playing-decks';
 import type { DatabaseSync } from 'node:sqlite';
@@ -14,7 +15,7 @@ import { memberId, type RewardView } from '../src/lib/rummy-rewards';
 import { ownsSpadesPartnerships, SPADES_PARTNERSHIPS } from '../src/lib/spades-perks';
 
 const rand = () => randomInt(0, 0x100000000) / 0x100000000;
-interface Member { id: string; principal: string; name: string; seat: number; ready: boolean }
+interface Member { id: string; principal: string; name: string; seat: number; ready: boolean ; seenAt?: number }
 interface Room { cratePolicy?:number; presentation?:ComputerStates<SpadesState>; code: string; matchId: string; owner: string; options: SpadesOptions; members: Member[]; state: SpadesState | null; revision: number; status: SpadesRoomView['status'] }
 const nameFor = (input: unknown) => {
   if (typeof input !== 'string') throw new RummyError('Enter a friendly name.');
@@ -51,7 +52,7 @@ function pump(state: SpadesState,frames:SpadesState[]) {
   return state;
 }
 export class SpadesRoomStore {
-  constructor(readonly db: DatabaseSync) {
+  constructor(readonly db: DatabaseSync, private readonly now = Date.now) {
     db.exec(`CREATE TABLE IF NOT EXISTS spades_rooms(code TEXT PRIMARY KEY,data TEXT NOT NULL,updated_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS spades_requests(code TEXT NOT NULL,actor TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,PRIMARY KEY(code,actor,id));
       CREATE TABLE IF NOT EXISTS spades_rewards(match_id TEXT PRIMARY KEY,room_code TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,lease TEXT,lease_until INTEGER NOT NULL DEFAULT 0,receipt TEXT);`);
@@ -119,7 +120,11 @@ export class SpadesRoomStore {
     }
     return result;
   }
-  get(code: string, principal: string) { return this.view(this.load(code), principal); }
+  get(code: string, principal: string) {
+    const room = this.load(code); this.member(room, principal);
+    if (settlePresence(room, principal, this.now())) this.save(room);
+    return this.view(room, principal);
+  }
   command(identity: Identity, input: unknown): { view: SpadesRoomView; changed: boolean } {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new RummyError('Invalid Spades command.');
     const command = input as SpadesCommand;
@@ -131,17 +136,18 @@ export class SpadesRoomStore {
         if (Number(this.db.prepare('SELECT count(*) AS n FROM spades_rooms WHERE updated_at>?').get(Date.now() - 86400000)?.n) >= 5000) throw new RummyError('The Spades service is busy. Try again later.', 503);
         let code: string; do { code = randomBytes(4).toString('hex').toUpperCase(); } while (this.db.prepare('SELECT code FROM spades_rooms WHERE code=?').get(code));
         room = { code, cratePolicy:2,matchId: randomUUID(), options, owner: identity.principal, revision: 0, status: 'waiting', state: null,
-          members: [{ id: randomUUID(), principal: identity.principal, name: nameFor(command.name), seat: 0, ready: true }] };
+          members: [{ id: randomUUID(), principal: identity.principal, name: nameFor(command.name), seat: 0, ready: true, seenAt: this.now() }] };
         if (options.mode === 'bot') this.start(room);
       } else {
         if (typeof command.code !== 'string') throw new RummyError('Enter a room code.');
         room = this.load(command.code.trim().toUpperCase());
+        if (room.members.some(member => member.principal === identity.principal)) settlePresence(room, identity.principal, this.now());
         if (command.operation !== 'leave') checkSpadesPartnershipAccess(identity, room.options.variant);
         if (command.operation === 'join' && !room.members.some(value => value.principal === identity.principal)) {
           if (room.status !== 'waiting' || room.options.mode !== 'online' || room.members.length >= room.options.humans) throw new RummyError('This Spades room is not accepting players.');
           const seat = command.seat ?? [0, 1, 2, 3].find(value => !room.members.some(member => member.seat === value));
           if (!Number.isInteger(seat) || seat! < 0 || seat! > 3 || room.members.some(value => value.seat === seat)) throw new RummyError('That seat is unavailable.');
-          room.members.push({ id: randomUUID(), principal: identity.principal, name: nameFor(command.name), seat: seat!, ready: false });
+          room.members.push({ id: randomUUID(), principal: identity.principal, name: nameFor(command.name), seat: seat!, ready: false, seenAt: this.now() });
         } else {
           const member = this.member(room, identity.principal);
           if (command.operation === 'join') { /* Rejoin your existing seat. */ }

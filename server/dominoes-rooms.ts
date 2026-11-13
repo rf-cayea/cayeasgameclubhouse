@@ -1,4 +1,5 @@
 import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
+import { settlePresence } from './room-presence';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
@@ -10,7 +11,7 @@ import { applyDominoMove, dominoBotMove, newDominoGame, parseDominoMove, dominoO
 import type { DominoCommand, DominoOptions, DominoRoomView } from '../src/lib/dominoes-protocol';
 import { dominoRewardTier, dominoWinner, type DominoMatchReward } from '../src/lib/dominoes-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number }
+interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
 interface Room { cratePolicy?:number; presentation?:ComputerStates<DominoState>; code: string; matchId: string; owner: string; options: DominoOptions; members: Member[]; state: DominoState | null; revision: number; status: DominoRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface DominoCommandResult { view: DominoRoomView; changed: boolean }
@@ -135,7 +136,9 @@ export class DominoRoomStore {
     return result;
   }
   async get(code:string,principal:string,owned?:readonly string[]) {
-    const room=await this.load(code);this.member(room,principal);return this.view(room,principal);
+    const room=await this.load(code);this.member(room,principal);
+    if(settlePresence(room,principal,this.now()))await this.stmt('UPDATE domino_rooms SET data=? WHERE code=?',JSON.stringify(room),code).run();
+    return this.view(room,principal);
   }
   private prior(principal:string,requestId:string) {return this.first<StoredRequest>('SELECT payload,response FROM domino_requests WHERE principal=? AND request_id=?',principal,requestId);}
   private async repeated(identity:Identity,command:DominoCommand,payload:string,prior:StoredRequest):Promise<DominoCommandResult> {
@@ -152,17 +155,18 @@ export class DominoRoomStore {
       const active=await this.first<{n:number}>("SELECT count(*) AS n FROM domino_rooms WHERE json_extract(data,'$.updatedAt')>?",this.now()-86400000);
       if(Number(active?.n??0)>=5000)throw new RummyError('Dominoes is busy. Please try again later.',503);
       let code:string;do {code=randomBytes(4).toString('hex').toUpperCase();}while(await this.first('SELECT code FROM domino_rooms WHERE code=?',code));
-      oldRevision=0;room={code,cratePolicy:2,matchId:randomUUID(),owner:identity.principal,options:command.options,members:[{id:randomUUID(),principal:identity.principal,name:command.name,seat:0,ready:true}],state:null,revision:1,status:'waiting',createdAt:this.now(),updatedAt:this.now()};
+      oldRevision=0;room={code,cratePolicy:2,matchId:randomUUID(),owner:identity.principal,options:command.options,members:[{id:randomUUID(),principal:identity.principal,name:command.name,seat:0,ready:true,seenAt:this.now()}],state:null,revision:1,status:'waiting',createdAt:this.now(),updatedAt:this.now()};
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
+      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
         if(!present) {
           if(room.options.mode!=='online'||room.status!=='waiting')throw new RummyError('This table is no longer accepting players.',409,'table_closed');
           if(room.members.length>=2)throw new RummyError('This table is full.',409,'table_full');
           const seat=Array.from({length:2},(_,seat)=>seat).find(seat=>!room.members.some(member=>member.seat===seat))!;
-          room.members.push({id:randomUUID(),principal:identity.principal,name:command.name,seat,ready:false});
+          room.members.push({id:randomUUID(),principal:identity.principal,name:command.name,seat,ready:false,seenAt:this.now()});
         }
       } else {
         const me=this.member(room,identity.principal);

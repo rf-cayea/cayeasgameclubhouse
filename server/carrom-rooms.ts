@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
+import { settlePresence } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -9,7 +10,7 @@ import {applyCarromShot,carromBotShot,newCarrom,parseCarromShot,type CarromState
 import type { CarromCommand, CarromOptions, CarromRoomView } from '../src/lib/carrom-protocol';
 import { carromRewardTier, carromWinner, type CarromMatchReward } from '../src/lib/carrom-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number }
+interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
 interface Room { cratePolicy?:number; code: string; matchId: string; owner: string; options: CarromOptions; members: Member[]; state: CarromState | null; revision: number; status: CarromRoomView['status']; createdAt: number; updatedAt: number; shotReadyAt:number }
 interface StoredRequest { payload: string; response: string }
 export interface CarromCommandResult { view: CarromRoomView; changed: boolean }
@@ -105,7 +106,9 @@ export class CarromRoomStore {
       }),state:room.state,reward:await this.reward(room,principal),shotReadyAt:room.shotReadyAt??0,serverTime:this.now()};
   }
   async get(code:string,principal:string,owned?:readonly string[]) {
-    const room=await this.load(code);this.member(room,principal);return this.view(room,principal);
+    const room=await this.load(code);this.member(room,principal);
+    if(settlePresence(room,principal,this.now()))await this.stmt('UPDATE carrom_rooms SET data=? WHERE code=?',JSON.stringify(room),code).run();
+    return this.view(room,principal);
   }
   private prior(principal:string,requestId:string) {return this.first<StoredRequest>('SELECT payload,response FROM carrom_requests WHERE principal=? AND request_id=?',principal,requestId);}
   private async repeated(identity:Identity,command:CarromCommand,payload:string,prior:StoredRequest):Promise<CarromCommandResult> {
@@ -122,17 +125,18 @@ export class CarromRoomStore {
       const active=await this.first<{n:number}>("SELECT count(*) AS n FROM carrom_rooms WHERE json_extract(data,'$.updatedAt')>?",this.now()-86400000);
       if(Number(active?.n??0)>=5000)throw new RummyError('Carrom is busy. Please try again later.',503);
       let code:string;do {code=randomBytes(4).toString('hex').toUpperCase();}while(await this.first('SELECT code FROM carrom_rooms WHERE code=?',code));
-      oldRevision=0;room={code,cratePolicy:2,matchId:randomUUID(),owner:identity.principal,options:command.options,members:[{id:randomUUID(),principal:identity.principal,name:command.name,seat:0,ready:true}],state:null,revision:1,status:'waiting',createdAt:this.now(),updatedAt:this.now(),shotReadyAt:0};
+      oldRevision=0;room={code,cratePolicy:2,matchId:randomUUID(),owner:identity.principal,options:command.options,members:[{id:randomUUID(),principal:identity.principal,name:command.name,seat:0,ready:true,seenAt:this.now()}],state:null,revision:1,status:'waiting',createdAt:this.now(),updatedAt:this.now(),shotReadyAt:0};
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
+      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
         if(!present) {
           if(room.options.mode!=='online'||room.status!=='waiting')throw new RummyError('This table is no longer accepting players.',409,'table_closed');
           if(room.members.length>=room.options.seats)throw new RummyError('This table is full.',409,'table_full');
           const seat=Array.from({length:room.options.seats},(_,seat)=>seat).find(seat=>!room.members.some(member=>member.seat===seat))!;
-          room.members.push({id:randomUUID(),principal:identity.principal,name:command.name,seat,ready:false});
+          room.members.push({id:randomUUID(),principal:identity.principal,name:command.name,seat,ready:false,seenAt:this.now()});
         }
       } else {
         const me=this.member(room,identity.principal);

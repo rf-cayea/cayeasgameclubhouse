@@ -20,19 +20,22 @@ import {EconomyStore} from '../server/economy';
 import {SocialStore} from '../server/social';
 import {MatchmakingStore,MATCH_TTL} from '../server/matchmaking';
 import {MATCH_GAMES,type MatchGame} from '../src/lib/matchmaking';
+import {PRESENCE_MS} from '../server/room-presence';
+import {CrownChanceRoomStore} from '../server/crown-chance-rooms';
 
 const cleanup:(()=>void)[]=[];afterEach(()=>cleanup.splice(0).forEach(f=>f()));
 const actors:Identity[]=Array.from({length:6},(_,i)=>({principal:`member:${i+1}1111111-1111-4111-8111-111111111111`,jokers:true,owned:['rummy-jokers','spades-partnerships','five-dice-party']}));
 const defaults=(g:MatchGame)=>g==='carrom'?{mode:'online',seats:2,level:'normal',variant:'carrom'}:g==='backgammon'?{mode:'online',seats:2,level:'normal',variant:'standard',target:3,crawford:true}:g==='crown-court'?{mode:'online',seats:2,level:'normal',length:'short'}:g==='rummy'?{mode:'online',variant:'classic',seats:2,level:'normal',jokers:false}:g==='spades'?{mode:'online',variant:'solo',target:100,humans:4,level:'normal',table:'spades-table-classic',deck:'spades-deck-classic'}:(g==='five-dice'||g==='farkle')?{mode:'online',seats:2,level:'normal'}:{mode:'online',variant:'draw',target:100,level:'normal'};
 function view(result:any){return result.view??result;}
 async function setup(backend:'node'|'d1'){
- const hosted=backend==='d1'?new TestD1():null,local=hosted?null:new RoomStore(':memory:'),raw=hosted?.sqlite??local!.db;
- if(local){new SpadesRoomStore(raw);initializeSocialNode(raw);initializeEconomyNode(raw);initializeFiveDiceNode(raw);initializeFarkleNode(raw);initializeMatchmakingNode(raw);initializeMatchmakingNode(raw);}
+ let now=Date.now();
+ const hosted=backend==='d1'?new TestD1():null,local=hosted?null:new RoomStore(':memory:',()=>now),raw=hosted?.sqlite??local!.db;
+ if(local){new SpadesRoomStore(raw,()=>now);initializeSocialNode(raw);initializeEconomyNode(raw);initializeFiveDiceNode(raw);initializeFarkleNode(raw);initializeMatchmakingNode(raw);initializeMatchmakingNode(raw);}
  cleanup.push(()=>raw.close());const db=hosted??nodeSocialBinding(raw);
- const stores={carrom:new CarromRoomStore(db),backgammon:new BackgammonRoomStore(db),rummy:hosted?new CloudRoomStore(db):local!,spades:hosted?new CloudSpadesRoomStore(db):new SpadesRoomStore(raw),'five-dice':new FiveDiceRoomStore(db),farkle:new FarkleRoomStore(db),'crown-court':new CrownCourtRoomStore(db),dominoes:new DominoRoomStore(db)};
+ const stores={carrom:new CarromRoomStore(db,()=>now),backgammon:new BackgammonRoomStore(db,()=>now),rummy:hosted?new CloudRoomStore(db,()=>now):local!,spades:hosted?new CloudSpadesRoomStore(db,()=>now):new SpadesRoomStore(raw,()=>now),'five-dice':new FiveDiceRoomStore(db,()=>now),farkle:new FarkleRoomStore(db,()=>now),'crown-court':new CrownCourtRoomStore(db,()=>now),dominoes:new DominoRoomStore(db,()=>now),'crown-chance':new CrownChanceRoomStore(db,()=>now)};
  const social=new SocialStore(db),economy=new EconomyStore(db);
  for(const actor of actors){await social.ensureProfile(actor);await economy.ensureMember(actor,{wallet:{owned:[...actor.owned!],equipped:{}},awards:[]});}
- let now=Date.now();const discovery=new MatchmakingStore(db,()=>now);
+ const discovery=new MatchmakingStore(db,()=>now);
  const run=async(game:MatchGame,actor:Identity,command:unknown)=>stores[game].command(actor,command);
  const create=async(game:MatchGame,actor=actors[0]!,options:Record<string,unknown>=defaults(game))=>view(await run(game,actor,{operation:'create',name:'Friendly player',options,...(game==='carrom'||game==='backgammon'||game==='dominoes'||game==='five-dice'||game==='farkle'||game==='crown-court'?{requestId:randomUUID()}:{})}));
  const command=(game:MatchGame,actor:Identity,input:unknown)=>discovery.command(game,actor,input,c=>run(game,actor,c).then(r=>game==='rummy'||game==='spades'?view(r):r));
@@ -75,6 +78,28 @@ describe.each(['node','d1'] as const)('public Match Making on %s',backend=>{
    await t.command(game,actors[0]!,{operation:'heartbeat',code:room.code});expect((await t.discovery.list(game,actors[1]!)).rooms).toHaveLength(1);
    await t.command(game,actors[0]!,{operation:'unpublish',code:room.code});await t.command(game,actors[0]!,{operation:'heartbeat',code:room.code});expect((await t.discovery.list(game,actors[1]!)).rooms).toEqual([]);
   });
+  it(`${game}: a host who closed the tab loses the seat and the table hands over`,async()=>{
+   const t=await setup(backend),room=await t.create(game),code=room.code,needsId=game!=='rummy'&&game!=='spades';
+   const join=async(actor:Identity)=>t.run(game,actor,{operation:'join',code,name:'Guest',...(needsId?{requestId:randomUUID()}:{})});
+   await join(actors[1]!);
+   // The guest's lobby keeps polling every few seconds; the host's tab is gone.
+   for(let elapsed=0;elapsed<PRESENCE_MS+8_000;elapsed+=3_000){t.advance(3_000);await t.stores[game].get(code,actors[1]!.principal);}
+   const settled:any=await t.stores[game].get(code,actors[1]!.principal);
+   expect(settled.status).toBe('waiting');
+   expect(settled.owner).toBe(true);
+   expect(settled.players.filter((p:any)=>p.occupied!==false)).toHaveLength(1);
+   const refilled:any=view(await join(actors[2]!));
+   expect(refilled.players.filter((p:any)=>p.occupied!==false)).toHaveLength(2);
+  });
+  it(`${game}: a host who leaves explicitly hands the table to the remaining player`,async()=>{
+   const t=await setup(backend),room=await t.create(game),code=room.code,needsId=game!=='rummy'&&game!=='spades';
+   await t.run(game,actors[1]!,{operation:'join',code,name:'Guest',...(needsId?{requestId:randomUUID()}:{})});
+   await t.run(game,actors[0]!,{operation:'leave',code,...(needsId?{requestId:randomUUID()}:{})});
+   const after:any=await t.stores[game].get(code,actors[1]!.principal);
+   expect(after.owner).toBe(true);
+   expect(after.players.filter((p:any)=>p.occupied!==false)).toHaveLength(1);
+   expect(after.status).toBe('waiting');
+  });
   it(`${game}: respects blocks in both directions, including direct room-code joins`,async()=>{
    const t=await setup(backend),room=await t.create(game);await t.command(game,actors[0]!,{operation:'publish',code:room.code});
    for(const [a,b] of [[actors[0]!,actors[1]!],[actors[1]!,actors[0]!]]){
@@ -98,5 +123,15 @@ describe.each(['node','d1'] as const)('public Match Making on %s',backend=>{
   expect((await t.discovery.list('dominoes',actors[1]!)).rooms.map(r=>r.code)).toEqual([b.code]);
   const bot=await t.create('dominoes',actors[0]!,{...defaults('dominoes'),mode:'bot'});
   await expect(t.command('dominoes',actors[0]!,{operation:'publish',code:bot.code})).rejects.toMatchObject({code:'table_closed'});
+ });
+ it('crown-chance: a silent host hands over the friends-only table too',async()=>{
+  const t=await setup(backend),store:any=(t.stores as any)['crown-chance'];
+  const created:any=await store.command(actors[0]!,{operation:'create',requestId:randomUUID(),name:'Host',options:{mode:'online',seats:2,level:'normal',length:'fast',minimum:0}});
+  const code=created.view.code;
+  await store.command(actors[1]!,{operation:'join',requestId:randomUUID(),code,name:'Guest'});
+  for(let elapsed=0;elapsed<PRESENCE_MS+8_000;elapsed+=3_000){t.advance(3_000);await store.get(code,actors[1]!.principal);}
+  const settled:any=await store.get(code,actors[1]!.principal);
+  expect(settled.owner).toBe(true);
+  expect(settled.players.filter((p:any)=>p.occupied!==false)).toHaveLength(1);
  });
 });
