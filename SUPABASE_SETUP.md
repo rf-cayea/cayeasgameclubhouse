@@ -55,12 +55,21 @@ app without claiming the email was delivered.
 
 ## Trusted match rewards
 
-Configure `CLUBHOUSE_REWARD_KEY` as a **secret** in the Site's environment settings,
-using the server secret/service-role credential for the same Supabase project.
-Redeploy the saved Site version after environment changes. Keep this credential
-out of chat, browser code, source files and every public environment variable.
-Without it, sign-in and member features can use the public connection settings,
-but verified Rummy and Spades reward delivery waits in the durable outbox.
+Verified Rummy and Spades wins are credited to the member's game wallet in D1 by
+the game server itself, so **no reward credential is needed or awaited**. A win
+settles as soon as it is verified, and a delivery that fails or is interrupted is
+retried from the durable outbox with backoff; a failed retry is logged with its
+match id and error code so a stuck win is visible instead of silent. Current
+balances, receipts and allowances live in the game database; see
+[SITES_HOSTING.md](SITES_HOSTING.md).
+
+A server secret (`SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`, with
+`CLUBHOUSE_REWARD_KEY` accepted as a legacy alias) is **optional** and only used
+for the older Supabase-side sync: mirroring a changed lounge display name into
+`profiles`, and settling cash allowances the trusted database already authorized.
+If you rely on either, store it as a Site secret and redeploy the saved version
+after environment changes. Keep it out of chat, browser code, source files and
+every public environment variable.
 
 The optional first moderation role is assigned by a trusted administrator using
 the `clubhouse_staff` table defined in the moderation migration; sign-up does not grant staff privileges.

@@ -61,14 +61,17 @@ Sites runtime settings use `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`
 (`SUPABASE_ANON_KEY` is also supported). `/clubhouse-config.js` serves only the
 HTTPS URL and browser-safe public key. Local Vite supports `VITE_SUPABASE_*` in
 ignored `.env.local` files. Server secrets use the supported server-only names,
-including `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` or
-`CLUBHOUSE_REWARD_KEY` for legacy delivery/name mirroring. They never use a
-`VITE_` prefix. See [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
+including `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` or the legacy alias
+`CLUBHOUSE_REWARD_KEY`. They are **optional**: match rewards settle in D1 without
+them, and they are only read for legacy Supabase sync (lounge name mirroring and
+pre-authorized cash allowances). They never use a `VITE_` prefix. See
+[SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
 The current game economy is D1-owned. Existing Supabase wallet/award data is
 imported once per member; current balances and entitlements are then committed
-through `EconomyStore`. Legacy external reward delivery remains retryable;
-new game evidence and current receipts are stored in the game database.
+through `EconomyStore`. Verified wins are credited there directly; the outbox
+retries an interrupted delivery with backoff and logs the match id and error
+code, so a stuck win is visible rather than silently pending.
 
 ## Verification
 
