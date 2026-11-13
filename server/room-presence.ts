@@ -21,12 +21,13 @@ export function touchSeat<M extends PresenceSeat>(members: readonly M[], princip
  * table to the earliest remaining player. Returns true when the caller must
  * persist the change.
  *
- * The caller is making a request, so their own seat is never freed and at least
- * one member always remains. A seat with no stamp counts as just seen, so a
- * deploy never prunes a lobby that was already open. Playing rooms are left
- * alone: a seat there is a live match, and the leave path owns that decision. */
+ * Only a seated player settles a room; anyone else is ignored. The caller is
+ * making a request, so their own seat is never freed and at least one member
+ * always remains. A seat with no stamp counts as just seen, so a deploy never
+ * prunes a lobby that was already open. Playing rooms are left alone: a seat
+ * there is a live match, and the leave path owns that decision. */
 export function settlePresence<M extends PresenceSeat>(room: PresenceRoom<M>, principal: string, now: number): boolean {
-  if (room.status !== 'waiting') return false;
+  if (room.status !== 'waiting' || !room.members.some(member => member.principal === principal)) return false;
   const touched = touchSeat(room.members, principal, now);
   const silent = room.members.filter(member => member.principal !== principal && now - (member.seenAt ?? now) >= PRESENCE_MS);
   if (!silent.length) return touched;
