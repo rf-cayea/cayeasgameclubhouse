@@ -112,6 +112,45 @@ describe.each(['node','d1'] as const)('public Match Making on %s',backend=>{
    expect(started.players).toHaveLength(capacity);
    for(let index=0;index<seated.length;index++){const own:any=await t.stores[game].get(code,seated[index]!.principal);expect(own.mySeat).toBe(seats[index]);}
   });
+  it(`${game}: presence never frees a seat once the match is playing`,async()=>{
+   const t=await setup(backend),room=await t.create(game),code=room.code,capacity=room.capacity??room.players.length,needsId=game!=='rummy'&&game!=='spades';
+   const send=(actor:Identity,input:Record<string,unknown>)=>t.run(game,actor,{...input,...(needsId?{requestId:randomUUID()}:{})});
+   const seated=actors.slice(0,capacity);
+   for(const actor of seated.slice(1))await send(actor,{operation:'join',code,name:'Peer'});
+   for(const actor of seated)await send(actor,{operation:'ready',code,ready:true});
+   const lobby:any=await t.stores[game].get(code,actors[0]!.principal);
+   const started:any=view(await send(actors[0]!,{operation:'start',code,revision:lobby.revision}));
+   expect(started.status).toBe('playing');
+   // Everyone stops polling for three whole presence windows.
+   t.advance(PRESENCE_MS*3);
+   const reads:any[]=[];
+   for(const actor of seated)reads.push(await t.stores[game].get(code,actor.principal));
+   for(const read of reads){
+     expect(read.status).toBe('playing');
+     expect(read.players).toHaveLength(capacity);
+     expect(read.players.filter((player:any)=>player.occupied!==false)).toHaveLength(capacity);
+     expect(read.revision).toBe(started.revision);
+   }
+   expect(reads[0]!.owner).toBe(started.owner);
+   const turn=Math.min(Math.max(reads[0]!.turn??0,0),capacity-1),mover=seated[turn]!,own=reads[turn]!;
+   if(game==='rummy'){
+     const after:any=view(await send(mover,{operation:'move',code,revision:own.revision,requestId:randomUUID(),move:{t:'draw',from:'stock'}}));
+     expect(after.hand.length).toBe(own.hand.length+1);
+   }else if(game==='spades'){
+     const after:any=view(await send(mover,{operation:'move',code,revision:own.revision,requestId:randomUUID(),move:{t:'bid',bid:0}}));
+     expect(after.bids[turn]).toBe(0);
+   }else if(game==='dominoes'){
+     const best=own.legal[0],move=best?{t:'play',tile:best.tile,end:best.end}:own.canDraw?{t:'draw'}:{t:'pass'};
+     const after:any=view(await send(mover,{operation:'move',code,revision:own.revision,move}));
+     expect(after.revision).toBe(own.revision+1);
+   }else{
+     const after:any=view(await send(seated[0]!,{operation:'join',code,name:'Host'}));
+     expect(after.players).toHaveLength(capacity);
+   }
+   const final:any=await t.stores[game].get(code,actors[0]!.principal);
+   expect(final.status).toBe('playing');
+   expect(final.players.filter((player:any)=>player.occupied!==false)).toHaveLength(capacity);
+  });
   it(`${game}: a host who leaves explicitly hands the table to the remaining player`,async()=>{
    const t=await setup(backend),room=await t.create(game),code=room.code,needsId=game!=='rummy'&&game!=='spades';
    await t.run(game,actors[1]!,{operation:'join',code,name:'Guest',...(needsId?{requestId:randomUUID()}:{})});
