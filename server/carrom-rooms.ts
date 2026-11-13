@@ -107,7 +107,7 @@ export class CarromRoomStore {
   }
   async get(code:string,principal:string,owned?:readonly string[]) {
     const room=await this.load(code);this.member(room,principal);
-    if(settlePresence(room,principal,this.now()))await this.stmt('UPDATE carrom_rooms SET data=? WHERE code=?',JSON.stringify(room),code).run();
+    if(settlePresence(room,principal,this.now()))await this.stmt("UPDATE carrom_rooms SET data=? WHERE code=? AND json_extract(data,'$.revision')=?",JSON.stringify(room),code,room.revision).run();
     return this.view(room,principal);
   }
   private prior(principal:string,requestId:string) {return this.first<StoredRequest>('SELECT payload,response FROM carrom_requests WHERE principal=? AND request_id=?',principal,requestId);}

@@ -163,7 +163,7 @@ export class CloudSpadesRoomStore {
         return await this.view(room, principal);
     }
     private async persistPresence(room: Room) {
-        await this.db.prepare('UPDATE spades_rooms SET data=? WHERE code=?').run(JSON.stringify(room), room.code);
+        await this.db.prepare("UPDATE spades_rooms SET data=? WHERE code=? AND json_extract(data,'$.revision')=?").run(JSON.stringify(room), room.code, room.revision);
     }
     async command(identity: Identity, input: unknown): Promise<{
         view: SpadesRoomView;
