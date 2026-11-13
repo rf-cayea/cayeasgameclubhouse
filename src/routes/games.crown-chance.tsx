@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
+import { rememberedComputerLevel, rememberComputerLevel } from '@/lib/computer-modes';
 import { GameHeader, GamePanel } from '@/components/GameChrome';
 import { PokerDieFace } from '@/components/PokerDice';
 import { PokerDiceCollection, PokerSetArtwork } from '@/components/PokerDiceCollection';
@@ -23,7 +24,7 @@ function CrownChancePage() {
   const {user,wallet,ready} = useClubhouse(), design = equippedPokerDice(wallet);
   const network = useCrownChanceRoom(user?.id ?? null,ready), room = network.room, invitation = Route.useSearch().room;
   const [mode,setMode] = useState<'solo'|'local'|'bot'|'online'>(invitation ? 'online' : 'solo');
-  const [options,setOptions] = useState<CrownChanceOptions>({mode:'bot',seats:2,level:'normal',length:'fast',minimum:0});
+  const [options,setOptions] = useState<CrownChanceOptions>({mode:'bot',seats:2,level:rememberedComputerLevel('crown-chance'),length:'fast',minimum:0});
   const [challenge,setChallenge] = useState<ChanceChallenge>('marathon');
   const [local,setLocal] = useState<CrownChanceState|null>(null), [mask,setMask] = useState(0);
   const [panel,setPanel] = useState<'help'|'dice'|'rewards'|'leave'|null>(null);
@@ -90,7 +91,7 @@ function CrownChancePage() {
           {!(mode==='solo'&&challenge==='attack')&&<label>Target<select value={options.length} onChange={event=>setOptions({...options,length:event.target.value as CrownChanceOptions['length']})}><option value="fast">Fast · 4,000</option><option value="long">Long · 12,000</option></select></label>}
           {mode==='solo'&&<label>Solo challenge<select value={challenge} onChange={event=>setChallenge(event.target.value as ChanceChallenge)}>{Object.entries(CHANCE_LIMITS).map(([key,limit])=><option key={key} value={key}>{key==='attack'?'Score Attack · 10 turns':`${key[0]!.toUpperCase()+key.slice(1)} · ${limit ? `${limit} turns` : 'unlimited turns'}`}</option>)}</select></label>}
           {(mode==='local'||mode==='online')&&<label>Players<select value={options.seats} onChange={event=>setOptions({...options,seats:Number(event.target.value) as CrownChanceOptions['seats']})}>{[2,3,4].map(n=><option key={n}>{n}</option>)}</select></label>}
-          {mode==='bot'&&<label>Computer difficulty<select value={options.level} onChange={event=>setOptions({...options,level:event.target.value as CrownChanceOptions['level']})}><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>}
+          {mode==='bot'&&<label>Computer difficulty<select value={options.level} onChange={event=>{ rememberComputerLevel('crown-chance', event.target.value); setOptions({...options,level:event.target.value as CrownChanceOptions['level']}); }}><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>}
           {mode!=='solo'&&<label>Opening house rule<select value={options.minimum} onChange={event=>setOptions({...options,minimum:Number(event.target.value) as CrownChanceOptions['minimum']})}><option value={0}>Pair or better</option><option value={500}>Pair or better + 500 points</option><option value={1000}>Pair or better + 1,000 points</option></select></label>}
           <button className="btn-gold" disabled={Boolean(network.code)||name.trim().length<2||(mode==='bot'||mode==='online')&&(!network.initialized||busy)} onClick={start}>{mode==='online'?'Create online table':'Start game'}</button>
           {mode==='online'&&<><label>Join with table code<input value={code} maxLength={8} onChange={event=>setCode(event.target.value.toUpperCase().replace(/[^A-F0-9]/g,''))}/></label><button className="btn-ghost-gold" disabled={!network.initialized||busy||Boolean(network.code)||code.length!==8||name.trim().length<2} onClick={()=>void network.command({operation:'join',name,code})}>Join table</button></>}

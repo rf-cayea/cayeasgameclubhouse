@@ -14,6 +14,7 @@ import { RoomConnectionDetails } from '@/components/RoomConnectionDetails';
 import { usePlayerProfile } from '@/lib/social';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { rememberedComputerLevel, rememberComputerLevel } from '@/lib/computer-modes';
 import { GameHeader, GamePanel } from '@/components/GameChrome';
 import { RummyCollection, useRummyAppearance } from '@/components/RummyCollection';
 import { rummyDesign } from '@/lib/rummy-cosmetics';
@@ -75,7 +76,7 @@ function RummyPage() {
   const [mode, setMode] = useState<GameMode>('bot');
   const [variant, setVariant] = useState<Variant>('classic');
   const [seats, setSeats] = useState(2);
-  const [level, setLevel] = useState<Level>('normal');
+  const [level, setLevel] = useState<Level>(rememberedComputerLevel('rummy'));
   const [jokers, setJokers] = useState(false);
   const [joinCode, setJoinCode] = useState(() => new URL(window.location.href).searchParams.get('room')?.toUpperCase() ?? '');
   const [notice, setNotice] = useState('');
@@ -134,7 +135,7 @@ function RummyPage() {
           <label className="text-sm">Play mode<select aria-label="Play mode" value={mode} onChange={event => setMode(event.target.value as GameMode)} className="rummy-input mt-1"><option value="bot">Vs computer</option><option value="local">Pass and play</option><option value="online">Online with friends</option></select></label>
           <label className="text-sm">Rummy variant<select aria-label="Rummy variant" value={variant} onChange={event => setVariant(event.target.value as Variant)} className="rummy-input mt-1">{Object.entries(VARIANTS).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
           <label className="text-sm">Players<select aria-label="Players" value={seats} onChange={event => setSeats(Number(event.target.value))} className="rummy-input mt-1">{Array.from({ length: variant === 'gin' ? 1 : 3 }, (_, i) => <option value={i + 2} key={i}>{i + 2}</option>)}</select></label>
-          {mode === 'bot' && <label className="text-sm">Computer level<select aria-label="Computer level" value={level} onChange={event => setLevel(event.target.value as Level)} className="rummy-input mt-1">{Object.entries(LEVELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>}
+          {mode === 'bot' && <label className="text-sm">Computer level<select aria-label="Computer level" value={level} onChange={event => { rememberComputerLevel('rummy', event.target.value); setLevel(event.target.value as Level); }} className="rummy-input mt-1">{Object.entries(LEVELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>}
           <div className="self-end pb-2 text-sm"><label className="flex items-center gap-2"><input type="checkbox" aria-label="Joker Mode" checked={jokers} disabled={!ownsJokers} onChange={event => setJokers(event.target.checked)} />Joker Mode</label>{!ownsJokers && <Link to="/store" hash="rummy-jokers" className="mt-1 inline-block text-xs text-gold underline">Unlock for 500 Rummy+ points or 385 Cash</Link>}</div>
         </div><CardSetupArtwork tables={RUMMY_DESIGNS.filter(item => item.slot === 'table' && collection.data.owned.includes(item.id))} decks={RUMMY_DESIGNS.filter(item => item.slot === 'deck' && collection.data.owned.includes(item.id))} table={collection.data.equipped.table} deck={collection.data.equipped.deck} disabled={collection.busy || network.pending} onTable={id => { void collection.equip('table', id).then(ok => { if (ok) setAppearance(previous => ({...previous, tableImage: '', plainFelt: false})); }); }} onDeck={id => { void collection.equip('deck', id); }} preview={<CardArtwork card="KS" deck={rummyDeck(collection.data.equipped.deck)}/>}/>{collection.error && <p role="alert">{collection.error}</p>}<p className="setup-reward-note">{user ? 'Full-match wins unlock artwork automatically.' : <Link to="/auth" className="text-gold underline">Sign in before playing to earn points and artwork.</Link>}</p><div className="multiplayer-start-actions"><button className="btn-gold mt-6" disabled={network.pending || collection.busy || name.trim().length < 2} onClick={() => void create()}>{network.pending ? 'Setting the table…' : mode === 'online' ? 'Create online room' : 'Start game'}</button><MatchMakingButton game="rummy"/></div>
       </section>

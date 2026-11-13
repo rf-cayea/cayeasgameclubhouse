@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HubNav } from "@/components/HubNav";
 import { GAMES, HUB_NAME, useClubhouse } from "@/lib/clubhouse";
+import { computerOpponent, levelLabel, rememberedComputerLevel } from "@/lib/computer-modes";
 import { AnimatedClubhouseLogo } from "@/components/ClubhouseLogo";
 
 export const Route = createFileRoute("/")({
@@ -48,7 +49,9 @@ function Hub() {
 
         <h2 className="mt-14 font-display text-3xl text-gold">Games</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {GAMES.map((g) => (
+          {GAMES.map((g) => {
+            const opponent = computerOpponent(g.slug);
+            return (
             <div key={g.slug} className={`card-hub ${g.status === "soon" ? "opacity-60" : ""}`}>
               <div className="text-4xl" aria-hidden="true">{g.icon}</div>
               <h3 className="mt-2 font-display text-2xl text-gold">{g.name}</h3>
@@ -76,8 +79,14 @@ function Hub() {
               ) : (
                 <span className="chip mt-4 inline-block text-sm">Coming soon</span>
               )}
+              {opponent && (
+                <Link to={opponent.route} className="chip mt-3 ml-2 inline-block text-sm" aria-label={`Play ${g.name} against the computer`}>
+                  Vs computer{rememberedComputerLevel(g.slug) === "normal" ? "" : ` · ${levelLabel(rememberedComputerLevel(g.slug))}`}
+                </Link>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <h2 className="mt-14 font-display text-3xl text-gold">How points work</h2>
