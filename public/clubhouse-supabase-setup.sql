@@ -833,4 +833,15 @@ revoke all on function public.purchase_store_item(text),public.equip_store_item(
 grant execute on function public.purchase_store_item(text),public.equip_store_item(text,text) to authenticated;
 notify pgrst,'reload schema';
 
+-- Source: 20261103000000_profile_self_read.sql
+-- SHA-256: b8c600f677dfb28bf4b7a123f10e77a6680a39e04cc2daf99035ea8edcab0a23
+-- The game server seeds a brand-new local profile from the lounge name the
+-- member already chose, so a member must be able to read their own
+-- display_name. Column-scoped on purpose: the moderation flags stay unreadable
+-- from the API (they are served through lounge_permissions), and the policy
+-- limits rows to the caller so no other member's profile is visible.
+
+grant select (user_id, display_name) on public.profiles to authenticated;
+create policy profiles_read_own on public.profiles for select to authenticated using (user_id = auth.uid());
+
 commit;
