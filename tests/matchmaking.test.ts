@@ -91,6 +91,27 @@ describe.each(['node','d1'] as const)('public Match Making on %s',backend=>{
    const refilled:any=view(await join(actors[2]!));
    expect(refilled.players.filter((p:any)=>p.occupied!==false)).toHaveLength(2);
   });
+  it(`${game}: a table refilled after the host's seat was freed starts with contiguous seats`,async()=>{
+   const t=await setup(backend),room=await t.create(game),code=room.code,capacity=room.capacity??room.players.length,needsId=game!=='rummy'&&game!=='spades';
+   const send=(actor:Identity,input:Record<string,unknown>)=>t.run(game,actor,{...input,...(needsId?{requestId:randomUUID()}:{})});
+   await send(actors[1]!,{operation:'join',code,name:'Guest'});
+   for(let elapsed=0;elapsed<PRESENCE_MS+8_000;elapsed+=3_000){t.advance(3_000);await t.stores[game].get(code,actors[1]!.principal);}
+   expect((await t.stores[game].get(code,actors[1]!.principal)).owner).toBe(true);
+   const newcomers=actors.slice(2,2+capacity-1),seated=[actors[1]!,...newcomers];
+   for(const actor of newcomers)await send(actor,{operation:'join',code,name:'Newcomer'});
+   const filled:any=await t.stores[game].get(code,actors[1]!.principal);
+   expect(filled.players).toHaveLength(capacity);
+   expect(filled.players.filter((player:any)=>player.occupied!==false)).toHaveLength(capacity);
+   for(const actor of seated)await send(actor,{operation:'ready',code,ready:true});
+   const seats:number[]=[];
+   for(const actor of seated){const own:any=await t.stores[game].get(code,actor.principal);expect(own.players[own.mySeat]?.you).toBe(true);expect(own.players[own.mySeat]?.ready).toBe(true);seats.push(own.mySeat);}
+   expect([...seats].sort((a,b)=>a-b)).toEqual([...Array(capacity).keys()]);
+   const before:any=await t.stores[game].get(code,actors[1]!.principal);
+   const started:any=view(await send(actors[1]!,{operation:'start',code,revision:before.revision}));
+   expect(started.status).toBe('playing');
+   expect(started.players).toHaveLength(capacity);
+   for(let index=0;index<seated.length;index++){const own:any=await t.stores[game].get(code,seated[index]!.principal);expect(own.mySeat).toBe(seats[index]);}
+  });
   it(`${game}: a host who leaves explicitly hands the table to the remaining player`,async()=>{
    const t=await setup(backend),room=await t.create(game),code=room.code,needsId=game!=='rummy'&&game!=='spades';
    await t.run(game,actors[1]!,{operation:'join',code,name:'Guest',...(needsId?{requestId:randomUUID()}:{})});
@@ -133,5 +154,16 @@ describe.each(['node','d1'] as const)('public Match Making on %s',backend=>{
   const settled:any=await store.get(code,actors[1]!.principal);
   expect(settled.owner).toBe(true);
   expect(settled.players.filter((p:any)=>p.occupied!==false)).toHaveLength(1);
+  await store.command(actors[2]!,{operation:'join',requestId:randomUUID(),code,name:'Newcomer'});
+  for(const actor of [actors[1]!,actors[2]!])await store.command(actor,{operation:'ready',requestId:randomUUID(),code,ready:true});
+  const ready:any=await store.get(code,actors[1]!.principal);
+  expect(ready.players.filter((p:any)=>p.occupied!==false)).toHaveLength(2);
+  const crownSeats:number[]=[];
+  for(const actor of [actors[1]!,actors[2]!]){const own:any=await store.get(code,actor.principal);expect(own.mySeat).toBeGreaterThanOrEqual(0);expect(own.mySeat).toBeLessThan(2);crownSeats.push(own.mySeat);}
+  expect([...crownSeats].sort((a:number,b:number)=>a-b)).toEqual([0,1]);
+  const started:any=await store.command(actors[1]!,{operation:'start',requestId:randomUUID(),code,revision:ready.revision});
+  const playing:any=started.view??started;
+  expect(playing.status).toBe('playing');
+  expect(playing.players).toHaveLength(2);
  });
 });
