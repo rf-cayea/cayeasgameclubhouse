@@ -3,7 +3,7 @@ import {useEffect,useRef,useState,useCallback} from 'react';
 import {GameHeader} from '@/components/GameChrome';
 import {useClubhouse} from '@/lib/clubhouse';
 import {usePlayerProfile} from '@/lib/social';
-import {matchRequest,MatchRequestError} from '@/lib/matchmaking-api';
+import {matchRequest,MatchAbortedError,MatchRequestError} from '@/lib/matchmaking-api';
 import {matchesMatchPreferences,MATCH_GAMES,MATCH_GAME_NAMES,MATCH_PATHS,matchRoomKey,type MatchGame,type MatchList,type MatchListing} from '@/lib/matchmaking';
 import '@/styles/matchmaking.css';
 export const Route=createFileRoute('/matchmaking')({
@@ -21,17 +21,20 @@ function MatchmakingBoard({game,userId,table,deck,target:initialTarget}:{game:Ma
  const [data,setData]=useState<MatchList|null>(null),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [current,setCurrent]=useState<string|null>(()=>{try{const code=sessionStorage.getItem(matchRoomKey(game,userId));return code&&/^[A-F0-9]{8}$/.test(code)?code:null;}catch{return null;}});
  const [currentMeta,setCurrentMeta]=useState<{owner:boolean;status:string;online:boolean}|null>(null),[checking,setChecking]=useState(Boolean(current));
- const active=useRef(false),inFlight=useRef(false),mutating=useRef(false),controllers=useRef(new Set<AbortController>());
+ const active=useRef(false),inFlight=useRef(0),attempt=useRef(0),mutating=useRef(false),controllers=useRef(new Set<AbortController>());
  const api=`/api/${game}/matchmaking`,owned=wallet?.owned??[],hostLocked=game==='farkle'&&Number(mode)>2&&!owned.includes('farkle-party')||game==='five-dice'&&Number(mode)>2&&!owned.includes('five-dice-party')||game==='spades'&&mode==='teams'&&!owned.includes('spades-partnerships')||game==='rummy'&&jokers&&!owned.includes('rummy-jokers');
  useEffect(()=>{if(profile.data)setName(profile.data.gamerName);},[profile.data?.gamerName]);
  const request=useCallback(async<T,>(path:string,body?:unknown)=>{const controller=new AbortController();controllers.current.add(controller);try{return await matchRequest<T>(path,userId,body,controller.signal);}finally{controllers.current.delete(controller);}},[userId]);
- const refresh=useCallback(async()=>{if(inFlight.current||!active.current)return;inFlight.current=true;setLoading(true);try{const result=await request<MatchList>(api);if(active.current)setData(result);}catch(cause){if(active.current)setError(cause instanceof Error?cause.message:'Open tables could not load.');}finally{inFlight.current=false;if(active.current)setLoading(false);}},[request,api]);
- useEffect(()=>{active.current=true;void refresh();const tick=()=>{if(document.visibilityState==='visible')void refresh();},timer=setInterval(tick,5000);window.addEventListener('focus',tick);return()=>{active.current=false;clearInterval(timer);window.removeEventListener('focus',tick);for(const c of controllers.current)c.abort();};},[refresh]);
+   const refresh=useCallback(async()=>{if(inFlight.current||!active.current)return;const id=++attempt.current;inFlight.current=id;setLoading(true);try{const result=await request<MatchList>(api);if(active.current&&inFlight.current===id){setData(result);setError('');}}catch(cause){if(cause instanceof MatchAbortedError)return;if(active.current&&inFlight.current===id)setError(cause instanceof Error?cause.message:'Open tables could not load.');}finally{if(inFlight.current===id){inFlight.current=0;if(active.current)setLoading(false);}}},[request,api]);
+ // A remount (StrictMode double-invokes effects in development) must be able to
+ // start its own list request: clearing inFlight here is what lets it, and the
+ // aborted attempt then resolves as MatchAbortedError instead of an error banner.
+ useEffect(()=>{active.current=true;void refresh();const tick=()=>{if(document.visibilityState==='visible')void refresh();},timer=setInterval(tick,5000);window.addEventListener('focus',tick);return()=>{active.current=false;clearInterval(timer);window.removeEventListener('focus',tick);inFlight.current=0;for(const c of controllers.current)c.abort();};},[refresh]);
  const checkCurrent=useCallback(async()=>{
   if(!current)return;setChecking(true);
   const clear=()=>{try{sessionStorage.removeItem(matchRoomKey(game,userId));}catch{}setCurrent(null);setCurrentMeta(null);setNotice('The previous table is no longer active. You can find a new match.');};
   try{const r=await request<{owner:boolean;status:string;mode?:string;options?:{mode:string}}>(`/api/${game}/room/${current}`);if(!active.current)return;if(['finished','abandoned'].includes(r.status))clear();else setCurrentMeta({owner:r.owner,status:r.status,online:(r.mode??r.options?.mode)==='online'});}
-  catch(cause){if(active.current){if(cause instanceof MatchRequestError&&[403,404].includes(cause.status))clear();else setError('Your saved table could not be checked. Retry before opening another match.');}}
+  catch(cause){if(cause instanceof MatchAbortedError)return;if(active.current){if(cause instanceof MatchRequestError&&[403,404].includes(cause.status))clear();else setError('Your saved table could not be checked. Retry before opening another match.');}}
   finally{if(active.current)setChecking(false);}
  },[current,game,userId,request]);
  useEffect(()=>{void checkCurrent();},[checkCurrent]);
