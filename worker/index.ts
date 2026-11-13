@@ -19,7 +19,7 @@ import type { MatchReward, RewardReceipt } from '../src/lib/rummy-rewards';
 import type { SpadesMatchReward, SpadesReceipt } from '../src/lib/spades-rewards';
 import assets from 'clubhouse:assets';
 import { SocialStore } from '../server/social';
-import { namedGameCommand, mirrorLoungeName } from '../server/social-members';
+import { namedGameCommand, mirrorLoungeName, seedLoungeName } from '../server/social-members';
 import { EconomyStore } from '../server/economy';
 import { canonicalMemberIdentity } from '../server/economy-members';
 import { ECONOMY_CATALOG } from '../src/lib/economy-protocol';
@@ -43,7 +43,7 @@ function json(data: unknown, status = 200, headers = new Headers()) {
   headers.set('X-Content-Type-Options', 'nosniff');
   return new Response(JSON.stringify(data), { status, headers });
 }
-async function identify(request: Request, env: Environment, store: CloudRoomStore, headers: Headers, economy: EconomyStore): Promise<Identity> {
+async function identify(request: Request, env: Environment, store: CloudRoomStore, headers: Headers, economy: EconomyStore, social: SocialStore): Promise<Identity> {
   const authorization = request.headers.get('authorization');
   if (authorization) {
     if (!authorization.startsWith('Bearer ') || authorization.length > 8192) throw new RummyError('Invalid authorization.', 401);
@@ -54,7 +54,9 @@ async function identify(request: Request, env: Environment, store: CloudRoomStor
     if (error || !data.user) throw new RummyError('Your sign-in expired. Sign in again.', 401, 'unauthorized');
     const permissions = await client.rpc('lounge_permissions');
     if (permissions.error) throw new RummyError('Could not verify player profile. Please try again.', 503, 'auth_unavailable');
-    return canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
+    const { identity: actor, firstVisit } = await canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
+    if (firstVisit) await seedLoungeName(social, client, actor, data.user.id);
+    return actor;
   }
   const token = request.headers.get('cookie')?.split(';').map(item => item.trim()).find(item => item.startsWith('cayea_rummy='))?.slice(12);
   const guest = await store.guest(token);
@@ -152,7 +154,8 @@ async function api(request: Request, env: Environment, context: Context) {
     const rummy = new CloudRoomStore(env.DB), spades = new CloudSpadesRoomStore(env.DB);
     if (path === '/api/economy/catalog' && request.method === 'GET') return json({ items: ECONOMY_CATALOG }, 200, headers);
     const economy = new EconomyStore(env.DB), puzzles = new PuzzleRewardStore(env.DB, economy);
-    const actor = await identify(request, env, rummy, headers, economy);
+    const social = new SocialStore(env.DB);
+    const actor = await identify(request, env, rummy, headers, economy, social);
     if(path==='/api/collectibles'){const collection=new CollectiblesStore(env.DB);if(request.method==='GET')return json(await collection.read(actor),200,headers);const receipt=await collection.command(actor,await readCommand(request));return json({album:await collection.read(actor),wallet:await economy.wallet(actor),receipt},200,headers);}
     if (path === '/api/economy' || path.startsWith('/api/economy/')) {
       if (path === '/api/economy') {
@@ -167,7 +170,6 @@ async function api(request: Request, env: Environment, context: Context) {
       if (request.method !== 'POST') throw new RummyError('Method not allowed.', 405);
       return json(await puzzles.command(actor, await readCommand(request, 73728)), 200, headers);
     }
-    const social = new SocialStore(env.DB);
     if (path === '/api/social' || path.startsWith('/api/social/')) {
       if (request.method === 'GET') return json(await social.read(actor, new URL(request.url)), 200, headers);
       if (path !== '/api/social') throw new RummyError('Endpoint not found.', 404);

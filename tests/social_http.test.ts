@@ -167,12 +167,14 @@ describe('hosted Worker social wiring', () => {
       if (url.pathname === '/rest/v1/wallets') return Response.json([{ points: 0, f3_points: 0, rummy_points: 0, spades_points: 0, lifetime_points: 0, owned: [], equipped: {}, pending_perks: {} }]);
       if (url.pathname === '/rest/v1/point_awards') return Response.json([]);
       if (url.pathname === '/rest/v1/rpc/lounge_permissions') return Response.json({ name_flagged: false, chat_banned: false, muted_until: null });
+      if (url.pathname === '/rest/v1/profiles') return Response.json({ display_name: 'Lounge' + id.slice(0, 8) });
       throw new Error('Unexpected fixture Supabase call: ' + url.pathname);
     });
     const env = { DB, SUPABASE_URL: 'https://social.test.invalid', SUPABASE_PUBLISHABLE_KEY: 'public-test-key' };
     const pending: Promise<unknown>[] = [];
     const request = (id: string, path: string, command?: unknown) => worker.fetch(new Request('https://clubhouse.test' + path, { method: command ? 'POST' : 'GET', headers: { Authorization: `Bearer ${id}`, ...(command ? { 'Content-Type': 'application/json' } : {}) }, ...(command ? { body: JSON.stringify(command) } : {}) }), env, { waitUntil(promise) { pending.push(promise); } });
-    for (const id of [alice!, bob!]) { const response = await request(id, '/api/social/me'); expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ userId: id }); }
+    // A brand-new D1 profile inherits the member's lounge display_name exactly once.
+    for (const id of [alice!, bob!]) { const response = await request(id, '/api/social/me'); expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ userId: id, gamerName: 'Lounge' + id.slice(0, 8) }); }
     expect((await request(alice!, '/api/social', { operation: 'profile', gamerName: 'WorkerAce', bio: '', avatar: 'jade' })).status).toBe(200);
     expect((await request(alice!, '/api/social', { operation: 'request', targetUserId: bob })).status).toBe(200);
     expect((await request(bob!, '/api/social', { operation: 'accept', targetUserId: alice })).status).toBe(200);
@@ -181,5 +183,36 @@ describe('hosted Worker social wiring', () => {
     expect(friends.friends[0]).toMatchObject({ userId: alice, gamerName: 'WorkerAce' });
     expect(JSON.stringify(friends)).not.toMatch(/fictional@example|access_token|refresh_token|owned|rummy_points/);
     await Promise.all(pending);
+  });
+  it('seeds a new member name from profiles.display_name once, then stops reading profiles', async () => {
+    const DB = new TestD1(); cleanup.push(async () => DB.sqlite.close());
+    const profileReads = new Map<string, number>();
+    vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+      const id = headers.get('Authorization')?.replace('Bearer ', '');
+      if (!id || !ids.includes(id)) return new Response(JSON.stringify({ message: 'Invalid test identity.' }), { status: 401 });
+      if (url.pathname === '/auth/v1/user') return Response.json({ id, aud: 'authenticated', role: 'authenticated', email: 'fictional@example.invalid', app_metadata: {}, user_metadata: {} });
+      if (url.pathname === '/rest/v1/wallets') return Response.json([{ points: 0, f3_points: 0, rummy_points: 0, spades_points: 0, lifetime_points: 0, owned: [], equipped: {}, pending_perks: {} }]);
+      if (url.pathname === '/rest/v1/point_awards') return Response.json([]);
+      if (url.pathname === '/rest/v1/rpc/lounge_permissions') return Response.json({ name_flagged: false, chat_banned: false, muted_until: null });
+      if (url.pathname === '/rest/v1/profiles') { profileReads.set(id, (profileReads.get(id) ?? 0) + 1); return Response.json({ display_name: 'Lounge' + id.slice(0, 8) }); }
+      throw new Error('Unexpected fixture Supabase call: ' + url.pathname);
+    });
+    const env = { DB, SUPABASE_URL: 'https://social.test.invalid', SUPABASE_PUBLISHABLE_KEY: 'public-test-key' };
+    const request = (id: string, path: string, command?: unknown) => worker.fetch(new Request('https://clubhouse.test' + path, { method: command ? 'POST' : 'GET', headers: { Authorization: `Bearer ${id}`, ...(command ? { 'Content-Type': 'application/json' } : {}) }, ...(command ? { body: JSON.stringify(command) } : {}) }), env, { waitUntil() {} });
+    // First visit: the new D1 profile is created from the member's lounge name.
+    expect(await (await request(alice!, '/api/social/me')).json()).toMatchObject({ userId: alice, gamerName: 'Lounge' + alice!.slice(0, 8) });
+    expect(profileReads.get(alice!)).toBe(1);
+    // Later requests reuse the local profile and never read Supabase profiles again.
+    expect(await (await request(alice!, '/api/social/me')).json()).toMatchObject({ gamerName: 'Lounge' + alice!.slice(0, 8) });
+    expect((await request(alice!, '/api/social', { operation: 'profile', gamerName: 'WorkerAce', bio: '', avatar: 'jade' })).status).toBe(200);
+    expect((await request(alice!, '/api/social/friends')).status).toBe(200);
+    expect(await (await request(alice!, '/api/social/me')).json()).toMatchObject({ gamerName: 'WorkerAce' });
+    expect(profileReads.get(alice!)).toBe(1);
+    // Seeding is per member: a second identity reads its own lounge name once.
+    expect(await (await request(bob!, '/api/social/me')).json()).toMatchObject({ gamerName: 'Lounge' + bob!.slice(0, 8) });
+    await request(bob!, '/api/social/me');
+    expect(profileReads.get(bob!)).toBe(1);
   });
 });

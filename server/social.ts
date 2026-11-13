@@ -31,6 +31,16 @@ const roomEligible = (game: SocialGame, code: string, sender: string, recipient?
   AND json_array_length(r.data,'$.members')<${capacity(game)} ${recipient ? `AND NOT EXISTS(SELECT 1 FROM json_each(r.data,'$.members') seated WHERE json_extract(seated.value,'$.principal')=${memberPrincipal(recipient)})` : ''})`;
 const inviteRoomEligible = (alias: string) => `(CASE WHEN ${alias}.game='rummy' THEN ${roomEligible('rummy', `${alias}.room_code`, `${alias}.sender_id`, `${alias}.recipient_id`)} ELSE ${roomEligible('spades', `${alias}.room_code`, `${alias}.sender_id`, `${alias}.recipient_id`)} END)`;
 const normalizeProfile = (profile: PlayerProfile): PlayerProfile => ({ ...profile, nameFlagged: Boolean(profile.nameFlagged) });
+const GAMER_NAME = /^[A-Za-z0-9_]{3,24}$/;
+const RESERVED_GAMER_NAMES = ['admin', 'administrator', 'moderator', 'support', 'system'];
+/** A seeded name must satisfy the rules a member edit does, except that it may
+ * never keep a generated player_ placeholder. */
+const seedableGamerName = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const name = value.normalize('NFKC').trim(), key = name.toLowerCase();
+  if (!GAMER_NAME.test(name) || key.startsWith('player_') || RESERVED_GAMER_NAMES.includes(key)) return null;
+  return containsProfanity(name.replace(/_/g, ' ')) ? null : name;
+};
 const normalizeInvite = (invite: GameInvite): GameInvite => ({ ...invite, sender: normalizeProfile(invite.sender), recipient: normalizeProfile(invite.recipient), available: Boolean(invite.available) });
 
 /** All identity and authorization is derived from a verified member principal.
@@ -60,6 +70,17 @@ export class SocialStore {
     return this.profile(id, id);
   }
   async gamerName(identity: SocialIdentity) { return (await this.ensureProfile(identity)).gamerName; }
+  /** Seed a brand-new profile from the member's lounge name. An existing local
+   * name is never replaced, a flagged account keeps the placeholder, and an
+   * invalid or already-taken candidate leaves the placeholder to ensureProfile. */
+  async seedProfile(identity: SocialIdentity, candidate: unknown) {
+    const id = this.actor(identity), name = seedableGamerName(candidate);
+    if (identity.nameFlagged || !name) return;
+    if (await this.first('SELECT user_id FROM social_profiles WHERE user_id=?', id)) return;
+    const now = Date.now();
+    await this.binding.prepare('INSERT OR IGNORE INTO social_profiles(user_id,gamer_name,name_key,bio,avatar,name_flagged,created_at,updated_at) VALUES(?,?,?,\'\',\'jade\',0,?,?)')
+      .bind(id, name, name.toLowerCase(), now, now).run();
+  }
   private async profile(viewer: string, target: string): Promise<PlayerProfile> {
     const row = await this.first<{ data: string }>(CTE + `SELECT ${profileJSON('p')} AS data FROM social_profiles p WHERE p.user_id=?
       AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE blocker_id=p.user_id AND blocked_id=${VIEWER})`, viewer, target);
@@ -150,7 +171,7 @@ export class SocialStore {
       if (own.nameFlagged) throw new RummyError('Your gamer name is under moderation review. Contact the Clubhouse team.', 403, 'name_flagged');
       const gamerName = typeof value.gamerName === 'string' ? value.gamerName.normalize('NFKC').trim() : '';
       const bio = typeof value.bio === 'string' ? value.bio.normalize('NFKC').trim() : '';
-      if (!/^[A-Za-z0-9_]{3,24}$/.test(gamerName) || containsProfanity(gamerName.replace(/_/g, ' ')) || ['admin', 'administrator', 'moderator', 'support', 'system'].includes(gamerName.toLowerCase())) throw new RummyError('Use a friendly gamer name with 3–24 letters, numbers or underscores.');
+      if (!GAMER_NAME.test(gamerName) || containsProfanity(gamerName.replace(/_/g, ' ')) || RESERVED_GAMER_NAMES.includes(gamerName.toLowerCase())) throw new RummyError('Use a friendly gamer name with 3–24 letters, numbers or underscores.');
       if (gamerName.toLowerCase().startsWith('player_') && gamerName.toLowerCase() !== own.gamerName.toLowerCase()) throw new RummyError('Choose a personal gamer name; player_ names are reserved for new accounts.');
       if (bio.length > 160 || /[\p{C}<>]/u.test(bio) || containsProfanity(bio)) throw new RummyError('Keep your bio friendly and at most 160 characters.');
       const custom = customProfileImage(value.avatar);

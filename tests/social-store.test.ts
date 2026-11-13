@@ -6,7 +6,7 @@ import { RoomStore } from '../server/rooms';
 import { SpadesRoomStore } from '../server/spades-rooms';
 import { SocialStore, type SocialIdentity } from '../server/social';
 import { initializeSocialNode, nodeSocialBinding } from '../server/social-node';
-import { namedGameCommand } from '../server/social-members';
+import { namedGameCommand, seedLoungeName } from '../server/social-members';
 import type { D1Binding } from '../server/database';
 import type { FriendActivity, FriendsView, InvitesView, PlayerProfile, SocialGame } from '../src/lib/social-protocol';
 import { TestD1 } from './helpers/d1';
@@ -228,4 +228,48 @@ describe.each(['node', 'd1'] as const)('social persistence and race guards on %s
     await command(b,{operation:'block',targetUserId:a});expect((await read<{activity:FriendActivity[]}>(b,'activity')).activity).toEqual([]);
   });
 
+});
+
+describe.each(['node', 'd1'] as const)('one-time lounge name seeding on %s', backend => {
+  it('seeds the member lounge name into a brand-new profile exactly once', async () => {
+    const { store, raw } = setup(backend);
+    await store.seedProfile(actor(a), '  Cayea87  ');
+    expect((await store.ensureProfile(actor(a))).gamerName).toBe('Cayea87');
+    // Later visits never re-seed or rename an existing local profile.
+    await store.seedProfile(actor(a), 'LateRename');
+    expect((await store.ensureProfile(actor(a))).gamerName).toBe('Cayea87');
+    expect(raw.prepare('SELECT count(*) AS n FROM social_profiles').get()!.n).toBe(1);
+  });
+
+  it('keeps the generated placeholder when the seeded name fails the local rules', async () => {
+    const { store } = setup(backend);
+    for (const name of ['ab', 'x'.repeat(25), 'two words', 'dash-name', '<script>', 'admin', 'Support', 'player_reserved', 'Cayea87!', '', undefined, 42] as unknown[]) await store.seedProfile(actor(a), name);
+    expect((await store.ensureProfile(actor(a))).gamerName).toMatch(/^player_/);
+  });
+
+  it('keeps the placeholder when another player already holds the name_key', async () => {
+    const { store } = setup(backend);
+    await store.seedProfile(actor(b), 'Cayea87');
+    await store.seedProfile(actor(a), 'cayea87');
+    expect((await store.ensureProfile(actor(a))).gamerName).toMatch(/^player_/);
+    expect((await store.ensureProfile(actor(b))).gamerName).toBe('Cayea87');
+  });
+
+  it('never seeds an account whose name is flagged', async () => {
+    const { store, raw } = setup(backend);
+    await store.seedProfile({ ...actor(a), nameFlagged: true }, 'Cayea87');
+    expect(raw.prepare('SELECT count(*) AS n FROM social_profiles WHERE user_id=?').get(a)!.n).toBe(0);
+  });
+
+  it('reads profiles.display_name for the seed and keeps an existing placeholder', async () => {
+    const { store } = setup(backend);
+    const identity = { ...actor(a), jokers: false };
+    const client = (data: unknown) => ({ from: () => ({ select: () => ({ eq: () => ({ abortSignal: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) }) }) }) as never;
+    await seedLoungeName(store, client(null), identity, a);
+    expect((await store.ensureProfile(actor(a))).gamerName).toMatch(/^player_/);
+    await seedLoungeName(store, client({ display_name: 'Cayea87' }), identity, a);
+    expect((await store.ensureProfile(actor(a))).gamerName).toMatch(/^player_/);
+    await seedLoungeName(store, client({ display_name: 'Cayea87' }), { ...actor(b), jokers: false }, b);
+    expect((await store.ensureProfile(actor(b))).gamerName).toBe('Cayea87');
+  });
 });

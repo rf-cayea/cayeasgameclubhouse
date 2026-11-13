@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Identity } from './rooms';
 import type { SocialStore } from './social';
 
@@ -19,4 +19,16 @@ export async function mirrorLoungeName(url: string | undefined, key: string | un
     const { error } = await client.from('profiles').update({ display_name: gamerName }).eq('user_id', actor.principal.slice(7)).eq('name_flagged', false).abortSignal(AbortSignal.timeout(4000));
     if (error) console.error('Lounge name synchronization will retry after the next profile save.');
   } catch { console.error('Lounge name synchronization will retry after the next profile save.'); }
+}
+
+/** Seed a brand-new local profile from the member's lounge name, read with their
+ * own token so RLS applies. Call it only on a member's first visit: later calls
+ * would spend a request on a profile that already exists (seedProfile keeps the
+ * local name regardless). */
+export async function seedLoungeName(social: SocialStore, client: SupabaseClient<any>, actor: Identity, userId: string) {
+  if (!actor.principal.startsWith('member:')) return;
+  try {
+    const { data, error } = await client.from('profiles').select('display_name').eq('user_id', userId).abortSignal(AbortSignal.timeout(1500)).maybeSingle();
+    if (!error && data) await social.seedProfile(actor, (data as { display_name?: unknown }).display_name);
+  } catch { /* The generated placeholder name remains valid. */ }
 }

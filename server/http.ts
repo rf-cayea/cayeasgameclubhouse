@@ -25,7 +25,7 @@ import { type SpadesRewardWriter } from './spades-rewards';
 import { validSpadesReceipt } from '../src/lib/spades-rewards';
 import { SocialStore } from './social';
 import { nodeSocialBinding, initializeSocialNode } from './social-node';
-import { namedGameCommand, mirrorLoungeName } from './social-members';
+import { namedGameCommand, mirrorLoungeName, seedLoungeName } from './social-members';
 import { EconomyStore } from './economy';
 import { initializeEconomyNode } from './economy-node';
 import { canonicalMemberIdentity } from './economy-members';
@@ -34,7 +34,7 @@ import { PuzzleRewardStore } from './puzzle-rewards';
 
 interface ServerOptions { store: RoomStore; dist?: string; origin?: string; secureCookie?: boolean; verifyMember?: (token: string) => Promise<Identity>; rewardWriter?: RewardWriter; spadesRewardWriter?: SpadesRewardWriter }
 
-async function verifyMember(token: string, economy: EconomyStore): Promise<Identity> {
+async function verifyMember(token: string, economy: EconomyStore, social: SocialStore): Promise<Identity> {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new RummyError('Member verification is not configured on the game server. Sign out to play as a guest, or configure the server’s Supabase project.', 503, 'auth_unavailable');
@@ -43,7 +43,9 @@ async function verifyMember(token: string, economy: EconomyStore): Promise<Ident
   if (error || !data.user) throw new RummyError('Your sign-in expired. Sign in again.', 401, 'unauthorized');
   const permissions = await client.rpc('lounge_permissions');
   if (permissions.error) throw new RummyError('Could not verify player profile. Please try again.', 503, 'auth_unavailable');
-  return canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
+  const { identity: actor, firstVisit } = await canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
+  if (firstVisit) await seedLoungeName(social, client, actor, data.user.id);
+  return actor;
 }
 
 function json(response: ServerResponse, status: number, body: unknown) {
@@ -83,7 +85,7 @@ export function createGameServer(options: ServerOptions) {
     const authorization = request.headers.authorization;
     if (authorization) {
       if (!authorization.startsWith('Bearer ') || authorization.length > 8192) throw new RummyError('Invalid authorization.', 401);
-      if (!options.verifyMember) return verifyMember(authorization.slice(7), economy);
+      if (!options.verifyMember) return verifyMember(authorization.slice(7), economy, social);
       const actor = await options.verifyMember(authorization.slice(7));
       if (!actor.principal.startsWith('member:')) throw new RummyError('Sign in required.', 401);
       // Injected verification is used only by isolated server tests. It never

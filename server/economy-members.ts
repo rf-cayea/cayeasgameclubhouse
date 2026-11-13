@@ -54,10 +54,13 @@ export async function loadLegacySnapshot(client: MemberClient, userId: string) {
 }
 
 /** Supabase verifies identity; the Sites wallet becomes authoritative after import. */
-export async function canonicalMemberIdentity(economy: EconomyStore, client: MemberClient, userId: string, nameFlagged: boolean, joinedAt?: string): Promise<Identity> {
+/** Returns the first-visit flag from the membership lookup this function already
+ * performs, so optional one-time work needs no extra query per request. */
+export async function canonicalMemberIdentity(economy: EconomyStore, client: MemberClient, userId: string, nameFlagged: boolean, joinedAt?: string): Promise<{ identity: Identity; firstVisit: boolean }> {
   const actor: Identity = { principal: `member:${userId}`, jokers: false, owned: [], nameFlagged };
-  if (!await economy.hasMember(actor)) await economy.ensureMember(actor, { ...await loadLegacySnapshot(client, userId), joinedAt });
+  const firstVisit = !await economy.hasMember(actor);
+  if (firstVisit) await economy.ensureMember(actor, { ...await loadLegacySnapshot(client, userId), joinedAt });
   if (await economy.hasPendingAllowance(actor)) await economy.read(actor);
   const wallet = await economy.ensureMember(actor);
-  return { ...actor, owned: wallet.owned, jokers: wallet.owned.includes('rummy-jokers') };
+  return { identity: { ...actor, owned: wallet.owned, jokers: wallet.owned.includes('rummy-jokers') }, firstVisit };
 }
