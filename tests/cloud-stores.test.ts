@@ -40,6 +40,25 @@ function gate(binding: D1Binding, match: RegExp) {
   return { binding: wrapped, reached, release: () => open() };
 }
 
+/** Counts how often a statement with a given shape actually runs. */
+function count(binding: D1Binding, match: RegExp) {
+  let runs = 0;
+  const wrapped: D1Binding = {
+    prepare(sql: string) {
+      const inner = binding.prepare(sql);
+      if (!match.test(sql)) return inner;
+      const statement: D1Statement = {
+        bind(...values: unknown[]) { inner.bind(...values); return statement; },
+        first: <T>() => inner.first<T>(),
+        run: async () => { runs++; return inner.run(); },
+      };
+      return statement;
+    },
+    batch: statements => binding.batch(statements),
+  };
+  return { binding: wrapped, runs: () => runs };
+}
+
 describe('D1 hosted rooms', () => {
   it('persists guest sessions and room membership across Worker requests', async () => {
     const binding = db();
@@ -173,5 +192,22 @@ describe('D1 hosted rooms', () => {
     expect(next.round).toBe(over.round + 1);
     expect(next.dealer).toBe((over.dealer + 1) % 4);
     expect(next.phase).toBe('bid');
+  });
+  it('writes a waiting table at most once per stamp window while a guest polls', async () => {
+    const binding = db(), now = { value: 1_700_000_000_000 }, clock = () => now.value;
+    const opener = new DominoRoomStore(binding, clock);
+    const dominoes = { mode: 'online', variant: 'draw', level: 'normal', target: 100 } as const;
+    const room = (await opener.command(alice, { requestId: randomUUID(), operation: 'create', name: 'Alice', options: dominoes })).view;
+    await opener.command(bob, { requestId: randomUUID(), operation: 'join', code: room.code, name: 'Bob' });
+    const watched = count(binding, /^UPDATE domino_rooms SET data=\?/);
+    const poll = new DominoRoomStore(watched.binding, clock);
+    let polls = 0;
+    for (let elapsed = 0; elapsed <= 58_000; elapsed += 2_500) {
+      expect((await poll.get(room.code, bob.principal)).code).toBe(room.code);
+      polls++; now.value += 2_500;
+    }
+    // 24 reads fit in 58 seconds; only the stamps at +20s and +40s need a write.
+    expect(polls).toBe(24);
+    expect(watched.runs()).toBe(2);
   });
 });

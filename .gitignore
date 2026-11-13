@@ -17,3 +17,4 @@ __pycache__/
 .sites-runtime/
 .wrangler/
 outputs/
+/freebuff-sites-build/
