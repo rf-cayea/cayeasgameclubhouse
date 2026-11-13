@@ -14,6 +14,8 @@ function db() { const value = new TestD1(); databases.push(value); return value;
 afterEach(() => { for (const value of databases.splice(0)) value.sqlite.close(); });
 const alice = { principal: 'guest:alice', jokers: false };
 const bob = { principal: 'guest:bob', jokers: false };
+const carol = { principal: 'guest:carol', jokers: false };
+const dave = { principal: 'guest:dave', jokers: false };
 const options: GameOptions = { mode: 'online', variant: 'classic', seats: 2, level: 'normal', jokers: false };
 
 /** Holds a presence write open so a command can commit between its read and its write. */
@@ -133,5 +135,43 @@ describe('D1 hosted rooms', () => {
     await staleRead;
     const after = await new DominoRoomStore(binding, () => now).get(room.code, bob.principal);
     expect(after.players).toHaveLength(2);
+  });
+  it('lets either player start the next round in a hosted Rummy table', async () => {
+    const binding = db(), store = () => new CloudRoomStore(binding);
+    let room = (await store().command(alice, { operation: 'create', name: 'Alice', options })).view;
+    await store().command(bob, { operation: 'join', code: room.code, name: 'Bob' });
+    await store().command(bob, { operation: 'ready', code: room.code, ready: true });
+    const lobby = await store().get(room.code, alice.principal);
+    room = (await store().command(alice, { operation: 'start', code: room.code, revision: lobby.revision })).view;
+    const data = JSON.parse(String((binding.sqlite.prepare('SELECT data FROM rooms WHERE code=?').get(room.code) as { data: string }).data));
+    data.state.phase = 'roundOver';
+    binding.sqlite.prepare('UPDATE rooms SET data=? WHERE code=?').run(JSON.stringify(data), room.code);
+    const over = await store().get(room.code, bob.principal);
+    expect(over.phase).toBe('roundOver');
+    const next = (await store().command(bob, { operation: 'move', code: room.code, revision: over.revision, requestId: randomUUID(), move: { t: 'next' } })).view;
+    expect(next.round).toBe(over.round + 1);
+    expect(next.phase).not.toBe('roundOver');
+    await expect(store().command(bob, { operation: 'move', code: room.code, revision: next.revision, requestId: randomUUID(), move: { t: 'next' } })).rejects.toMatchObject({ message: expect.stringContaining('not legal') });
+  });
+  it('lets either player deal the next hand in a hosted Spades table', async () => {
+    const binding = db(), store = () => new CloudSpadesRoomStore(binding), people = [alice, bob, carol, dave];
+    let room = (await store().command(alice, { operation: 'create', name: 'Alice', options: {
+      mode: 'online', variant: 'solo', humans: 4, target: 100, level: 'normal', table: CLASSIC_VENUE.id, deck: CLASSIC_DECK.id,
+    } })).view;
+    for (const [index, actor] of people.slice(1).entries()) {
+      await store().command(actor, { operation: 'join', code: room.code, name: `Player ${index + 2}` });
+      await store().command(actor, { operation: 'ready', code: room.code, ready: true });
+    }
+    const lobby = await store().get(room.code, alice.principal);
+    room = (await store().command(alice, { operation: 'start', code: room.code, revision: lobby.revision })).view;
+    const data = JSON.parse(String((binding.sqlite.prepare('SELECT data FROM spades_rooms WHERE code=?').get(room.code) as { data: string }).data));
+    data.state.phase = 'handOver';
+    binding.sqlite.prepare('UPDATE spades_rooms SET data=? WHERE code=?').run(JSON.stringify(data), room.code);
+    const over = await store().get(room.code, bob.principal);
+    expect(over.phase).toBe('handOver');
+    const next = (await store().command(bob, { operation: 'move', code: room.code, revision: over.revision, requestId: randomUUID(), move: { t: 'next' } })).view;
+    expect(next.round).toBe(over.round + 1);
+    expect(next.dealer).toBe((over.dealer + 1) % 4);
+    expect(next.phase).toBe('bid');
   });
 });

@@ -260,7 +260,6 @@ export class RoomStore {
             if (!room.state || room.status !== 'playing') throw new RummyError('The game is not accepting moves.');
             if (command.revision !== room.revision) throw new RummyError('The table changed. Your move was not applied; try again with the current hand.', 409, 'stale');
             const actor = room.options.mode === 'local' ? room.state.turn : room.state.players.findIndex(player => player.id === member.id);
-            if (move.t === 'next' && room.owner !== identity.principal) throw new RummyError('The host starts the next round.', 403);
             const next = applyMove(room.state, actor, move, secureRandom);
             if (!next) throw new RummyError('That move is not legal in the current turn.');
             room.state = this.advance(room,next);

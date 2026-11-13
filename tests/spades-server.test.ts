@@ -113,7 +113,19 @@ describe('private four-seat Spades rooms', () => {
       expect(store.get(view.code, identities[0]!.principal)).toMatchObject({ status: 'abandoned', winner: null });
       expect(store.claimReward(Date.now())).toBeNull();
     } finally { root.close(); rmSync(folder, { recursive: true }); }
-  }, 15000);
+  }, 15000);  it('lets either player deal the next hand once a hand is over', () => {
+    const store = open(), room = started(store);
+    const data = JSON.parse(String((store.db.prepare('SELECT data FROM spades_rooms WHERE code=?').get(room.code) as { data: string }).data));
+    data.state.phase = 'handOver';
+    store.db.prepare('UPDATE spades_rooms SET data=? WHERE code=?').run(JSON.stringify(data), room.code);
+    const over = store.get(room.code, identities[1]!.principal);
+    expect(over.phase).toBe('handOver');
+    const next = store.command(identities[1]!, { operation: 'move', code: room.code, revision: over.revision, requestId: randomUUID(), move: { t: 'next' } }).view;
+    expect(next.round).toBe(over.round + 1);
+    expect(next.dealer).toBe((over.dealer + 1) % 4);
+    expect(next.phase).toBe('bid');
+    expect(() => store.command(identities[1]!, { operation: 'move', code: room.code, revision: next.revision, requestId: randomUUID(), move: { t: 'next' } })).toThrow('not legal');
+  });
 });
 
 describe('Spades reward outbox', () => {

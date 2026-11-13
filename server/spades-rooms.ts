@@ -169,7 +169,6 @@ export class SpadesRoomStore {
             }
             if (room.status !== 'playing' || !room.state) throw new RummyError('This table is not accepting moves.');
             if (command.revision !== room.revision) throw new RummyError('The table changed. Your move was not applied; try the current hand.', 409);
-            if (move.t === 'next' && room.owner !== identity.principal) throw new RummyError('The host deals the next hand.', 403);
             const next = applySpadesMove(room.state, member.seat, move, rand);
             if (!next) throw new RummyError('That move is not legal. Follow suit and wait for your turn.');
             room.state = this.advance(room,next); if (room.state.phase === 'gameOver') room.status = 'finished';

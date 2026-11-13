@@ -103,6 +103,17 @@ describe('authoritative rooms', () => {
     expect(room.hand).toHaveLength(7);
     expect(room.mySeat).toBe(room.turn);
     expect(room.players.every(player => player.you && !player.bot)).toBe(true);
+  });  it('lets either player start the next round once a round is over', () => {
+    const store = open(), room = started(store);
+    const data = JSON.parse(String((store.db.prepare('SELECT data FROM rooms WHERE code=?').get(room.code) as { data: string }).data));
+    data.state.phase = 'roundOver';
+    store.db.prepare('UPDATE rooms SET data=? WHERE code=?').run(JSON.stringify(data), room.code);
+    const over = store.get(room.code, b.principal);
+    expect(over.phase).toBe('roundOver');
+    const next = store.command(b, { operation: 'move', code: room.code, revision: over.revision, requestId: randomUUID(), move: { t: 'next' } }).view;
+    expect(next.round).toBe(over.round + 1);
+    expect(next.phase).not.toBe('roundOver');
+    expect(() => store.command(b, { operation: 'move', code: room.code, revision: next.revision, requestId: randomUUID(), move: { t: 'next' } })).toThrow('not legal');
   });
 });
 
