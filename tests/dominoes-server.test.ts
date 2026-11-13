@@ -58,7 +58,7 @@ describe.each(['node','d1'] as const)('authoritative Dominoes on %s',kind=>{
     expect((view.turn===0?peer:view).legal).toEqual([]);
     await expect(store().get(view.code,guest(3).principal)).rejects.toMatchObject({status:403});
   });
-  it('requires two ready players and host authority, including the next hand',async()=>{
+  it('requires two ready players, host authority to start, and rejects a next-hand request mid-play',async()=>{
     const {command,store,online}=setup(kind),a=guest(),b=guest(1);
     let {view}=await command(a,{operation:'create',name:'Host',options:settings});
     await expect(command(a,{operation:'start',code:view.code,revision:view.revision})).rejects.toMatchObject({code:'not_ready'});
@@ -68,7 +68,22 @@ describe.each(['node','d1'] as const)('authoritative Dominoes on %s',kind=>{
     const table=await online();view=table.view;
     const wrong=table.actors[1-view.turn]!;
     await expect(command(wrong,{operation:'move',code:view.code,revision:view.revision,move:{t:'pass'}})).rejects.toMatchObject({code:'illegal_move'});
-    await expect(command(table.actors[1]!,{operation:'move',code:view.code,revision:view.revision,move:{t:'next'}})).rejects.toMatchObject({code:'not_host'});
+    // Dealing is legal only once the hand is over, but then it belongs to either player.
+    await expect(command(table.actors[1]!,{operation:'move',code:view.code,revision:view.revision,move:{t:'next'}})).rejects.toMatchObject({code:'illegal_move'});
+  });
+  it('lets either player deal the next hand, so an absent host cannot stall the match',async()=>{
+    const {command,store,online}=setup(kind),{actors,view:opening}=await online();
+    let view=opening;
+    for(let n=0;n<400&&view.phase!=='roundOver';n++){
+      const seat=view.turn;view=await store().get(view.code,actors[seat]!.principal);
+      const best=[...view.legal].sort((a,b)=>b.points-a.points||dominoValue(b.tile)-dominoValue(a.tile))[0];
+      const move:DominoMove=best?{t:'play',tile:best.tile,end:best.end}:view.canDraw?{t:'draw'}:{t:'pass'};
+      view=(await command(actors[seat]!,{operation:'move',code:view.code,revision:view.revision,move})).view;
+    }
+    expect(view.phase).toBe('roundOver');
+    const dealt=(await command(actors[1]!,{operation:'move',code:view.code,revision:view.revision,move:{t:'next'}})).view;
+    expect(dealt.phase).toBe('play');expect(dealt.round).toBe(view.round+1);
+    expect(dealt.players.map(p=>p.count)).toEqual([7,7]);
   });
   it('commits retries and concurrent actions once, rejects stale revisions and action-ID reuse',async()=>{
     const {online,store,raw}=setup(kind),{actors,view}=await online();

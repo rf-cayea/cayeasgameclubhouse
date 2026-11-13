@@ -183,7 +183,6 @@ export class DominoRoomStore {
         } else if(command.operation==='move') {
           if(room.status!=='playing'||!room.state)throw new RummyError('This match is not in progress.',409,'table_closed');
           if(command.revision!==room.revision)throw new RummyError('The table changed. Refresh before playing.',409,'stale');
-          if(command.move.t==='next'&&room.owner!==identity.principal)throw new RummyError('Only the host starts the next hand.',403,'not_host');
           const next=applyDominoMove(room.state,me.seat,command.move,rand);
           if(!next)throw new RummyError('That action is not legal on this turn.',409,'illegal_move');
           room.state=this.advance(room,next);if(room.state.phase==='finished')room.status='finished';
