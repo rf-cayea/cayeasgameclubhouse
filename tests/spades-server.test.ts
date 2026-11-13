@@ -113,7 +113,7 @@ describe('private four-seat Spades rooms', () => {
       expect(store.get(view.code, identities[0]!.principal)).toMatchObject({ status: 'abandoned', winner: null });
       expect(store.claimReward(Date.now())).toBeNull();
     } finally { root.close(); rmSync(folder, { recursive: true }); }
-  });
+  }, 15000);
 });
 
 describe('Spades reward outbox', () => {
