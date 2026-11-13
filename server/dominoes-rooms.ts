@@ -1,5 +1,5 @@
 import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
@@ -11,7 +11,7 @@ import { applyDominoMove, dominoBotMove, newDominoGame, parseDominoMove, dominoO
 import type { DominoCommand, DominoOptions, DominoRoomView } from '../src/lib/dominoes-protocol';
 import { dominoRewardTier, dominoWinner, type DominoMatchReward } from '../src/lib/dominoes-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean; seat: number }
 interface Room { cratePolicy?:number; presentation?:ComputerStates<DominoState>; code: string; matchId: string; owner: string; options: DominoOptions; members: Member[]; state: DominoState | null; revision: number; status: DominoRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface DominoCommandResult { view: DominoRoomView; changed: boolean }
@@ -159,7 +159,7 @@ export class DominoRoomStore {
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
-      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
+      touchSeat(room.members,identity.principal,this.now());
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
         if(!present) {

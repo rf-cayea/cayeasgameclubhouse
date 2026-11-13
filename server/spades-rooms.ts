@@ -1,5 +1,5 @@
 import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import { validCardRewardAmount } from '../src/lib/reward-rates';
 import { canonicalDeckId, ownsPlayingDeck } from '../src/lib/playing-decks';
 import type { DatabaseSync } from 'node:sqlite';
@@ -15,7 +15,7 @@ import { memberId, type RewardView } from '../src/lib/rummy-rewards';
 import { ownsSpadesPartnerships, SPADES_PARTNERSHIPS } from '../src/lib/spades-perks';
 
 const rand = () => randomInt(0, 0x100000000) / 0x100000000;
-interface Member { id: string; principal: string; name: string; seat: number; ready: boolean ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; seat: number; ready: boolean }
 interface Room { cratePolicy?:number; presentation?:ComputerStates<SpadesState>; code: string; matchId: string; owner: string; options: SpadesOptions; members: Member[]; state: SpadesState | null; revision: number; status: SpadesRoomView['status'] }
 const nameFor = (input: unknown) => {
   if (typeof input !== 'string') throw new RummyError('Enter a friendly name.');
@@ -141,7 +141,7 @@ export class SpadesRoomStore {
       } else {
         if (typeof command.code !== 'string') throw new RummyError('Enter a room code.');
         room = this.load(command.code.trim().toUpperCase());
-        if (room.members.some(member => member.principal === identity.principal)) settlePresence(room, identity.principal, this.now());
+        touchSeat(room.members, identity.principal, this.now());
         if (command.operation !== 'leave') checkSpadesPartnershipAccess(identity, room.options.variant);
         if (command.operation === 'join' && !room.members.some(value => value.principal === identity.principal)) {
           if (room.status !== 'waiting' || room.options.mode !== 'online' || room.members.length >= room.options.humans) throw new RummyError('This Spades room is not accepting players.');

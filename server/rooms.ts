@@ -1,5 +1,5 @@
 import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import { validCardRewardAmount } from '../src/lib/reward-rates';
 import { canonicalDeckId } from '../src/lib/playing-decks';
 import { DatabaseSync } from 'node:sqlite';
@@ -15,7 +15,7 @@ import { WIN_POINTS } from '../src/lib/rummy';
 import { RUMMY_DESIGNS, rummyAppearanceView, type RummyAppearanceView } from '../src/lib/rummy-cosmetics';
 
 export interface Identity { principal: string; jokers: boolean; owned?: string[]; nameFlagged?: boolean }
-interface Member { principal: string; id: string; name: string; ready: boolean ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean }
 interface Room { cratePolicy?:number; presentation?:ComputerStates<State>; code: string; owner: string; options: GameOptions; members: Member[]; state: State | null; status: RoomView['status']; revision: number; matchId?: string }
 const secureRandom = () => randomInt(0, 0x100000000) / 0x100000000;
 const cleanName = (value: unknown, fallback = 'Player') => {
@@ -227,7 +227,7 @@ export class RoomStore {
       } else {
         if (typeof command.code !== 'string') throw new RummyError('Enter a room code.');
         room = this.load(command.code.trim().toUpperCase());
-        if (room.members.some(member => member.principal === identity.principal)) settlePresence(room, identity.principal, this.now());
+        touchSeat(room.members, identity.principal, this.now());
         if (command.operation === 'join') {
           if (!room.members.some(member => member.principal === identity.principal)) {
             if (room.options.mode !== 'online' || room.status !== 'waiting') throw new RummyError('This room is not accepting players.');

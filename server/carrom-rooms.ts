@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -10,7 +10,7 @@ import {applyCarromShot,carromBotShot,newCarrom,parseCarromShot,type CarromState
 import type { CarromCommand, CarromOptions, CarromRoomView } from '../src/lib/carrom-protocol';
 import { carromRewardTier, carromWinner, type CarromMatchReward } from '../src/lib/carrom-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean; seat: number }
 interface Room { cratePolicy?:number; code: string; matchId: string; owner: string; options: CarromOptions; members: Member[]; state: CarromState | null; revision: number; status: CarromRoomView['status']; createdAt: number; updatedAt: number; shotReadyAt:number }
 interface StoredRequest { payload: string; response: string }
 export interface CarromCommandResult { view: CarromRoomView; changed: boolean }
@@ -129,7 +129,7 @@ export class CarromRoomStore {
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
-      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
+      touchSeat(room.members,identity.principal,this.now());
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
         if(!present) {

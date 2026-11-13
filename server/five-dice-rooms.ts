@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -10,7 +10,7 @@ import { applyFiveDiceMove, fiveDiceBotMove, fiveDiceTotals, newFiveDice, parseF
 import type { FiveDiceCommand, FiveDiceOptions, FiveDiceRoomView } from '../src/lib/five-dice-protocol';
 import { FIVE_DICE_PARTY, fiveDiceRewardTier, fiveDiceWinner, type FiveDiceMatchReward } from '../src/lib/five-dice-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean; seat: number }
 interface Room { cratePolicy?:number; code: string; matchId: string; owner: string; options: FiveDiceOptions; members: Member[]; state: FiveDiceState | null; revision: number; status: FiveDiceRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface FiveDiceCommandResult { view: FiveDiceRoomView; changed: boolean }
@@ -156,7 +156,7 @@ export class FiveDiceRoomStore {
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
-      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
+      touchSeat(room.members,identity.principal,this.now());
       if(command.operation!=='leave')await this.partyAccess(identity.principal,room.options,identity.owned);
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);

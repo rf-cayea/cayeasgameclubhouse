@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -10,7 +10,7 @@ import { FARKLE_PARTY, FARKLE_TARGET, FARKLE_FAST_TARGET, applyFarkleMove, farkl
 import type { FarkleCommand, FarkleOptions, FarkleRoomView } from '../src/lib/farkle-protocol';
 import { farkleRewardTier, farkleWinner, type FarkleMatchReward } from '../src/lib/farkle-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean; seat: number }
 interface Room { cratePolicy?:number; code: string; matchId: string; owner: string; options: FarkleOptions; members: Member[]; state: FarkleState | null; revision: number; status: FarkleRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface FarkleCommandResult { view: FarkleRoomView; changed: boolean }
@@ -155,7 +155,7 @@ export class FarkleRoomStore {
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
-      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
+      touchSeat(room.members,identity.principal,this.now());
       if(command.operation!=='leave')await this.partyAccess(identity.principal,room.options,identity.owned);
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);

@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -10,7 +10,7 @@ import {applyBGMove,bgBotMove,newBackgammon,parseBGMove,type BGState,type BGSeat
 import type { BGCommand, BGOptions, BGRoomView } from '../src/lib/backgammon-protocol';
 import { bgRewardTier, bgWinner, type BGMatchReward } from '../src/lib/backgammon-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean; seat: number }
 interface Room { cratePolicy?:number; code: string; matchId: string; owner: string; options: BGOptions; members: Member[]; state: BGState | null; revision: number; status: BGRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface BGCommandResult { view: BGRoomView; changed: boolean }
@@ -130,7 +130,7 @@ export class BackgammonRoomStore {
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
-      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
+      touchSeat(room.members,identity.principal,this.now());
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
         if(!present) {

@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
-import { settlePresence } from './room-presence';
+import { settlePresence, touchSeat, type PresenceSeat } from './room-presence';
 import type { D1Binding, D1Statement } from './database';
 import type { Identity } from './rooms';
 import { RummyError } from '../src/lib/rummy-protocol';
@@ -10,7 +10,7 @@ import { applyCrownChanceMove, crownChanceBotMove, newCrownChance, parseCrownCha
 import type { CrownChanceCommand, CrownChanceOptions, CrownChanceRoomView } from '../src/lib/crown-chance-protocol';
 import { crownChanceRewardTier, crownChanceWinner, type CrownChanceMatchReward } from '../src/lib/crown-chance-rewards';
 
-interface Member { id: string; principal: string; name: string; ready: boolean; seat: number ; seenAt?: number }
+interface Member extends PresenceSeat { id: string; name: string; ready: boolean; seat: number }
 interface Room { code: string; matchId: string; owner: string; options: CrownChanceOptions; members: Member[]; state: CrownChanceState | null; revision: number; status: CrownChanceRoomView['status']; createdAt: number; updatedAt: number }
 interface StoredRequest { payload: string; response: string }
 export interface CrownChanceCommandResult { view: CrownChanceRoomView; changed: boolean }
@@ -143,7 +143,7 @@ export class CrownChanceRoomStore {
       if(command.options.mode==='bot')this.start(room);
     } else {
       room=await this.load(command.code);oldRevision=room.revision;
-      if(room.members.some(member=>member.principal===identity.principal))settlePresence(room,identity.principal,this.now());
+      touchSeat(room.members,identity.principal,this.now());
       if(command.operation==='join') {
         const present=room.members.find(member=>member.principal===identity.principal);
         if(!present) {
