@@ -56,6 +56,37 @@ export const notifyWallet = () => {
 
 
 type ClubhouseUser = { id: string; email?: string | undefined };
+type SharedWallet = { wallet: Wallet | null; sources: string[]; humanWinSources: string[]; error: string | null };
+/** The store mounts several wallet consumers at once. They share one request so
+ * the page does not queue a stack of full wallet reads behind each other. */
+const SHARED_WALLET_TTL = 8000;
+let sharedWalletCache: { token: string; at: number; value: SharedWallet } | null = null;
+let sharedWalletInflight: { token: string; promise: Promise<SharedWallet> } | null = null;
+const clearSharedWallet = () => { sharedWalletCache = null; };
+async function sharedWallet(token: string): Promise<SharedWallet> {
+  const cached = sharedWalletCache;
+  if (cached && cached.token === token && Date.now() - cached.at < SHARED_WALLET_TTL) return cached.value;
+  if (sharedWalletInflight?.token === token) return sharedWalletInflight.promise;
+  const promise = (async (): Promise<SharedWallet> => {
+    try {
+      const response = await fetch('/api/economy', { credentials: 'same-origin', headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
+      const result = await response.json();
+      if (!response.ok) return { wallet: null, sources: [], humanWinSources: [], error: typeof result?.error === 'string' ? result.error : 'Your reward wallet could not load. Please retry.' };
+      if (!result?.wallet || !Array.isArray(result.sources) || !Array.isArray(result.humanWinSources)) return { wallet: null, sources: [], humanWinSources: [], error: 'The reward wallet response could not be verified.' };
+      return { wallet: result.wallet as Wallet, sources: result.sources, humanWinSources: result.humanWinSources, error: null };
+    } catch (cause) {
+      return { wallet: null, sources: [], humanWinSources: [], error: cause instanceof Error ? cause.message : 'Unable to load Clubhouse account data. Please try again.' };
+    }
+  })();
+  sharedWalletInflight = { token, promise };
+  try {
+    const value = await promise;
+    if (!value.error) sharedWalletCache = { token, at: Date.now(), value };
+    return value;
+  } finally {
+    if (sharedWalletInflight?.promise === promise) sharedWalletInflight = null;
+  }
+}
 
 export function useClubhouse() {
   const [user, setUser] = useState<ClubhouseUser | null>(null);
@@ -101,21 +132,19 @@ export function useClubhouse() {
         return;
       }
 
-      const { data: identity, error: identityError } = await client.auth.getUser();
-      if (!active()) return;
-      if (identityError) throw identityError;
-      if (!identity.user) throw new Error("Your session could not be verified. Please sign in again.");
-      verifiedUser = { id: identity.user.id, email: identity.user.email };
+      // The Worker verifies this bearer token on every request, so the local
+      // session is enough here; a round trip to the auth server per component
+      // is what made the store wait for its wallet.
+      const sessionUser = session.session.user;
+      verifiedUser = { id: sessionUser.id, email: sessionUser.email };
       if (currentUserId.current !== verifiedUser.id) clearWallet();
       currentUserId.current = verifiedUser.id;
       setUser(verifiedUser);
 
-      const response = await fetch('/api/economy', { credentials: 'same-origin', headers: { Authorization: `Bearer ${session.session.access_token}` }, signal: AbortSignal.timeout(15000) });
-      const result = await response.json();
+      const result = await sharedWallet(session.session.access_token);
       if (!active()) return;
-      if (!response.ok) throw new Error(typeof result?.error === 'string' ? result.error : 'Your reward wallet could not load. Please retry.');
-      if (!result?.wallet || !Array.isArray(result.sources) || !Array.isArray(result.humanWinSources)) throw new Error('The reward wallet response could not be verified.');
-      setWallet(result.wallet as Wallet);
+      if (result.error) throw new Error(result.error);
+      setWallet(result.wallet);
       setSources(result.sources);
       setHumanWinSources(result.humanWinSources);
     } catch (cause) {
@@ -157,7 +186,7 @@ export function useClubhouse() {
       const timer = setTimeout(() => { timers.delete(timer); void load(); }, 0);
       timers.add(timer);
     });
-    const refresh = () => { void load(); };
+    const refresh = () => { clearSharedWallet(); void load(); };
     window.addEventListener(EVT, refresh);
     const stored = (event: StorageEvent) => { if (event.key === 'clubhouse-wallet-refresh') refresh(); };
     window.addEventListener('storage', stored);
@@ -175,6 +204,7 @@ export function useClubhouse() {
 
   const applyWallet = useCallback((ownerId: string, confirmed: Wallet) => {
     if (!mounted.current || currentUserId.current !== ownerId) return;
+    clearSharedWallet();
     ++request.current; // An older refresh must not overwrite a confirmed mutation.
     setWallet(confirmed); setError(null); setReady(true);
   }, []);
