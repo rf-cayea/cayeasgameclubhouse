@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { rememberedComputerLevel, rememberComputerLevel } from '@/lib/computer-modes';
 import { GameHeader, GamePanel } from '@/components/GameChrome';
 import { PokerDieFace } from '@/components/PokerDice';
@@ -7,7 +7,9 @@ import { PokerDiceCollection, PokerSetArtwork } from '@/components/PokerDiceColl
 import { RewardCrates } from '@/components/DiceCrateRewards';
 import { TableAchievementGuide } from '@/components/TableAchievementGuide';
 import { useClubhouse } from '@/lib/clubhouse';
-import { equippedPokerDice } from '@/lib/poker-dice-sets';
+import { usePlayerProfile } from '@/lib/social';
+import { CLASSIC_POKER_DICE, POKER_DICE_SETS, POKER_DICE_SLOT, equippedPokerDice } from '@/lib/poker-dice-sets';
+import { SetupSetPicker } from '@/components/SetupSetPicker';
 import { useCrownChanceRoom } from '@/lib/crown-chance-network';
 import { applyCrownChanceMove, chanceCanBank, chanceHands, CHANCE_TARGETS, CHANCE_LIMITS, newCrownChance, type CrownChanceMove, type CrownChanceState, type ChanceChallenge } from '@/lib/crown-chance';
 import type { CrownChanceOptions } from '@/lib/crown-chance-protocol';
@@ -21,7 +23,7 @@ export const Route = createFileRoute('/games/crown-chance')({
 });
 
 function CrownChancePage() {
-  const {user,wallet,ready} = useClubhouse(), design = equippedPokerDice(wallet);
+  const {user,wallet,ready,applyWallet} = useClubhouse(), design = equippedPokerDice(wallet), profile = usePlayerProfile(user?.id ?? null);
   const network = useCrownChanceRoom(user?.id ?? null,ready), room = network.room, invitation = Route.useSearch().room;
   const [mode,setMode] = useState<'solo'|'local'|'bot'|'online'>(invitation ? 'online' : 'solo');
   const [options,setOptions] = useState<CrownChanceOptions>({mode:'bot',seats:2,level:rememberedComputerLevel('crown-chance'),length:'fast',minimum:0});
@@ -29,13 +31,17 @@ function CrownChancePage() {
   const [local,setLocal] = useState<CrownChanceState|null>(null), [mask,setMask] = useState(0);
   const [panel,setPanel] = useState<'help'|'dice'|'rewards'|'leave'|null>(null);
   const [name,setName] = useState('Player'), [code,setCode] = useState(invitation ?? ''), [copied,setCopied] = useState(false);
-  const [record,setRecord] = useState('');
+  const [record,setRecord] = useState(''), [equipmentBusy,setEquipmentBusy] = useState(false);
   const state = local ?? room?.state;
   const mine = Boolean(state && (local || room?.mySeat === state.turn));
   const busy = !local && (network.pending || Boolean(network.uncertain) || !network.healthy);
+  // A start or join request is what makes the table healthy; waiting for it here
+  // would leave the setup buttons disabled forever.
+  const starting = !network.initialized || network.pending || Boolean(network.uncertain);
   const hands = state && mine ? chanceHands(state) : [];
   const selected = hands.find(hand => hand.mask === mask);
   const format = (n:number) => n.toLocaleString();
+  useEffect(() => { if (profile.data?.gamerName) setName(profile.data.gamerName); }, [profile.data?.gamerName]);
 
   async function move(action:CrownChanceMove) {
     if (!state || !mine || busy) return;
@@ -87,14 +93,15 @@ function CrownChancePage() {
         <div className="chance-intro"><h2>Crown &amp; Chance</h2><p>Original game by Richard Cayea</p><PokerSetArtwork design={design}/><p>Build poker hands with six dice. Bank the points or risk the next roll.</p></div>
         <div className="chance-setup-fields">
           <label>Play<select value={mode} onChange={event=>setMode(event.target.value as typeof mode)}><option value="solo">Solo</option><option value="local">Pass and play</option><option value="bot">Vs computer</option><option value="online">Online friends</option></select></label>
-          <label>Player name<input maxLength={24} value={name} onChange={event=>setName(event.target.value)}/></label>
+          <label>Player name<input maxLength={24} value={name} disabled={Boolean(profile.data)} onChange={event=>setName(event.target.value)}/></label>
           {!(mode==='solo'&&challenge==='attack')&&<label>Target<select value={options.length} onChange={event=>setOptions({...options,length:event.target.value as CrownChanceOptions['length']})}><option value="fast">Fast · 4,000</option><option value="long">Long · 12,000</option></select></label>}
           {mode==='solo'&&<label>Solo challenge<select value={challenge} onChange={event=>setChallenge(event.target.value as ChanceChallenge)}>{Object.entries(CHANCE_LIMITS).map(([key,limit])=><option key={key} value={key}>{key==='attack'?'Score Attack · 10 turns':`${key[0]!.toUpperCase()+key.slice(1)} · ${limit ? `${limit} turns` : 'unlimited turns'}`}</option>)}</select></label>}
           {(mode==='local'||mode==='online')&&<label>Players<select value={options.seats} onChange={event=>setOptions({...options,seats:Number(event.target.value) as CrownChanceOptions['seats']})}>{[2,3,4].map(n=><option key={n}>{n}</option>)}</select></label>}
           {mode==='bot'&&<label>Computer difficulty<select value={options.level} onChange={event=>{ rememberComputerLevel('crown-chance', event.target.value); setOptions({...options,level:event.target.value as CrownChanceOptions['level']}); }}><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>}
           {mode!=='solo'&&<label>Opening house rule<select value={options.minimum} onChange={event=>setOptions({...options,minimum:Number(event.target.value) as CrownChanceOptions['minimum']})}><option value={0}>Pair or better</option><option value={500}>Pair or better + 500 points</option><option value={1000}>Pair or better + 1,000 points</option></select></label>}
-          <button className="btn-gold" disabled={Boolean(network.code)||name.trim().length<2||(mode==='bot'||mode==='online')&&(!network.initialized||busy)} onClick={start}>{mode==='online'?'Create online table':'Start game'}</button>
-          {mode==='online'&&<><label>Join with table code<input value={code} maxLength={8} onChange={event=>setCode(event.target.value.toUpperCase().replace(/[^A-F0-9]/g,''))}/></label><button className="btn-ghost-gold" disabled={!network.initialized||busy||Boolean(network.code)||code.length!==8||name.trim().length<2} onClick={()=>void network.command({operation:'join',name,code})}>Join table</button></>}
+          <SetupSetPicker label="Dice set" slot={POKER_DICE_SLOT} designs={[CLASSIC_POKER_DICE,...POKER_DICE_SETS].filter(set=>!set.price||wallet?.owned.includes(set.id))} selected={design.id} userId={user?.id??null} disabled={!ready||network.pending} onEquipped={applyWallet} onBusyChange={setEquipmentBusy}><PokerDieFace value={5} design={design}/><PokerDieFace value={6} design={design}/></SetupSetPicker>
+          <button className="btn-gold" disabled={equipmentBusy||Boolean(network.code)||name.trim().length<2||(mode==='bot'||mode==='online')&&starting} onClick={start}>{mode==='online'?'Create online table':'Start game'}</button>
+          {mode==='online'&&<><label>Join with table code<input value={code} maxLength={8} onChange={event=>setCode(event.target.value.toUpperCase().replace(/[^A-F0-9]/g,''))}/></label><button className="btn-ghost-gold" disabled={starting||Boolean(network.code)||code.length!==8||name.trim().length<2} onClick={()=>void network.command({operation:'join',name,code})}>Join table</button></>}
         </div>
       </section> : room?.status==='waiting' ? <section className="chance-table">
         <h2>Online table · {room.code}</h2>

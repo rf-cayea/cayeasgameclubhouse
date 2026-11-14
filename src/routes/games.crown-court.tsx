@@ -1,6 +1,7 @@
 import { PokerDiceCollection } from '@/components/PokerDiceCollection';
 import { RewardCrates } from '@/components/DiceCrateRewards';
-import { equippedPokerDice } from '@/lib/poker-dice-sets';
+import { CLASSIC_POKER_DICE, POKER_DICE_SETS, POKER_DICE_SLOT, equippedPokerDice } from '@/lib/poker-dice-sets';
+import { SetupSetPicker } from '@/components/SetupSetPicker';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { rememberedComputerLevel, rememberComputerLevel } from '@/lib/computer-modes';
@@ -27,11 +28,11 @@ export const Route = createFileRoute('/games/crown-court')({
 });
 type Panel = 'help' | 'table' | 'moves' | 'join' | 'audio' | 'results' | 'dice' | 'rewards';
 function CrownCourtPage() {
-  const { user, ready, wallet } = useClubhouse(), profile = usePlayerProfile(user?.id ?? null), net = useCrownCourtRoom(user?.id ?? null, ready), incoming = Route.useSearch().room;
+  const { user, ready, wallet, applyWallet } = useClubhouse(), profile = usePlayerProfile(user?.id ?? null), net = useCrownCourtRoom(user?.id ?? null, ready), incoming = Route.useSearch().room;
   const design = equippedPokerDice(wallet);
   const [name, setName] = useState(() => { try { return localStorage.getItem('crown-court-name') ?? 'Player'; } catch { return 'Player'; } });
   const [options, setOptions] = useState<CrownCourtOptions>({ mode: 'bot', seats: 2, level: rememberedComputerLevel('crown-court'), length: 'short' });
-  const [joinCode, setJoinCode] = useState(incoming ?? ''), [panel, setPanel] = useState<Panel | null>(null), [leaving, setLeaving] = useState(false), [notice, setNotice] = useState(''), [resultSeen, setResultSeen] = useState('');
+  const [joinCode, setJoinCode] = useState(incoming ?? ''), [panel, setPanel] = useState<Panel | null>(null), [leaving, setLeaving] = useState(false), [notice, setNotice] = useState(''), [resultSeen, setResultSeen] = useState(''), [equipmentBusy, setEquipmentBusy] = useState(false);
   const [section, setSection] = useState<CourtSection>('A'), [selected, setSelected] = useState<CrownCourtCategory | null>(null);
   const room = net.room, state = room?.state, presentation = useCrownCourtPresentation(room), action = presentation.frame, audio = useCrownCourtAudio(room, action);
   const visibleCards = useMemo(() => state ? crownCourtPresentationCards(state, action) : [], [state, action]);
@@ -62,7 +63,8 @@ function CrownCourtPage() {
           <fieldset className="cc-lengths"><legend>Choose your scorecard</legend>{(Object.keys(COURT_LENGTHS) as CourtLength[]).map(length => <button key={length} type="button" aria-pressed={options.length === length} onClick={() => setOptions({ ...options, length })}><strong>{COURT_LENGTHS[length].label}</strong><span>{COURT_LENGTHS[length].turns} turns</span><small>{COURT_LENGTHS[length].sections.join(' + ')}</small></button>)}</fieldset>
           <p className="cc-length-note">{options.length === 'short' ? 'A · Poker Hands' : options.length === 'medium' ? 'A · Poker Hands + B · Court Tally' : 'A · Poker Hands + B · Court Tally + C · Royal Trials'}</p>
           <div className="fd-setup-fields"><label>Gamer name<input aria-label="Player name" value={name} maxLength={24} disabled={Boolean(profile.data) || net.pending} onChange={e => setName(e.target.value)}/></label>{options.mode === 'bot' ? <label>Difficulty<select aria-label="Computer difficulty" value={options.level} onChange={e => { rememberComputerLevel('crown-court', e.target.value); setOptions({ ...options, level: e.target.value as CrownCourtOptions['level'] }); }}>{(['easy', 'normal', 'hard'] as const).map(level => <option key={level} value={level}>{level[0].toUpperCase() + level.slice(1)}</option>)}</select></label> : <label>Players<select aria-label="Online players" value={options.seats} onChange={e => setOptions({ ...options, seats: Number(e.target.value) as 2 | 3 | 4 })}>{[2,3,4].map(n => <option key={n} value={n}>{n} players · free</option>)}</select></label>}</div>
-          <div className="multiplayer-start-actions"><button className="fd-primary" disabled={!ready || net.pending || Boolean(net.uncertain) || name.trim().length < 2} onClick={() => void create()}>{net.pending ? 'Opening…' : options.mode === 'bot' ? 'Start a match' : 'Create a private table'} <span aria-hidden="true">→</span></button><MatchMakingButton game="crown-court"/></div>
+          <SetupSetPicker label="Dice set" slot={POKER_DICE_SLOT} designs={[CLASSIC_POKER_DICE, ...POKER_DICE_SETS].filter(set => !set.price || wallet?.owned.includes(set.id))} selected={design.id} userId={user?.id ?? null} disabled={!ready || net.pending} onEquipped={applyWallet} onBusyChange={setEquipmentBusy}><PokerDieFace value={5} design={design}/><PokerDieFace value={6} design={design}/></SetupSetPicker>
+          <div className="multiplayer-start-actions"><button className="fd-primary" disabled={equipmentBusy || !ready || net.pending || Boolean(net.uncertain) || name.trim().length < 2} onClick={() => void create()}>{net.pending ? 'Opening…' : options.mode === 'bot' ? 'Start a match' : 'Create a private table'} <span aria-hidden="true">→</span></button><MatchMakingButton game="crown-court"/></div>
           <button className="fd-text-button" onClick={() => setPanel('join')}>Have a table code? Join a friend →</button><p className="cc-setup-note">{user ? 'Win completed matches to earn shared Dice points and Crown & Court badges.' : 'Guests are welcome. Sign in before playing to earn Dice points and badges.'}</p>
         </div>
       </section> : room.status === 'waiting' ? <MultiplayerLobby game="crown-court" code={room.code} owner={room.owner} capacity={room.options.seats} players={room.players} pending={locked} details={`${COURT_LENGTHS[room.options.length].label} · ${turns} turns · ${room.options.seats} players`} onReady={() => void net.command({ operation: 'ready', code: room.code, ready: !room.players[room.mySeat]?.ready })} onStart={() => { audio.unlock(); void net.command({ operation: 'start', code: room.code, revision: room.revision }); }} onLeave={() => setLeaving(true)}/> : state ? <section className="cc-live" aria-label="Crown & Court playing table">
