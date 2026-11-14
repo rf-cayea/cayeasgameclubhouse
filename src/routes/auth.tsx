@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { HubNav } from "@/components/HubNav";
-import { useClubhouse } from "@/lib/clubhouse";
+import { restoreSession, useClubhouseAccount } from "@/lib/clubhouse-account";
 import { authErrorMessage, emailConfirmationUrl } from "@/lib/email-confirmation";
 import { configurationError, supabase } from "@/integrations/supabase/client";
 import { pendingPlayerReturn } from '@/lib/player-return';
@@ -9,7 +9,7 @@ import { pendingPlayerReturn } from '@/lib/player-return';
 export const Route = createFileRoute("/auth")({ component: AuthPage });
 
 function AuthPage() {
-  const { user, ready } = useClubhouse();
+  const { user, ready, error: accountError } = useClubhouseAccount();
   const [returnTo] = useState(pendingPlayerReturn);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -71,6 +71,10 @@ function AuthPage() {
       <HubNav />
       <main className="mx-auto max-w-lg px-4 py-10">
         <h1 className="font-display text-4xl text-gold">{mode === "signup" ? "Join the Clubhouse" : "Welcome back"}</h1>
+        {ready && !user && accountError && <div className="mt-4" role="alert">
+          <p>We couldn’t restore your saved sign-in. {accountError}</p>
+          <button type="button" className="btn-ghost-gold mt-2" onClick={() => void restoreSession()}>Retry saved sign-in</button>
+        </div>}
         {!ready ? <p className="mt-4" role="status">Checking your account…</p> : user ? (
           <div className="card-hub mt-6">
             <Link to="/auth/reset" className="mb-4 block text-gold underline">Reset your password</Link>

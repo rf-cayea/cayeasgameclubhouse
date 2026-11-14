@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { HubNav } from "@/components/HubNav";
 import { PlayerReportProvider, ReportPlayer } from "@/components/ReportPlayer";
 import { supabase } from "@/integrations/supabase/client";
-import { useClubhouse } from "@/lib/clubhouse";
+import { useClubhouseAccount } from "@/lib/clubhouse";
 import { containsProfanity, CLEAN_LANGUAGE_ERROR } from "@/lib/moderation";
 
 export const Route = createFileRoute("/clubhouse")({
@@ -142,7 +142,7 @@ function useLoungePermissions() {
 }
 
 function ClubhousePage() {
-  const { user, ready, error } = useClubhouse();
+  const { user, ready, error } = useClubhouseAccount();
   const [reportSent, setReportSent] = useState(false);
   useEffect(() => {
     const sent = () => setReportSent(true);

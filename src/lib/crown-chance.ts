@@ -2,6 +2,13 @@ import type { Level } from './rummy';
 
 export const CHANCE_TARGETS = { fast: 4000, long: 12000 } as const;
 export const CHANCE_LIMITS = { casual: 15, standard: 10, expert: 7, marathon: 0, attack: 10 } as const;
+export const CHANCE_HIGH_HANDS = {
+  fullHouse: { name: 'Full House', points: 1500 },
+  fourOfAKind: { name: 'Four of a Kind', points: 1750 },
+  sixDiceStraight: { name: 'Six-Dice Straight', points: 2000 },
+  fiveOfAKind: { name: 'Five of a Kind', points: 2400 },
+  sixOfAKind: { name: 'Six of a Kind', points: 2850 },
+} as const;
 export type ChanceLength = keyof typeof CHANCE_TARGETS;
 export type ChanceChallenge = keyof typeof CHANCE_LIMITS;
 export interface ChancePlayer { id: string; name: string; bot: boolean; level?: Level }
@@ -10,9 +17,21 @@ export interface CrownChanceState {
   players: ChancePlayer[]; scores: Score[]; length: ChanceLength; challenge: ChanceChallenge | null;
   minimum: number; dice: number[]; claimed: boolean[]; available: boolean; pending: number; qualified: boolean;
   turn: number; order: number[]; finalRound: boolean; phase: 'play' | 'finished'; winners: number[]; notice: string;
+  activity?: ChanceActivity[];
 }
 export type CrownChanceMove = { t: 'roll' } | { t: 'bank' } | { t: 'claim'; mask: number };
 export interface ChanceHand { mask: number; name: string; points: number; size: number }
+
+type ChanceEvent =
+  | { kind: 'roll'; dice: number[]; rolled: boolean[]; hot: boolean; lost?: number }
+  | { kind: 'claim'; dice: number[]; hand: string; points: number; hot: boolean }
+  | { kind: 'bank'; points: number; total: number };
+export type ChanceActivity = ChanceEvent & { id: number; seat: number };
+
+function recordActivity(state: CrownChanceState, seat: number, event: ChanceEvent) {
+  const activity = state.activity ?? [];
+  state.activity = [...activity.slice(-119), { ...event, seat, id: (activity.at(-1)?.id ?? 0) + 1 }];
+}
 
 function scoreHand(values: number[]): Pick<ChanceHand, 'name' | 'points'> | null {
   const counts = Array.from({length: 6}, (_, index) => values.filter(value => value === index + 1).length);
@@ -23,11 +42,11 @@ function scoreHand(values: number[]): Pick<ChanceHand, 'name' | 'points'> | null
     case '22': return {name:'Two Pair',points:450};
     case '222': return {name:'Three Pair',points:900};
     case '3': return {name:'Three of a Kind',points:450 + values[0]! * 50};
-    case '32': return {name:'Full House',points:1600};
-    case '4': return {name:'Four of a Kind',points:2000};
-    case '5': return {name:'Five of a Kind',points:3000};
-    case '6': return {name:'Six of a Kind',points:5000};
-    case '111111': return {name:'Six-Dice Straight',points:2700};
+    case '32': return CHANCE_HIGH_HANDS.fullHouse;
+    case '4': return CHANCE_HIGH_HANDS.fourOfAKind;
+    case '5': return CHANCE_HIGH_HANDS.fiveOfAKind;
+    case '6': return CHANCE_HIGH_HANDS.sixOfAKind;
+    case '111111': return CHANCE_HIGH_HANDS.sixDiceStraight;
     case '11111':
       if (counts[5] === 0) return {name:'Low Straight',points:1200};
       if (counts[0] === 0) return {name:'High Straight',points:1400};
@@ -50,7 +69,7 @@ export function chanceHands(state: CrownChanceState): ChanceHand[] {
 export function newCrownChance(players: ChancePlayer[], length: ChanceLength, challenge: ChanceChallenge | null = null, minimum = 0): CrownChanceState {
   return { players, length, challenge, minimum, scores:players.map(() => ({points:0,turns:0,busts:0,hot:0,best:0})),
     dice:Array(6).fill(0), claimed:Array(6).fill(false), available:true, pending:0, qualified:false, turn:0,
-    order:players.map((_, i) => i), finalRound:false, phase:'play', winners:[], notice:'Roll six poker dice.' };
+    order:players.map((_, i) => i), finalRound:false, phase:'play', winners:[], notice:'Roll six poker dice.', activity:[] };
 }
 
 export function chanceCanBank(state: CrownChanceState) {
@@ -108,15 +127,22 @@ export function applyCrownChanceMove(previous: CrownChanceState, seat: number, m
   const state = structuredClone(previous);
   if (move.t === 'bank') {
     if (!chanceCanBank(state)) return null;
-    endTurn(state, false); return state;
+    const points = state.pending;
+    endTurn(state, false);
+    recordActivity(state, seat, { kind: 'bank', points, total: state.scores[seat]!.points });
+    return state;
   }
   if (move.t === 'roll') {
     if (!state.available) return null;
-    if (state.claimed.every(Boolean)) state.claimed.fill(false);
-    state.dice = state.dice.map((value, i) => state.claimed[i] ? value : 1 + Math.floor(random() * 6));
+    const hot = state.claimed.every(Boolean);
+    if (hot) state.claimed.fill(false);
+    const rolled = state.claimed.map(claimed => !claimed);
+    state.dice = state.dice.map((value, i) => rolled[i] ? 1 + Math.floor(random() * 6) : value);
     state.available = false;
     state.notice = 'Claim a scoring hand before rolling again.';
-    if (!chanceHands(state).length) endTurn(state, true);
+    const lost = chanceHands(state).length ? undefined : state.pending;
+    recordActivity(state, seat, { kind: 'roll', dice: state.dice, rolled, hot, ...(lost !== undefined && { lost }) });
+    if (lost !== undefined) endTurn(state, true);
     return state;
   }
   const hand = chanceHands(state).find(hand => hand.mask === move.mask);
@@ -126,7 +152,12 @@ export function applyCrownChanceMove(previous: CrownChanceState, seat: number, m
   state.qualified ||= hand.size >= 2;
   state.available = true;
   state.notice = `${hand.name} · +${hand.points.toLocaleString()}`;
-  if (state.claimed.every(Boolean)) {
+  const hot = state.claimed.every(Boolean);
+  recordActivity(state, seat, {
+    kind: 'claim', hand: hand.name, points: hand.points, hot,
+    dice: state.dice.filter((_, i) => Boolean(hand.mask & (1 << i))),
+  });
+  if (hot) {
     state.scores[seat]!.hot++;
     state.notice += ' · Hot Dice!';
   }

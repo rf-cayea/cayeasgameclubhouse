@@ -1,3 +1,5 @@
+import { GameEffectsButton } from '@/components/GameEffectsButton';
+import { useGameCue } from '@/lib/game-cues';
 import {RewardCrates} from '@/components/DiceCrateRewards';
 import { MultiplayerLobby, MatchMakingButton } from '@/components/MultiplayerLobby';
 import { RUMMY_DESIGNS } from '@/lib/rummy-cosmetics';
@@ -8,7 +10,6 @@ import { smartRummySort } from '@/lib/rummy-smart-sort';
 import { useRummySound, useRummyAnnouncement } from '@/lib/use-rummy-announcements';
 import { RummyAnnouncement } from '@/components/RummyAnnouncement';
 import { FarkleAudioIcon } from '@/components/FarkleSoundControls';
-import '@/styles/rummy-enhancements.css';
 import { FriendInvitePanel } from '@/components/FriendInvitePanel';
 import { RoomConnectionDetails } from '@/components/RoomConnectionDetails';
 import { usePlayerProfile } from '@/lib/social';
@@ -32,6 +33,7 @@ import type { GameMode, RoomView } from '@/lib/rummy-protocol';
 import { useClubhouse } from '@/lib/clubhouse';
 
 export const Route = createFileRoute('/games/rummy')({
+  loader: async () => { await import('@/styles/rummy-enhancements.css'); },
   validateSearch: (search: Record<string, unknown>): { room?: string } => ({ room: typeof search.room === 'string' && /^[a-f0-9]{8}$/i.test(search.room) ? search.room.toUpperCase() : undefined }),
   head: () => ({ meta: [{ title: "Rummy+ — Cayea's Game Clubhouse" }] }), component: RummyPage,
 });
@@ -114,7 +116,7 @@ function RummyPage() {
     try { await navigator.clipboard.writeText(url.toString()); setNotice('Invitation link copied.'); }
     catch { setNotice(`Share room code ${network.room!.code} with your friends.`); }
   }
-  return <CardDeckProvider deck={rummyDeck(collection.data.equipped.deck)}><div className="rummy-scene game-viewport rummy-viewport" style={sceneStyle} onPointerDownCapture={()=>{sound.unlock();music.unlock();}} onKeyDownCapture={()=>{sound.unlock();music.unlock();}}><GameHeader title="Rummy+"><button className="dice-crate-entry" aria-label="Rewards crates" onClick={()=>setCratesOpen(true)}>🎁<span className="dice-crate-label"> Rewards</span></button><button aria-label="Artwork & rewards" onClick={() => setAppearanceOpen(true)}>Artwork</button>{!practice && network.room && <button onClick={() => setTableOpen(true)}>{network.room.mode === 'online' ? 'Invite' : 'Table'}</button>}{practice ? <button onClick={() => setPractice(false)}>Game table</button> : network.room ? <button aria-label="Leave table" onClick={() => setLeaving(true)}>Leave</button> : <><button aria-label="Hand practice" onClick={() => setPractice(true)}>Practice</button><button onClick={() => setJoinOpen(true)}>Join</button></>}<CardGameMusicButton music={music}/></GameHeader><CardGameMusicPanel music={music}/><main className="mx-auto max-w-7xl px-3 py-6 sm:px-6"><div className="table-play-stage" aria-label="Rummy table surface">
+  return <CardDeckProvider deck={rummyDeck(collection.data.equipped.deck)}><div className="rummy-scene game-viewport rummy-viewport" style={sceneStyle} onPointerDownCapture={()=>{sound.unlock();music.unlock();}} onKeyDownCapture={()=>{sound.unlock();music.unlock();}}><GameHeader title="Rummy+"><GameEffectsButton/><button className="dice-crate-entry" aria-label="Rewards crates" onClick={()=>setCratesOpen(true)}>🎁<span className="dice-crate-label"> Rewards</span></button><button aria-label="Artwork & rewards" onClick={() => setAppearanceOpen(true)}>Artwork</button>{!practice && network.room && <button onClick={() => setTableOpen(true)}>{network.room.mode === 'online' ? 'Invite' : 'Table'}</button>}{practice ? <button onClick={() => setPractice(false)}>Game table</button> : network.room ? <button aria-label="Leave table" onClick={() => setLeaving(true)}>Leave</button> : <><button aria-label="Hand practice" onClick={() => setPractice(true)}>Practice</button><button onClick={() => setJoinOpen(true)}>Join</button></>}<CardGameMusicButton music={music}/></GameHeader><CardGameMusicPanel music={music}/><main className="mx-auto max-w-7xl px-3 py-6 sm:px-6"><div className="table-play-stage" aria-label="Rummy table surface">
     {cratesOpen&&<GamePanel title="Card-deck reward crates" close={()=>setCratesOpen(false)}><RewardCrates collection="cards"/></GamePanel>}
     {tableOpen && <GamePanel title="Rummy+ table & invitations" close={() => setTableOpen(false)}>{network.room?.mode === 'online' && <><button className="btn-gold" onClick={() => void invite()}>Copy invitation link</button><FriendInvitePanel userId={user?.id ?? null} game="rummy" code={network.room.code}/></>}<RoomConnectionDetails game="rummy" connection={network}/><Link to="/profile" className="mt-4 inline-block text-gold underline">Edit your gamer name</Link></GamePanel>}
     {appearanceOpen && <GamePanel title="Rummy+ artwork & rewards" close={() => setAppearanceOpen(false)}><RummyCollection ownedOnly collection={collection} onEquip={slot => { if (slot === 'table') setAppearance(previous => ({ ...previous, tableImage: '', plainFelt: false })); }}/><details className="card-appearance-panel"><summary>Use your own images</summary><div className="mt-3 grid gap-3"><label>Plain felt color<select aria-label="Felt color" value={appearance.felt} onChange={event => setAppearance(previous => ({ ...previous, felt: event.target.value, tableImage: '', plainFelt: true }))} className="rummy-input"><option value="forest">Forest</option><option value="ocean">Ocean</option><option value="wine">Burgundy</option></select></label><label>Custom table surface<input aria-label="Table surface image" className="mt-1 block w-full text-xs" type="file" accept="image/*" onChange={event => void image(event.target.files?.[0], 'tableImage')} /></label><button className="btn-ghost-gold" onClick={() => setAppearance({ felt: 'forest', tableImage: '' })}>Use collected artwork</button></div><p className="mt-3 text-xs">Custom images stay in this browser. Earned designs and your selected artwork are saved to your account.</p></details></GamePanel>}
@@ -158,6 +160,8 @@ function GameTable({ room, pending, send, sound }: { sound: ReturnType<typeof us
   const [revealed, setRevealed] = useState('');
   const [notice, setNotice] = useState('');
   const [panel, setPanel] = useState<'melds' | 'tools' | 'round' | 'rules' | 'plays' | null>(null);
+  const latestPlay = room.activity?.at(-1);
+  useGameCue(room.code,latestPlay?.id,latestPlay?.kind==='rummy'?'match':'card');
   const roundCall = useRummyAnnouncement(room, sound);
   useEffect(() => { if (roundCall.busy) setPanel(null); else if (room.roundResult) setPanel('round'); }, [room.round, room.phase, roundCall.busy]);
   const fingerprint = [...room.hand].sort().join(',');

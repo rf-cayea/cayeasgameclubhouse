@@ -1,12 +1,12 @@
 import {Link} from '@tanstack/react-router';
 import {useEffect,useRef,useState} from 'react';
-import {useClubhouse} from '@/lib/clubhouse';
+import {useClubhouseAccount} from '@/lib/clubhouse';
 import {matchRequest} from '@/lib/matchmaking-api';
 import {MATCH_GAME_NAMES,MATCH_PATHS,type MatchGame} from '@/lib/matchmaking';
 import '@/styles/multiplayer-lobby.css';
 type Seat={name:string;ready:boolean;you?:boolean;occupied?:boolean};
 export function MultiplayerLobby({game,code,owner,capacity,players,pending,details,onReady,onStart,onLeave}:{game:MatchGame;code:string;owner:boolean;capacity:number;players:Seat[];pending:boolean;details:string;onReady:()=>void;onStart:()=>void;onLeave:()=>void}){
- const {user}=useClubhouse(),[listed,setListed]=useState<boolean|null>(null),[listingBusy,setListingBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
+ const {user}=useClubhouseAccount(),[listed,setListed]=useState<boolean|null>(null),[listingBusy,setListingBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const active=useRef(false),changing=useRef(false),visibilityEpoch=useRef(0),userId=user?.id??null,api=`/api/${game}/matchmaking`;
  useEffect(()=>{
   active.current=true;const generation=++visibilityEpoch.current;setListed(null);const controller=new AbortController();let reading=false;

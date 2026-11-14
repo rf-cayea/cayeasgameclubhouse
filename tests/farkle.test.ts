@@ -58,6 +58,16 @@ describe('turns, hot dice, banking and immediate wins', () => {
     expect(hot.turnPoints).toBe(1500);expect(hot.hotDice).toEqual([1,0]);
     const next=roll(hot,[1,2,3,4,5,6]);expect(next.kept).toEqual(Array(6).fill(false));expect(next.turnPoints).toBe(1500);expect(next.activity.at(-1)?.hot).toBe(true);
   });
+  it('celebrates a direct keep-and-bank once and does not repeat a prior Hot Dice keep', () => {
+    const dice = [0, 1, 2, 3, 4, 5];
+    const straight = roll(newFarkle(players), [1, 2, 3, 4, 5, 6]);
+    const direct = applyFarkleMove(straight, 0, { t: 'bank', dice })!;
+    expect(direct.activity.at(-1)).toMatchObject({ kind: 'bank', hot: true });
+    const kept = applyFarkleMove(straight, 0, { t: 'keep', dice })!;
+    const banked = applyFarkleMove(kept, 0, { t: 'bank' })!;
+    expect(banked.activity.slice(-2).map(event => event.hot)).toEqual([true, false]);
+    expect(banked.hotDice).toEqual([1, 0]);
+  });
   it('a Farkle loses the complete unbanked turn, preserves the bank, and records the actual roll for animation', () => {
     const before=ready(850,[500,1000]),next=roll(before,[2,2,3,3,4,6]);
     expect(next).toMatchObject({turn:1,turnPoints:0,scores:[500,1000],busts:[1,0]});

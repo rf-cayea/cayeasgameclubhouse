@@ -1,8 +1,11 @@
+import '@/styles/backgammon.css';
+import { D6DieFace } from './D6Dice';
+import type { D6DiceDesign } from '@/lib/d6-dice';
 import {BoardEmblem} from './BoardEmblem';
 import type {BGState,BGStep} from '@/lib/backgammon';
 import {BG_CLASSIC,BG_CLASSIC_CHIPS,type BGDesign} from '@/lib/backgammon-sets';
 export function BGChecker({design=BG_CLASSIC_CHIPS,seat=0}:{design?:BGDesign;seat?:number}){return <svg x="-20" y="-20" width="40" height="40" viewBox="-20 -20 40 40" data-bg-checkers={design.id}><circle r="18" cy="1.5" fill={design.rail}/><circle r="18" fill={seat===0?design.gold:design.ivory} stroke={design.rail} strokeWidth="2"/><circle r="14" fill="none" stroke={design.rail} strokeWidth=".6"/><g style={{color:design.rail}}><BoardEmblem motif={design.motif}/></g><path d="M-12-10Q0-20 13-10" fill="none" stroke="#fff9" strokeWidth="1.4"/></svg>;}
-export function BackgammonBoard({state,design=BG_CLASSIC,chips=BG_CLASSIC_CHIPS,viewer=0,selected=null,legal=[],hint,onPoint}:{state:Pick<BGState,'board'|'bar'|'off'>;design?:BGDesign;chips?:BGDesign;viewer?:number;selected?:number|null;legal?:BGStep[];hint?:BGStep;onPoint?:(point:number)=>void}){
+export function BackgammonBoard({state,design=BG_CLASSIC,chips=BG_CLASSIC_CHIPS,viewer=0,selected=null,legal=[],hint,onPoint,dice=[],diceDesign,rollId}:{state:Pick<BGState,'board'|'bar'|'off'>;design?:BGDesign;chips?:BGDesign;viewer?:number;selected?:number|null;legal?:BGStep[];hint?:BGStep;onPoint?:(point:number)=>void;dice?:number[];diceDesign?:D6DiceDesign;rollId?:number}){
  const source=(p:number)=>legal.some(m=>m.from===p),target=(p:number)=>legal.some(m=>m.from===selected&&m.to===p);
  const activate=(p:number)=>onPoint?.(p);return <svg className="bg-board-art" viewBox="0 0 820 560" role="group" aria-label={`${design.name} Backgammon board`} data-bg-board={design.id}>
  <rect x="3" y="3" width="814" height="554" rx="22" fill={design.rail} stroke={design.accent} strokeWidth="3"/><rect x="26" y="30" width="716" height="500" rx="10" fill={design.felt} stroke={design.accent}/><rect x="372" y="30" width="26" height="500" fill={design.rail}/>
@@ -11,5 +14,15 @@ export function BackgammonBoard({state,design=BG_CLASSIC,chips=BG_CLASSIC_CHIPS,
  {Array.from({length:Math.min(count,5)},(_,i)=><g key={i} transform={`translate(${x+24} ${y+dir*(24+i*38)})`}><g transform="scale(1.13)"><BGChecker design={chips} seat={seat}/></g>{i===4&&count>5&&<g><circle r="13" fill={design.rail}/><text y="5" textAnchor="middle" fill={design.accent} fontSize="15">{count}</text></g>}</g>)}<text x={x+24} y={row===0?23:546} textAnchor="middle" fill={design.accent} fontSize="15">{p+1}</text></g>;}))}
  {[0,1].map(seat=><g key={seat} transform={`translate(385 ${seat===viewer?365:190})`} role="button" tabIndex={onPoint?0:undefined} onClick={()=>activate(-1)} onKeyDown={e=>{if(e.key==='Enter')activate(-1);}} aria-label={`${seat===viewer?'Your':'Opponent'} bar: ${state.bar[seat]}`}><circle r="27" fill={selected===-1&&seat===viewer?'#d4b96d':design.rail} stroke={design.accent}/>{state.bar[seat]!>0&&<BGChecker design={chips} seat={seat}/>}<text y="44" textAnchor="middle" fill={design.accent} fontSize="16">BAR {state.bar[seat]}</text></g>)}
  {[0,1].map(seat=><g key={seat} transform={`translate(778 ${seat===viewer?405:150})`} role="button" tabIndex={onPoint?0:undefined} onClick={()=>activate(24)} onKeyDown={e=>{if(e.key==='Enter')activate(24);}} aria-label={`${seat===viewer?'Your':'Opponent'} bear off: ${state.off[seat]}`}><rect x="-23" y="-82" width="46" height="164" rx="8" fill={target(24)&&seat===viewer?'#e1d394':design.felt} stroke={design.accent}/><BGChecker design={chips} seat={seat}/><text y="45" textAnchor="middle" fill={design.accent} fontSize="19">{state.off[seat]}/15</text><text y="108" textAnchor="middle" fill={design.accent} fontSize="15">OFF</text></g>)}
- <g transform="translate(385 280)" style={{color:design.accent}}><BoardEmblem motif={design.motif}/></g></svg>;
+ <g transform="translate(385 280)" style={{color:design.accent}}><BoardEmblem motif={design.motif}/></g>
+ {dice.length > 0 && <g className="bg-felt-dice" role="img" aria-label={`Dice: ${dice.join(' and ')}`}>
+   {dice.map((value, index) => <g key={`${rollId ?? 'settled'}:${index}`} transform={`translate(${index === 0 ? 505 : 579} 258)`}>
+     <g className="bg-felt-die" data-rolling={rollId !== undefined} data-second={index === 1} data-playable={legal.some(move => move.die === value)}>
+       {rollId !== undefined && <svg className="bg-felt-die-flip" width="44" height="44" viewBox="0 0 44 44">
+         <D6DieFace value={(value + index + 1) % 6 + 1} design={diceDesign}/>
+       </svg>}
+       <svg className="bg-felt-die-result" width="44" height="44" viewBox="0 0 44 44"><D6DieFace value={value} design={diceDesign}/></svg>
+     </g>
+   </g>)}
+ </g>}</svg>;
 }

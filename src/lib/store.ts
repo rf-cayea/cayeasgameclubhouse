@@ -1,12 +1,12 @@
 import { isSharedDeck } from './playing-decks';
-import { isProfileFrameItem } from './profile-image';
+import { ownsCardTable } from './card-table-themes';
 import { economyRequest } from './economy-api';
-import { ECONOMY_CATALOG, POINT_FIELDS, type Currency, type EconomyCatalogItem, type EconomyCommandResult, type EconomyWallet, type StorePayment, type PointGame } from './economy-protocol';
+import { ECONOMY_CATALOG, POINT_FIELDS, isSharedTable, storePointSources, type Currency, type EconomyCatalogItem, type EconomyCommandResult, type EconomyWallet, type StorePayment, type PointGame } from './economy-protocol';
 import { SPADES_PARTNERSHIPS } from './spades-perks';
 
 export const JOKER_MODE = ECONOMY_CATALOG.find(item => item.id === 'rummy-jokers')!;
 export interface StoreItem { id: string; name: string; price: number; currency: 'rummy_points'; cashPrice: number }
-export interface Purchase { item_id: string; owned: boolean; already_owned: boolean; balance: number; currency: Currency; price: number }
+export interface Purchase { item_id: string; owned: boolean; already_owned: boolean; balance: number; currency: Currency; price: number; wallet: EconomyWallet }
 const currencies = new Set<string>(['points', ...Object.values(POINT_FIELDS)]);
 const confirmedWallet = (wallet: EconomyWallet | null | undefined) => Boolean(wallet &&
   ['points', ...Object.values(POINT_FIELDS), 'lifetime_points'].every(field => Number.isSafeInteger(wallet[field as keyof EconomyWallet]) && Number(wallet[field as keyof EconomyWallet]) >= 0) &&
@@ -32,13 +32,21 @@ export async function loadEconomyCatalog(): Promise<EconomyCatalogItem[]> {
 export async function purchaseStoreItem(itemId: string, expectedUserId?: string, payment: StorePayment = 'game', game?: PointGame): Promise<Purchase> {
   const item = ECONOMY_CATALOG.find(value => value.id === itemId);
   if (!item) throw new Error('Choose an available store item.');
-  if (game && isSharedDeck(itemId) && !['rummy', 'spades'].includes(game)) throw new Error('Use Rummy+ or Spades points for a shared deck.');
+  const source = payment === 'game' ? game : undefined;
+  if (source && !storePointSources(item).includes(source)) {
+    throw new Error(isSharedDeck(itemId) ? 'Use Rummy+ or Spades points for a shared deck.' : 'Choose a supported game for this unlock.');
+  }
   // The server chooses the price and spends the balance once, including retries.
-  const data = await economyRequest<EconomyCommandResult>({ operation: 'purchase', itemId, payment, ...(game && (isProfileFrameItem(itemId) || isSharedDeck(itemId)) && payment === 'game' ? { game } : {}) }, expectedUserId);
-  const currency = payment === 'cash' ? 'points' : (isProfileFrameItem(itemId) || isSharedDeck(itemId)) && game ? POINT_FIELDS[game] : item.currency, price = payment === 'cash' ? item.cashPrice : item.price;
-  const receipt = data.receipt, balance = data.wallet?.[currency];
-  if (data.ok !== true || receipt?.type !== 'purchase' || receipt.itemId !== itemId || typeof receipt.alreadyApplied !== 'boolean' || receipt.currency !== currency || receipt.amount !== price || !data.wallet?.owned?.includes(itemId) || !Number.isSafeInteger(balance) || balance < 0) throw new Error('The purchase could not be confirmed. Refresh your wallet before trying again.');
-  return { item_id: itemId, owned: true, already_owned: receipt.alreadyApplied, balance, currency, price };
+  const data = await economyRequest<EconomyCommandResult>({ operation: 'purchase', itemId, payment, ...(source ? { game: source } : {}) }, expectedUserId);
+  const currency = payment === 'cash' ? 'points' : source ? POINT_FIELDS[source] : item.currency;
+  const price = payment === 'cash' ? item.cashPrice : item.price;
+  const receipt = data.receipt, wallet = data.wallet, balance = wallet?.[currency];
+  const owned = Array.isArray(wallet?.owned) && (isSharedTable(item) ? ownsCardTable(wallet.owned, itemId) : wallet.owned.includes(itemId));
+  if (data.ok !== true || receipt?.type !== 'purchase' || receipt.itemId !== itemId || typeof receipt.alreadyApplied !== 'boolean' ||
+    receipt.currency !== currency || receipt.amount !== price || !owned || !Number.isSafeInteger(balance) || balance < 0) {
+    throw new Error('The purchase could not be confirmed. Refresh your wallet before trying again.');
+  }
+  return { item_id: itemId, owned: true, already_owned: receipt.alreadyApplied, balance, currency, price, wallet };
 }
 
 export async function equipStoreItem(slot: string, itemId: string, expectedUserId?: string) {

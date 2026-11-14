@@ -1,18 +1,18 @@
 import {createFileRoute,Link} from '@tanstack/react-router';
 import {useEffect,useRef,useState,useCallback} from 'react';
 import {GameHeader} from '@/components/GameChrome';
-import {useClubhouse} from '@/lib/clubhouse';
+import {useClubhouse, useClubhouseAccount} from '@/lib/clubhouse';
 import {usePlayerProfile} from '@/lib/social';
 import {matchRequest,MatchRequestError} from '@/lib/matchmaking-api';
 import {matchesMatchPreferences,MATCH_GAMES,MATCH_GAME_NAMES,MATCH_PATHS,matchRoomKey,type MatchGame,type MatchList,type MatchListing} from '@/lib/matchmaking';
-import '@/styles/matchmaking.css';
 export const Route=createFileRoute('/matchmaking')({
+  loader: async () => { await import('@/styles/matchmaking.css'); },
  validateSearch:(s:Record<string,unknown>):{game?:MatchGame;table?:string;deck?:string;target?:number}=>({game:MATCH_GAMES.includes(s.game as MatchGame)?s.game as MatchGame:undefined,table:typeof s.table==='string'&&s.table.length<80?s.table:undefined,deck:typeof s.deck==='string'&&s.deck.length<80?s.deck:undefined,target:s.game==='farkle'&&[5000,10000].includes(Number(s.target))?Number(s.target):undefined}),
  head:()=>({meta:[{title:"Match Making — Cayea's Game Clubhouse"},{name:'description',content:'Find open Rummy+, Spades, Quintsee, Farkle, Crown & Court and Dominoes tables, host a public match, and meet your next opponents.'}]}),
  component:MatchmakingPage,
 });
 function MatchmakingPage(){
- const search=Route.useSearch(),game=search.game??'rummy',{user,ready}=useClubhouse();
+ const search=Route.useSearch(),game=search.game??'rummy',{user,ready}=useClubhouseAccount();
  return <div className="game-viewport mm-scene"><GameHeader title="Match Making"><Link to={MATCH_PATHS[game]} className="btn-ghost-gold">Back to game</Link></GameHeader><main className="mm-main"><nav className="mm-game-tabs" aria-label="Match Making games">{MATCH_GAMES.map(value=><Link key={value} to="/matchmaking" search={{game:value}} aria-current={game===value?'page':undefined}>{MATCH_GAME_NAMES[value]}</Link>)}</nav>{!ready?<p role="status">Checking your account…</p>:<MatchmakingBoard key={`${game}:${user?.id??'guest'}`} game={game} userId={user?.id??null} table={search.table} deck={search.deck} target={search.target}/>}</main></div>;
 }
 function MatchmakingBoard({game,userId,table,deck,target:initialTarget}:{game:MatchGame;userId:string|null;table?:string;deck?:string;target?:number}){

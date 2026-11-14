@@ -1,0 +1,135 @@
+.classic-cards {
+  min-height: 100dvh;
+  --card-felt: #104536;
+  --card-felt-light: #1a604b;
+}
+.classic-cards-hearts {
+  --card-felt: #502135;
+  --card-felt-light: #76354e;
+}
+.classic-cards-main {
+  max-width: 62rem;
+  margin-inline: auto;
+  padding: clamp(.65rem, 3vw, 2rem);
+}
+.classic-cards-board, .classic-cards-setup {
+  border: 1px solid #aa8953;
+  border-radius: 1.25rem;
+  padding: clamp(.75rem, 3vw, 2rem);
+  color: #fff8e8;
+  background: radial-gradient(ellipse at 50% 22%, var(--card-felt-light), var(--card-felt));
+  text-align: center;
+}
+.classic-cards-intro h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  line-height: 1.05;
+  color: #ffda90;
+}
+.classic-cards-intro p { margin: .75rem auto; max-width: 32rem; }
+.classic-cards-preview, .classic-cards-center, .classic-cards-suits {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin: 1rem 0;
+}
+.classic-card-face {
+  display: block;
+  width: clamp(3.4rem, 12vw, 5.25rem);
+  aspect-ratio: 5 / 7;
+  margin-inline: auto;
+  border-radius: .35rem;
+  box-shadow: 0 .25rem .5rem #0006;
+}
+.classic-card-face > svg { display: block; width: 100%; height: 100%; border-radius: inherit; }
+.classic-cards-options { display: grid; justify-items: center; gap: .85rem; margin: 1rem 0 1.25rem; }
+.classic-cards-options label { display: grid; gap: .35rem; }
+.classic-cards-options select { background: #172421; color: #fff8e8; border: 1px solid #ab9262; border-radius: .45rem; padding: .55rem .75rem; }
+.classic-cards-options a { text-decoration: underline; color: #ffe1a3; font-size: .88rem; }
+.classic-cards-seats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(.2rem, 1vw, .7rem);
+}
+.classic-cards-seats li { display: grid; gap: .15rem; padding: .45rem .15rem; border: 1px solid #fff4; border-radius: .65rem; background: #0003; }
+.classic-cards-seats li.classic-cards-current { border-color: #ffd584; background: #0005; }
+.classic-cards-seats span, .classic-cards-round, .classic-cards-center p { font-size: .8rem; }
+.classic-cards-round { margin-bottom: .6rem; }
+.classic-cards-center { align-items: center; min-height: 5rem; }
+.classic-cards-center p { margin-top: .4rem; }
+.classic-cards-trick { min-height: 9rem; gap: clamp(.35rem, 2vw, 1.25rem); }
+.classic-cards-status { margin: .85rem 0; min-height: 1.5em; }
+.classic-cards-board .btn-gold:disabled { opacity: .55; cursor: default; }
+.classic-cards-hand { margin-top: 1.1rem; }
+.classic-cards-hand h3 { margin-bottom: .55rem; font-weight: 650; }
+.classic-cards-hand h3 span { margin-left: .4rem; font-size: .8rem; font-weight: 400; }
+.classic-cards-hand-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: .45rem; }
+.classic-cards-hand-grid button { padding: 0; border-radius: .35rem; }
+.classic-cards-hand-grid button:disabled { opacity: .65; }
+.classic-cards-hand-grid button:enabled { cursor: pointer; }
+.classic-cards-hand-grid button:enabled:hover,
+.classic-cards-hand-grid button[aria-pressed="true"] { outline: 2px solid #ffda90; outline-offset: 2px; }
+.classic-cards-hand-grid button:focus-visible { outline: 3px solid white; outline-offset: 2px; }
+.classic-cards-hand-grid .classic-card-face { width: clamp(2.55rem, 10vw, 4.15rem); }
+.classic-cards-rules { list-style: disc; padding-left: 1.25rem; }
+.classic-cards-rules li + li { margin-top: .75rem; }
+.classic-cards-actions { display: flex; flex-wrap: wrap; gap: .65rem; justify-content: center; }
+.classic-cards-options input { background: #172421; color: #fff8e8; border: 1px solid #ab9262; border-radius: .45rem; padding: .55rem .75rem; max-width: 100%; }
+.classic-cards-lobby-grid { display: grid; gap: .8rem; margin: 1rem 0; }
+.classic-cards-lobby-grid section, .classic-cards-public { border: 1px solid #fff4; border-radius: .8rem; padding: 1rem; background: #0003; }
+.classic-cards h3 { font-weight: 650; }
+.classic-cards-public ul { display: grid; gap: .45rem; margin-top: .7rem; }
+.classic-cards-public li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; padding: .65rem; text-align: left; border-top: 1px solid #fff4; }
+.classic-cards-notice { border: 1px solid #ba7854; padding: .65rem; margin-bottom: .65rem; border-radius: .45rem; }
+.classic-cards button:disabled { opacity: .55; cursor: default; }
+@media (min-width: 650px) { .classic-cards-lobby-grid { grid-template-columns: 1fr 1fr; } }
+.classic-cards-board, .classic-cards-setup {
+  background: var(--classic-table, radial-gradient(ellipse at 50% 22%, var(--card-felt-light), var(--card-felt)));
+  background-position: center;
+  background-size: var(--classic-table-size, cover);
+  border-color: var(--classic-table-rail, #aa8953);
+}
+.classic-cards-seats strong { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .classic-cards .game-play-header { grid-template-columns: auto minmax(0, 1fr); }
+  .classic-cards .game-play-header > div { grid-column: 1 / -1; flex-wrap: wrap; justify-content: center; }
+}
+
+/* The table, controls and hand share the viewport; setup and lobbies keep their
+   own scroll area without pushing the game's controls below the screen. */
+.game-viewport.classic-cards { min-height: 0; overflow: hidden; }
+.game-viewport.classic-cards > .classic-cards-main { overflow-y: auto; padding: 8px; max-width: 62rem; }
+.classic-cards-setup { margin-block: auto; }
+.classic-cards-board { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+.classic-cards-board > * { flex-shrink: 0; }
+.classic-cards-board > .classic-cards-center { flex: 1; min-height: 70px; margin: 0; }
+.classic-cards-board .classic-cards-status { margin: 0; font-size: 13px; line-height: 1.4; }
+.classic-cards-board > .btn-gold { align-self: center; min-height: 42px; padding: 8px 20px; }
+.classic-cards-board .classic-cards-hand { margin-top: 3px; }
+.classic-cards-hand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(43px, 1fr)); gap: 5px; max-height: 34dvh; overflow-y: auto; padding: 4px; }
+.classic-cards-hand-grid .classic-card-face { width: 100%; max-width: 64px; }
+.classic-cards-hand-grid button { min-width: 0; background: transparent; }
+.classic-cards-trick .classic-card-face { width: clamp(40px, 10vw, 72px); }
+.classic-cards-seats { flex-shrink: 0; }
+.classic-cards-round { margin-bottom: 0; }
+@media (max-width: 600px) {
+  .classic-cards .game-play-header { gap: 4px; padding: 5px 8px; }
+  .classic-cards .game-play-header h1 { font-size: 18px; }
+  .classic-cards .game-play-header > div { justify-content: flex-end; }
+  .classic-cards-board { padding: 8px; }
+  .classic-cards-seats li { padding: 4px 2px; }
+  .classic-cards-seats strong { font-size: 12px; }
+  .classic-cards-seats span { font-size: 10px; }
+  .classic-cards-board .classic-cards-status { font-size: 12px; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  .classic-cards-board { gap: 2px; padding: 5px; }
+  .classic-cards-hand h3 { display: none; }
+  .classic-cards-hand-grid { max-height: 22dvh; }
+  .classic-cards-hand-grid .classic-card-face { max-width: 43px; }
+  .classic-cards-board .classic-cards-center { min-height: 44px; }
+  .classic-cards-center .classic-card-face { width: 36px; }
+  .classic-cards-seats li { padding: 2px; }
+  .classic-cards-board > .btn-gold { min-height: 36px; padding-block: 4px; }
+}

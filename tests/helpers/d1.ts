@@ -13,6 +13,11 @@ export class TestD1 implements D1Binding {
     }
   }
   prepare(sql: string): D1Statement {
+    // Node SQLite permits hundreds of compound terms, unlike the hosted D1
+    // deployment. A conservative cap catches oversized cross-game UNION reads.
+    if ((sql.match(/\bUNION(?:\s+ALL)?\b/gi)?.length ?? 0) >= 5) {
+      throw new Error('D1_ERROR: too many terms in compound SELECT: SQLITE_ERROR');
+    }
     let values: (string | number | null)[] = [];
     const statement = {
       bind: (...input: unknown[]) => { values = input as typeof values; return statement; },

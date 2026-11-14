@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { CONVERSION_RATE, puzzleLevelPoints, type EconomyWallet } from "./economy-protocol";
+import { classicTitle } from './classic-card-protocol';
+import { CONVERSION_RATE, puzzleLevelPoints } from "./reward-rates";
+import type { EconomyWallet } from "./economy-protocol";
+export { useClubhouse, useClubhouseAccount } from "./clubhouse-account";
 export { ACHIEVEMENTS as BADGES } from "./achievement-catalog";
 
 export const HUB_NAME = "Cayea's Game Clubhouse";
@@ -27,6 +28,8 @@ export const GAMES: Game[] = [
   { slug: "faith-3", name: "Faith 3 Tile Match", tagline: "280 levels across ten world beliefs, including 80 mahjong-style layouts.", status: "live", icon: "🕊" },
   { slug: "rummy", name: "Cayea's Classic Cards Rummy+", tagline: "Classic, Gin and Rummy 500 — vs computer, online, or on one device.", status: "live", icon: "🃏" },
   { slug: "spades", name: "Cayea’s Classic Cards Spades", tagline: "Four players. Solo rivals or 2 vs 2 partners. Bid, play, and collect your own table and deck.", status: "live", icon: "♠" },
+  { slug: "crazy-eights", name: classicTitle('eights'), tagline: "Match rank or suit, call a new suit with wild eights or jokers, and empty your hand first. Play solo or host an online table.", status: "live", icon: "8" },
+  { slug: "hearts", name: classicTitle('hearts'), tagline: "Dodge penalty cards or shoot the moon in classic Hearts or the Clubhouse Jokers variant, solo or online.", status: "live", icon: "♥" },
   { slug: "3-gems", name: "3 Gems of Buddhism", tagline: "200 match-three levels. Restore four monasteries, 50 levels each.", status: "live", icon: "🪷" },
 ];
 
@@ -53,130 +56,3 @@ export const notifyWallet = () => {
   window.dispatchEvent(new Event(EVT));
   try { localStorage.setItem('clubhouse-wallet-refresh', crypto.randomUUID()); } catch { /* Cross-tab refresh is optional in private browsing. */ }
 };
-
-
-type ClubhouseUser = { id: string; email?: string | undefined };
-
-export function useClubhouse() {
-  const [user, setUser] = useState<ClubhouseUser | null>(null);
-  const [ready, setReady] = useState(false);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [sources, setSources] = useState<string[]>([]);
-  const [humanWinSources, setHumanWinSources] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const mounted = useRef(false);
-  const request = useRef(0);
-  const currentUserId = useRef<string | null>(null);
-
-  const clearWallet = useCallback(() => {
-    setWallet(null);
-    setSources([]);
-    setHumanWinSources([]);
-  }, []);
-
-  const load = useCallback(async () => {
-    const version = ++request.current;
-    const active = () => mounted.current && request.current === version;
-    const client = supabase;
-    if (!active()) return;
-    setError(null);
-    if (!client) {
-      currentUserId.current = null;
-      setUser(null);
-      clearWallet();
-      setReady(true);
-      return;
-    }
-
-    let verifiedUser: ClubhouseUser | null = null;
-    try {
-      // A missing local session is the normal signed-out state, not a backend error.
-      const { data: session, error: sessionError } = await client.auth.getSession();
-      if (!active()) return;
-      if (sessionError) throw sessionError;
-      if (!session.session) {
-        currentUserId.current = null;
-        setUser(null);
-        clearWallet();
-        return;
-      }
-
-      const { data: identity, error: identityError } = await client.auth.getUser();
-      if (!active()) return;
-      if (identityError) throw identityError;
-      if (!identity.user) throw new Error("Your session could not be verified. Please sign in again.");
-      verifiedUser = { id: identity.user.id, email: identity.user.email };
-      if (currentUserId.current !== verifiedUser.id) clearWallet();
-      currentUserId.current = verifiedUser.id;
-      setUser(verifiedUser);
-
-      const response = await fetch('/api/economy', { credentials: 'same-origin', headers: { Authorization: `Bearer ${session.session.access_token}` }, signal: AbortSignal.timeout(15000) });
-      const result = await response.json();
-      if (!active()) return;
-      if (!response.ok) throw new Error(typeof result?.error === 'string' ? result.error : 'Your reward wallet could not load. Please retry.');
-      if (!result?.wallet || !Array.isArray(result.sources) || !Array.isArray(result.humanWinSources)) throw new Error('The reward wallet response could not be verified.');
-      setWallet(result.wallet as Wallet);
-      setSources(result.sources);
-      setHumanWinSources(result.humanWinSources);
-    } catch (cause) {
-      if (!active()) return;
-      currentUserId.current = verifiedUser?.id ?? null;
-      setUser(verifiedUser);
-      clearWallet();
-      setError(cause instanceof Error ? cause.message : (
-        typeof cause === "object" && cause !== null && "message" in cause
-          ? String(cause.message) : "Unable to load Clubhouse account data. Please try again."
-      ));
-    } finally {
-      if (active()) setReady(true);
-    }
-  }, [clearWallet]);
-
-  useEffect(() => {
-    mounted.current = true;
-    void load();
-    const timers = new Set<ReturnType<typeof setTimeout>>();
-    const subscription = supabase?.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        ++request.current;
-        currentUserId.current = null;
-        setUser(null);
-        clearWallet();
-        setError(null);
-        setReady(true);
-        return;
-      }
-      if (session?.user.id && session.user.id !== currentUserId.current) {
-        ++request.current;
-        currentUserId.current = null;
-        setUser(null);
-        clearWallet();
-        setReady(false);
-      }
-      // Supabase holds its auth lock inside this callback. Defer further auth calls.
-      const timer = setTimeout(() => { timers.delete(timer); void load(); }, 0);
-      timers.add(timer);
-    });
-    const refresh = () => { void load(); };
-    window.addEventListener(EVT, refresh);
-    const stored = (event: StorageEvent) => { if (event.key === 'clubhouse-wallet-refresh') refresh(); };
-    window.addEventListener('storage', stored);
-    window.addEventListener('focus', refresh);
-    return () => {
-      mounted.current = false;
-      ++request.current;
-      subscription?.data.subscription.unsubscribe();
-      for (const timer of timers) clearTimeout(timer);
-      window.removeEventListener(EVT, refresh);
-      window.removeEventListener('storage', stored);
-      window.removeEventListener('focus', refresh);
-    };
-  }, [clearWallet, load]);
-
-  const applyWallet = useCallback((ownerId: string, confirmed: Wallet) => {
-    if (!mounted.current || currentUserId.current !== ownerId) return;
-    ++request.current; // An older refresh must not overwrite a confirmed mutation.
-    setWallet(confirmed); setError(null); setReady(true);
-  }, []);
-  return { user, ready, wallet, sources, humanWinSources, reload: load, applyWallet, error };
-}

@@ -1,3 +1,4 @@
+import { ownsCardTable, canonicalCardTable } from '../src/lib/card-table-themes';
 import { COMPUTER_STEP_MS,type ComputerStates } from '../src/lib/computer-turns';
 import { validCardRewardAmount } from '../src/lib/reward-rates';
 import { canonicalDeckId, ownsPlayingDeck } from '../src/lib/playing-decks';
@@ -28,11 +29,11 @@ function settings(input: unknown): SpadesOptions {
   const value = { ...raw, deck: typeof raw.deck === 'string' ? canonicalDeckId(raw.deck) : raw.deck };
   if (!['bot', 'online'].includes(value.mode) || !['solo', 'teams'].includes(value.variant) || !SPADES_TARGETS.includes(value.target as 500) ||
     !['easy', 'normal', 'hard'].includes(value.level) || !Number.isInteger(value.humans) || value.humans < 2 || value.humans > 4 ||
-    ![CLASSIC_VENUE, ...SPADES_VENUES].some(item => item.id === value.table) || ![CLASSIC_DECK, ...SPADES_DECKS].some(item => item.id === value.deck)) throw new RummyError('Invalid Spades settings.');
-  return { mode: value.mode, variant: value.variant, target: value.target, humans: value.humans, level: value.level, table: value.table, deck: value.deck };
+    ![CLASSIC_VENUE, ...SPADES_VENUES].some(item => item.id === canonicalCardTable(String(value.table))) || ![CLASSIC_DECK, ...SPADES_DECKS].some(item => item.id === value.deck)) throw new RummyError('Invalid Spades settings.');
+  return { mode: value.mode, variant: value.variant, target: value.target, humans: value.humans, level: value.level, table: canonicalCardTable(String(value.table)), deck: value.deck };
 }
 function checkLook(identity: Identity, options: SpadesOptions) {
-  for (const id of [options.table, options.deck]) if (![CLASSIC_VENUE.id, CLASSIC_DECK.id].includes(id) && !(id === options.deck ? ownsPlayingDeck(identity.owned ?? [], id) : identity.owned?.includes(id))) throw new RummyError('Collect this Spades design in the store before using it at a table.', 403);
+  for (const id of [options.table, options.deck]) if (![CLASSIC_VENUE.id, CLASSIC_DECK.id].includes(id) && !(id === options.deck ? ownsPlayingDeck(identity.owned ?? [], id) : ownsCardTable(identity.owned ?? [], id))) throw new RummyError('Collect this Spades design in the store before using it at a table.', 403);
 }
 export function checkSpadesPartnershipAccess(identity: Identity, variant: SpadesOptions['variant']) {
   if (variant === 'teams' && (!memberId(identity.principal) || !ownsSpadesPartnerships(identity.owned))) {

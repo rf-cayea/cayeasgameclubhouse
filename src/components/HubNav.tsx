@@ -1,14 +1,14 @@
 import { ClubhouseLogo } from "./ClubhouseLogo";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HUB_NAME, useClubhouse } from "@/lib/clubhouse";
+import { HUB_NAME, useClubhouseAccount } from "@/lib/clubhouse";
 import { supabase } from "@/integrations/supabase/client";
 import { useModerationRole } from "@/lib/moderation-api";
 import { useSocialResource } from '@/lib/social';
 import type { FriendsView, InvitesView } from '@/lib/social-protocol';
 
 export function HubNav() {
-  const { user, ready } = useClubhouse();
+  const { user, ready } = useClubhouseAccount();
   const moderation = useModerationRole(user?.id);
   const friends = useSocialResource<FriendsView>('/api/social/friends', user?.id ?? null), invitations = useSocialResource<InvitesView>('/api/social/invites', user?.id ?? null);
   const pendingFriends = (friends.data?.incoming.length ?? 0) + (invitations.data?.incoming.filter(invite => invite.status === 'pending' && invite.available).length ?? 0);
@@ -20,7 +20,7 @@ export function HubNav() {
     setBusy(true);
     setError(null);
     try {
-      const result = await supabase.auth.signOut();
+      const result = await supabase.auth.signOut({ scope: 'local' });
       if (result.error) throw result.error;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not sign out. Please try again.");

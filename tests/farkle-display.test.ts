@@ -27,6 +27,6 @@ describe('Farkle scoring rows and permanent turn record',()=>{
  });
  it('slows opponent rolls, keeps and banks while allowing the dice to settle before the next decision',()=>{
   let s=roll(newFarkle(players),[1,1,1,2,3,4]);const r=s.activity.at(-1)!;s=applyFarkleMove(s,0,{t:'keep',dice:[0,1,2]})!;const k=s.activity.at(-1)!;s=applyFarkleMove(s,0,{t:'bank'})!;const b=s.activity.at(-1)!;
-  expect(farkleActivityDuration(r,true)).toBe(1900);expect(farkleActivityDuration(k,true)).toBe(1200);expect(farkleActivityDuration(b,true)).toBe(2000);expect(farkleActivityDuration(r,false)).toBe(850);
+  expect(farkleActivityDuration(r,true)).toBe(2400);expect(farkleActivityDuration(k,true)).toBe(1200);expect(farkleActivityDuration(b,true)).toBe(2000);expect(farkleActivityDuration(r,false)).toBe(850);
  });
 });

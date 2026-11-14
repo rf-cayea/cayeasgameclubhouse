@@ -22,8 +22,8 @@ Each of four crate collections requires **6 signed-in real-player wins** or
 **9 computer wins**: Dice (Quintsee/Farkle), Dominoes, shared decks (Rummy+/Spades)
 and Backgammon (including Nackgammon). Computer crates give **3–20 Cash**;
 real-player crates **28–65 Cash**. Each adds one fragment; three matching
-fragments complete a set. Store fragments cost `ceil(set price / 3)` each in
-points or Cash. Legacy progress/receipts and existing ownership are preserved.
+fragments complete a set. Store fragments are sold individually at one-third of the listed price in
+points or Cash, with whole-unit rounding spread across the three fragments. Legacy progress/receipts and existing ownership are preserved.
 
 Harvest & Hearth has 100 picture cards (38/26/20/16 by 1–4 stars; 45 fall and
 55 winter). Three-card booster prices are 20/40/75/125 Cash. Packs have a 44%

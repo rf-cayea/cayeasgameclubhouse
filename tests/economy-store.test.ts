@@ -1,3 +1,4 @@
+import { canonicalCardTable, ownsCardTable } from '../src/lib/card-table-themes';
 import { D6_DICE_SETS, D6_DICE_SLOT, equippedD6Dice } from '../src/lib/d6-dice';
 import { NAUTICAL_BUNDLES } from '../src/lib/nautical-sets';
 import { type FiveDiceMatchReward, validFiveDiceReceipt, fiveDiceRewardTier } from '../src/lib/five-dice-rewards';
@@ -148,8 +149,17 @@ describe.each(['node','d1'] as const)('authoritative economy on %s',backend=>{
   const {store,initialize}=setup(backend);await initialize(a,legacy({rummy_points:1500,spades_points:1500}));
   expect(ECONOMY_CATALOG.some(item=>item.id.startsWith('rummy-room-'))).toBe(false);
   const tables=ECONOMY_CATALOG.filter(item=>['rummy_table','spades_table'].includes(item.slot ?? ''));expect(tables.length).toBeGreaterThan(8);
-  for(const item of tables){expect(item.price).toBe(125);expect(item.cashPrice).toBe(97);const purchase=await store.command(actor(),{operation:'purchase',itemId:item.id});expect(purchase.receipt.alreadyApplied).toBe(false);}
-  const result=await store.wallet(actor());expect(result.rummy_points).toBe(1500-125*tables.filter(item=>item.currency==='rummy_points').length);expect(result.spades_points).toBe(1500-125*tables.filter(item=>item.currency==='spades_points').length);
+  const purchased = new Set<string>();
+  const spent = { rummy_points: 0, spades_points: 0 };
+  for (const item of tables) {
+    expect(item.price).toBe(125); expect(item.cashPrice).toBe(97);
+    const id = canonicalCardTable(item.id), already = purchased.has(id);
+    const purchase = await store.command(actor(), { operation: 'purchase', itemId: item.id });
+    expect(purchase.receipt.alreadyApplied).toBe(already);
+    if (!already) spent[item.currency as keyof typeof spent] += item.price;
+    purchased.add(id);
+  }
+  const result=await store.wallet(actor());expect(result.rummy_points).toBe(1500-spent.rummy_points);expect(result.spades_points).toBe(1500-spent.spades_points);
   await expect(store.command(actor(),{operation:'purchase',itemId:'rummy-room-riviera'})).rejects.toThrow('unavailable');
   await expect(store.command(actor(),{operation:'purchase',itemId:tables[0]!.id,game:'3-gems'})).rejects.toThrow('supported game');
  });
@@ -308,7 +318,7 @@ describe.each(['node','d1'] as const)('authoritative economy on %s',backend=>{
   for(const item of ECONOMY_CATALOG) {
     const before=await store.wallet(actor());
     const result=await store.command(actor(),{operation:'purchase',itemId:item.id,payment:'cash',cashPrice:0});
-    const alreadyOwned=before.owned.includes(item.id);
+    const alreadyOwned=item.slot==='spades_table'||item.slot==='rummy_table'?ownsCardTable(before.owned,item.id):before.owned.includes(item.id);
     expect(result.receipt).toMatchObject({currency:'points',amount:item.cashPrice,alreadyApplied:alreadyOwned});
     expect(result.wallet.points).toBe(before.points-(alreadyOwned?0:item.cashPrice));
     expect(result.wallet.rummy_points).toBe(0);expect(result.wallet.spades_points).toBe(0);
@@ -351,16 +361,16 @@ describe.each(['node','d1'] as const)('authoritative economy on %s',backend=>{
   const imported=legacy({owned:['rummy-deck-atlas','spades-deck-atlas','spades-deck-deco','rummy-jokers'],equipped:{spades_deck:'spades-deck-atlas'}});
   await initialize(a,imported);const current=await store.wallet(actor());
   expect(current).toMatchObject({points:1000,rummy_points:1000,spades_points:1000,lifetime_points:5000,equipped:{spades_deck:'card-deck-atlas'}});
-  expect([...current.owned].sort()).toEqual(['card-deck-atlas','card-deck-ember','card-deck-grove','card-deck-deco','rummy-jokers'].sort());
-  for(let i=0;i<5;i++)rummy(); // Completing more matches after migration never grants another collectible.
-  await Promise.all([store.wallet(actor()),store.wallet(actor())]);expect(await store.wallet(actor())).toEqual(current);
+  expect([...current.owned].sort()).toEqual(['card-deck-atlas','card-deck-ember','card-deck-grove','card-deck-deco','rummy-jokers','rummy-table-riviera','rummy-table-sapphire'].sort());
+  for(let i=0;i<5;i++)rummy(); // Only the next earned table unlocks after migration.
+  await Promise.all([store.wallet(actor()),store.wallet(actor())]);expect(await store.wallet(actor())).toEqual({...current,owned:[...current.owned,'rummy-table-burgundy']});
   expect(raw.prepare("SELECT count(*) n FROM economy_ledger WHERE source='legacy:shared-playing-decks'").get()?.n).toBe(1);
   expect((await store.read(actor())).history.some(row=>row.source==='legacy:shared-playing-decks')).toBe(false);
   await expect(store.command(actor(),{operation:'purchase',itemId:'rummy-deck-ember'})).rejects.toMatchObject({status:400});
  });
  it('does not grant shared decks from wins earned after a new wallet was initialized',async()=>{
   const {store,initialize,rummy}=setup(backend);await initialize();for(let i=0;i<10;i++)rummy();
-  expect((await store.wallet(actor())).owned).toEqual([]);
+  expect((await store.wallet(actor())).owned).toEqual(['rummy-table-riviera','rummy-table-sapphire','rummy-table-burgundy']);
   const result=await store.command(actor(),{operation:'purchase',itemId:'card-deck-atlas'});
   expect(result.receipt).toMatchObject({alreadyApplied:false,amount:563});expect(result.wallet.rummy_points).toBe(687);
  });

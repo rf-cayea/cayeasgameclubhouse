@@ -139,7 +139,7 @@ export class FarkleRoomStore {
     if(command.operation==='leave')return {...saved,changed:false};
     return {view:await this.get(saved.view.code,identity.principal,identity.owned),changed:false};
   }
-  async command(identity:Identity,input:unknown):Promise<FarkleCommandResult> {
+  async command(identity:Identity,input:unknown,attempts=4):Promise<FarkleCommandResult> {
     const command=commandFor(input),payload=JSON.stringify(command),prior=await this.prior(identity.principal,command.requestId);
     if(prior)return this.repeated(identity,command,payload,prior);
     let room:Room,oldRevision:number,leaving:FarkleRoomView|null=null;
@@ -203,7 +203,10 @@ export class FarkleRoomStore {
     try {await this.binding.batch(statements);}catch(error) {
       const duplicate=await this.prior(identity.principal,command.requestId);
       if(duplicate)return this.repeated(identity,command,payload,duplicate);
-      if(/room_revision_matches|CHECK constraint failed.*command_guards/.test(String(error)))throw new RummyError('The table changed. Refresh before playing.',409,'stale');
+      if(/room_revision_matches|CHECK constraint failed.*command_guards/.test(String(error))){
+        if(command.operation==='leave'&&attempts>1)return this.command(identity,input,attempts-1);
+        throw new RummyError('The table changed. Refresh before playing.',409,'stale');
+      }
       throw error;
     }
     return result;

@@ -23,7 +23,7 @@ describe('shared earned-points storefront', () => {
     const itemId = JOKER_MODE.id;
     const data = { ok: true, receipt: { type: 'purchase', itemId, currency: 'rummy_points', amount: 500, alreadyApplied: false }, wallet: { rummy_points: 30, owned: [itemId] } };
     mocks.request.mockResolvedValue(data);
-    expect(await purchaseJokerMode('original-member')).toEqual({ item_id: itemId, owned: true, already_owned: false, balance: 30, currency: 'rummy_points', price: 500 });
+    expect(await purchaseJokerMode('original-member')).toEqual({ item_id: itemId, owned: true, already_owned: false, balance: 30, currency: 'rummy_points', price: 500, wallet: data.wallet });
     expect(mocks.request).toHaveBeenCalledWith({ operation: 'purchase', itemId, payment: 'game' }, 'original-member');
     mocks.request.mockResolvedValue({ ...data, receipt: { ...data.receipt, currency: 'points' } });
     await expect(purchaseJokerMode('original-member')).rejects.toThrow('could not be confirmed');
@@ -39,6 +39,20 @@ describe('shared earned-points storefront', () => {
     mocks.request.mockResolvedValue({ ok: true, receipt: { type: 'equip', itemId: 'faith3-skin-jade' }, wallet: { ...wallet, equipped: { faith3_skin: 'faith3-skin-jade' } } });
     await expect(equipStoreItem('faith3_skin', 'faith3-skin-jade', 'member-a')).rejects.toThrow('could not be confirmed');
   });
+  it('uses the selected balance for shared tables and accepts ownership under their legacy alias', async () => {
+    const itemId = 'spades-table-nocturne';
+    const wallet = { rummy_points: 875, spades_points: 1000, owned: ['rummy-table-nocturne'] };
+    mocks.request.mockResolvedValue({
+      ok: true,
+      receipt: { type: 'purchase', itemId, currency: 'rummy_points', amount: 125, alreadyApplied: true },
+      wallet,
+    });
+    await expect(purchaseStoreItem(itemId, 'member-a', 'game', 'rummy')).resolves.toMatchObject({
+      already_owned: true, price: 125, currency: 'rummy_points', wallet,
+    });
+    expect(mocks.request).toHaveBeenCalledWith({ operation: 'purchase', itemId, payment: 'game', game: 'rummy' }, 'member-a');
+  });
+
   it('verifies shared-deck checkout against the chosen points source and the new price', async () => {
     const itemId = 'card-deck-four-color';
     const data = { ok: true, receipt: { type: 'purchase', itemId, currency: 'spades_points', amount: 563, alreadyApplied: false }, wallet: { spades_points: 437, owned: [itemId] } };

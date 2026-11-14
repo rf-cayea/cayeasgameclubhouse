@@ -6,6 +6,8 @@ import { crownCourtActivityDuration, crownCourtActivityFrames } from './crown-co
 /** Display committed moves at a readable pace. Never writes to or predicts the game state. */
 export function useCrownCourtPresentation(room: CrownCourtRoomView | null) {
   const scope = room ? `${room.code}:${room.mySeat}` : '';
+  const seat = useRef(room?.mySeat);
+  seat.current = room?.mySeat;
   const owner = useRef(''), seen = useRef(0), queue = useRef<CrownCourtActivity[]>([]);
   const current = useRef<CrownCourtActivity | null>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [frame, setFrame] = useState<CrownCourtActivity | null>(null);
@@ -16,7 +18,7 @@ export function useCrownCourtPresentation(room: CrownCourtRoomView | null) {
   const advance = useCallback(function next() {
     const event = queue.current.shift() ?? null;
     current.current = event; setFrame(event);
-    timer.current = event ? setTimeout(next, crownCourtActivityDuration(event)) : null;
+    timer.current = event ? setTimeout(next, crownCourtActivityDuration(event) + (event.kind === 'roll' && event.seat !== seat.current ? 1200 : 0)) : null;
   }, []);
   useEffect(() => {
     const state = room?.state, sequence = state?.actionSequence ?? state?.activity?.at(-1)?.id ?? 0;

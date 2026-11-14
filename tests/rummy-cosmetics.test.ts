@@ -35,7 +35,7 @@ describe.each(['node', 'd1'] as const)('Rummy+ earned artwork on %s', kind => {
     const { store } = setup(kind);
     const defaults = await store().appearance('guest:any');
     expect(defaults).toMatchObject({ member: false, wins: 0, equipped: DEFAULT_RUMMY_APPEARANCE });
-    expect(defaults.owned).toHaveLength(3);
+    expect(defaults.owned).toEqual(expect.arrayContaining([...Object.values(DEFAULT_RUMMY_APPEARANCE), 'spades-table-classic']));
     await expect(Promise.resolve().then(() => store().equipAppearance(member.principal, { background: 'rummy-room-moonlit', table: DEFAULT_RUMMY_APPEARANCE.table, wins: 100, owned: RUMMY_DESIGNS.map(item => item.id) }))).rejects.toMatchObject({ status: 403, code: 'design_locked' });
     await expect(Promise.resolve().then(() => store().equipAppearance(member.principal, { background: DEFAULT_RUMMY_APPEARANCE.table, table: DEFAULT_RUMMY_APPEARANCE.table }))).rejects.toMatchObject({ status: 400 });
     await expect(Promise.resolve().then(() => store().equipAppearance(member.principal, { ...DEFAULT_RUMMY_APPEARANCE, deck: 'card-deck-deco', wins: 100 }))).rejects.toMatchObject({ status: 403, code: 'design_locked' });

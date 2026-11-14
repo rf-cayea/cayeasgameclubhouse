@@ -65,3 +65,9 @@
 
 /* Let the button receive taps rather than transformed cube faces. */
 .fd-die > * { pointer-events:none; }
+
+.fd-die[data-playable=true] .fd-die-visual::after {
+  border-color: #c6ffc0;
+  box-shadow: 0 0 0 2px #94f78b, 0 0 13px 4px #79ff78b8, 0 0 23px #75fa8b78;
+}
+.fd-die[data-playable=true]:disabled { opacity: 1; }

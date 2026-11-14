@@ -1,3 +1,4 @@
+import { RUMMY_TABLE_SURFACES, canonicalCardTable, ownsCardTable } from '../src/lib/card-table-themes';
 import { CARROM_BOARD_SLOT, CARROM_PUCK_SLOT, CARROM_STRIKER_SLOT, CLASSIC_CARROM_STRIKER, CLASSIC_CARROM_BOARD, CLASSIC_CARROM_PUCKS } from '../src/lib/carrom-sets';
 import {carromRewardTier,carromWinner,type CarromMatchReward,type CarromReceipt} from '../src/lib/carrom-rewards';
 import {CollectiblesStore} from './collectibles';
@@ -15,9 +16,10 @@ import { dominoRewardTier, dominoWinner, type DominoMatchReward, type DominoRece
 import { fiveDiceRewardTier, fiveDiceWinner, type FiveDiceMatchReward, type FiveDiceReceipt } from '../src/lib/five-dice-rewards';
 import { CARD_WIN_POINTS } from '../src/lib/reward-rates';
 import { gameAchievementCash,legacyGameAchievementCash } from '../src/lib/reward-rates';
-import { LEGACY_CUSTOM_PROFILE_IMAGE, PROFILE_IMAGE_SHAPES, customProfileImage, isProfileFrameItem, profileFrameItem, profileFrameName } from '../src/lib/profile-image';
+import { LEGACY_CUSTOM_PROFILE_IMAGE, PROFILE_IMAGE_SHAPES, customProfileImage, profileFrameItem, profileFrameName } from '../src/lib/profile-image';
 import { randomUUID, randomInt } from 'node:crypto';
 import type { D1Binding, D1Statement } from './database';
+import { readJsonGroups } from './json-groups';
 import { RummyError } from '../src/lib/rummy-protocol';
 import { memberId, rewardTier, type MatchReward, type RewardReceipt } from '../src/lib/rummy-rewards';
 import { spadesRewardTier, spadesWinners, type SpadesMatchReward, type SpadesReceipt } from '../src/lib/spades-rewards';
@@ -27,12 +29,13 @@ import { RUMMY_DESIGNS } from '../src/lib/rummy-cosmetics';
 import { canonicalDeckId, isSharedDeck, LEGACY_DECK_WINS } from '../src/lib/playing-decks';
 import { ACHIEVEMENTS } from '../src/lib/achievement-catalog';
 import { GEMS_LEVEL_COUNT } from '../src/lib/gems-levels';
-import { CONVERSION_RATE, ECONOMY_CATALOG, POINT_FIELDS, POINT_GAMES, puzzleLevelPoints, type Currency, type EconomyWallet, type EconomyView, type EconomyStats, type EconomyHistory, type EconomyCommandResult, type EconomyReceipt, type PointGame, type PuzzleProgress } from '../src/lib/economy-protocol';
+import { CONVERSION_RATE, ECONOMY_CATALOG, POINT_FIELDS, POINT_GAMES, puzzleLevelPoints, fragmentPrice, isSharedTable, storePointSources, type Currency, type EconomyWallet, type EconomyView, type EconomyStats, type EconomyHistory, type EconomyCommandResult, type EconomyReceipt, type PointGame, type PuzzleProgress } from '../src/lib/economy-protocol';
 
 export interface EconomyIdentity { principal: string }
 export interface LegacyEconomy { wallet: Partial<EconomyWallet> | null; awards: { source: string; amount?: number; rummy_tier?: string | null; created_at?: string | number }[]; joinedAt?: string | number }
 interface WalletRow { user_id: string; points: number; f3_points: number; gems_points: number; rummy_points: number; spades_points: number; dice_points: number; domino_points: number; lifetime_points: number; owned: string; equipped: string; pending_perks: string; revision: number; import_token: string; created_at: number; updated_at: number }
 interface Snapshot { row: WalletRow; wallet: EconomyWallet }
+interface WalletProjection extends WalletRow { deck_migrated: number; rummy_wins: number }
 interface Plan<T> { wallet?: EconomyWallet; statements?: D1Statement[]; result: T }
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const safe = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 && v <= 2_000_000_000;
@@ -54,8 +57,14 @@ export class EconomyStore {
   async hasMember(identity: EconomyIdentity) { return Boolean(await this.first('SELECT user_id FROM economy_wallets WHERE user_id=?', auth(identity))); }
   async wallet(identity: EconomyIdentity): Promise<EconomyWallet> {
     const id = auth(identity);
-    const initial = await this.snapshot(id);
-    if (initial.wallet.owned.includes(LEGACY_CUSTOM_PROFILE_IMAGE)) {
+    const projected = () => this.first<WalletProjection>(`SELECT w.*,
+      EXISTS(SELECT 1 FROM economy_ledger WHERE user_id=w.user_id AND source='legacy:shared-playing-decks') AS deck_migrated,
+      (SELECT count(*) FROM reward_outbox WHERE user_id=w.user_id) AS rummy_wins
+      FROM economy_wallets w WHERE w.user_id=?`, id);
+    const initial = await projected();
+    if (!initial) throw new RummyError('Your wallet is being prepared. Refresh and try again.', 503, 'wallet_unavailable');
+    const migrateFrame = fromRow(initial).owned.includes(LEGACY_CUSTOM_PROFILE_IMAGE);
+    if (migrateFrame) {
       await this.transact(id, async ({ wallet }) => {
         if (!wallet.owned.includes(LEGACY_CUSTOM_PROFILE_IMAGE)) return { result: undefined };
         const profile = await this.first<{avatar: string}>('SELECT avatar FROM social_profiles WHERE user_id=?', id);
@@ -67,7 +76,7 @@ export class EconomyStore {
     }
     // Snapshot older win rewards once. New wins earn points towards the shared
     // collection; they must not silently unlock a newly priced collectible.
-    if (!await this.prior(id, 'legacy:shared-playing-decks')) {
+    if (!initial.deck_migrated) {
       await this.transact(id, async ({ wallet }) => {
         if (await this.prior(id, 'legacy:shared-playing-decks')) return { result: undefined };
         const wins = await this.first<{n:number}>('SELECT count(*) AS n FROM reward_outbox WHERE user_id=?', id);
@@ -78,7 +87,10 @@ export class EconomyStore {
         return { wallet: { ...wallet, owned, equipped }, statements: [this.ledger(id, 'legacy:shared-playing-decks', 'legacy', 'points', 0, 'Existing shared card collection', { earned })], result: undefined };
       });
     }
-    return (await this.snapshot(id)).wallet;
+    const row = migrateFrame || !initial.deck_migrated ? await projected() ?? initial : initial;
+    const wallet = fromRow(row);
+    const tables = RUMMY_TABLE_SURFACES.filter(table => table.wins <= row.rummy_wins).map(table => table.id);
+    return { ...wallet, owned: [...new Set([...wallet.owned, ...tables])] };
   }
   private async snapshot(id: string): Promise<Snapshot> {
     const row = await this.first<WalletRow>('SELECT * FROM economy_wallets WHERE user_id=?', id);
@@ -135,6 +147,10 @@ export class EconomyStore {
   private prior(id:string,source:string) { return this.first<{detail:string;amount:number;cash:number;created_at:number;kind:string}>('SELECT detail,amount,cash,created_at,kind FROM economy_ledger WHERE user_id=? AND source=?',id,source); }
   async puzzleProgress(identity:EconomyIdentity,game:'faith-3'|'3-gems'):Promise<PuzzleProgress & {cleared:number[]}> {
     const id=auth(identity); await this.snapshot(id);
+    await this.syncClassicCardRewards(identity);
+    return this.readPuzzleProgress(id, game);
+  }
+  private async readPuzzleProgress(id: string, game: 'faith-3' | '3-gems') {
     const rows=await this.rows<{level:number;stars:number}>(`SELECT json_group_array(json_object('level',level,'stars',stars)) AS data FROM (SELECT level,stars FROM economy_progress WHERE user_id=? AND game=? UNION ALL SELECT level,stars FROM gems_extended_progress WHERE user_id=? AND ?='3-gems' ORDER BY level)`,id,game,id,game);
     const levels=rows.map(r=>r.level); let unlocked=1;
     while(levels.includes(unlocked) && unlocked<(game==='faith-3'?280:GEMS_LEVEL_COUNT)) unlocked++;
@@ -156,15 +172,15 @@ export class EconomyStore {
     });
     return {...result,wallet:await this.wallet(identity)};
   }
-  private async creditCard(id:string,source:string,game:'rummy'|'spades'|'five-dice'|'farkle'|'crown-court'|'crown-chance'|'dominoes'|'backgammon'|'carrom',tier:keyof typeof WIN_POINTS,amount:number) {
+  private async creditCard(id:string,source:string,game:'rummy'|'spades'|'five-dice'|'farkle'|'crown-court'|'crown-chance'|'dominoes'|'backgammon'|'carrom'|'crazy-eights'|'hearts',tier:keyof typeof WIN_POINTS,amount:number) {
     return this.transact(id,async({wallet})=>{
       const prior=await this.prior(id,source);
       if(prior) {
         const detail=parse<{tier?:string}>(prior.detail,{});
         return {statements:detail.tier===tier?[]:[this.stmt("UPDATE economy_ledger SET detail=json_set(detail,'$.tier',?) WHERE user_id=? AND source=?",tier,id,source)],result:{already:true,amount:prior.amount>0?prior.amount:amount}};
       }
-      const currency=(game==='carrom'||game==='backgammon'||game==='farkle'||game==='crown-court'||game==='crown-chance')?'dice_points':POINT_FIELDS[game];
-      return {wallet:{...wallet,[currency]:wallet[currency]+amount,lifetime_points:wallet.lifetime_points+amount},statements:[this.ledger(id,source,'reward',currency,amount,`${game==='carrom'?'Carrom / Disc Pool':game==='backgammon'?'Backgammon':game==='rummy'?'Rummy+':game==='five-dice'?'Quintsee':game==='crown-court'?'Crown & Court':game==='crown-chance'?'Crown & Chance':game==='farkle'?'Farkle':game==='dominoes'?'Dominoes':'Spades'} · ${tier==='humans'?'online':tier} match win`,{tier}),...await this.crateProgressStatements(id,game,source.split(':').at(-1)!,tier==='humans'?'human':'bot')],result:{already:false,amount}};
+      const currency=(game==='carrom'||game==='backgammon'||game==='farkle'||game==='crown-court'||game==='crown-chance')?'dice_points':game==='crazy-eights'?'rummy_points':game==='hearts'?'spades_points':POINT_FIELDS[game];
+      return {wallet:{...wallet,[currency]:wallet[currency]+amount,lifetime_points:wallet.lifetime_points+amount},statements:[this.ledger(id,source,'reward',currency,amount,`${game==='carrom'?'Carrom / Disc Pool':game==='backgammon'?'Backgammon':game==='rummy'?'Rummy+':game==='five-dice'?'Quintsee':game==='crown-court'?'Crown & Court':game==='crown-chance'?'Crown & Chance':game==='farkle'?'Farkle':game==='dominoes'?'Dominoes':game==='crazy-eights'?'Crazy 8’s':game==='hearts'?'Hearts':'Spades'} · ${tier==='humans'?'online':tier} match win`,{tier}),...await this.crateProgressStatements(id,game,source.split(':').at(-1)!,tier==='humans'?'human':'bot')],result:{already:false,amount}};
     });
   }
   private async crateProgressStatements(id:string,game:string,matchId:string,channel:'human'|'bot'):Promise<D1Statement[]>{
@@ -247,37 +263,87 @@ export class EconomyStore {
     const source=`dominoes:win:${result.match_id}`,paid=await this.creditCard(winner,source,'dominoes',tier,CARD_WIN_POINTS[tier]);
     return {match_id:result.match_id,user_id:winner,amount:paid.amount,tier,source,already_credited:paid.already};
   }
-  async syncTrustedRewards(identity:EconomyIdentity) {
-    const id=auth(identity); await this.snapshot(id);
-    const rummy=await this.rows<{payload:string}>('SELECT json_group_array(json_object(\'payload\',payload)) AS data FROM reward_outbox WHERE user_id=?',id);
-    for(const row of rummy) { const result=parse<MatchReward|null>(row.payload,null); if(result) await this.claimRummyReward(result); }
-    const spades=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM spades_rewards WHERE EXISTS(SELECT 1 FROM json_each(payload,'$.players') p WHERE json_extract(p.value,'$.user_id')=? AND json_extract(p.value,'$.bot')=0 AND CASE WHEN json_extract(payload,'$.variant')='teams' THEN CAST(p.key AS INTEGER)%2 ELSE CAST(p.key AS INTEGER) END=json_extract(payload,'$.winner'))`,id);
-    for(const row of spades) {
-      const result=parse<SpadesMatchReward|null>(row.payload,null);if(!result)continue;
-      const tier=spadesRewardTier(result.mode,result.players);if(!tier||!spadesWinners(result).includes(id))continue;
-      const source=`spades:win:${result.match_id}`,existing=await Promise.all(spadesWinners(result).map(winner=>this.prior(winner,source)));
-      await this.creditCard(id,source,'spades',tier,existing.find(receipt=>receipt!==null&&receipt.amount>0)?.amount??SPADES_POINTS[tier]);
-    }
-    const dice=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM five_dice_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of dice){const result=parse<FiveDiceMatchReward|null>(row.payload,null);if(result&&fiveDiceWinner(result)===id)await this.claimFiveDiceReward(result);}
-
-    const crownCourt=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM crown_court_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of crownCourt){const result=parse<CrownCourtMatchReward|null>(row.payload,null);if(result&&crownCourtWinner(result)===id)await this.claimCrownCourtReward(result);}
-    const crownChance=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM crown_chance_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of crownChance){const result=parse<CrownChanceMatchReward|null>(row.payload,null);if(result&&crownChanceWinner(result)===id)await this.claimCrownChanceReward(result);}
-    const backgammon=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM backgammon_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of backgammon){const result=parse<BGMatchReward|null>(row.payload,null);if(result&&bgWinner(result)===id)await this.claimBackgammonReward(result);}
-    const carrom=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM carrom_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of carrom){const result=parse<CarromMatchReward|null>(row.payload,null);if(result&&carromWinner(result)===id)await this.claimCarromReward(result);}
-    const farkle=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM farkle_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of farkle){const result=parse<FarkleMatchReward|null>(row.payload,null);if(result&&farkleWinner(result)===id)await this.claimFarkleReward(result);}
-
-    const domino=await this.rows<{payload:string}>(`SELECT json_group_array(json_object('payload',payload)) AS data FROM domino_rewards WHERE json_extract(payload,'$.players['||json_extract(payload,'$.winner')||'].user_id')=?`,id);
-    for(const row of domino){const result=parse<DominoMatchReward|null>(row.payload,null);if(result&&dominoWinner(result)===id)await this.claimDominoReward(result);}
-
-
+  async syncClassicCardRewards(identity: EconomyIdentity) {
+    const id = auth(identity);
+    const wins = await this.rows<{matchId:string; game:'crazy-eights'|'hearts'; tier:'normal'|'humans'}>(`
+      SELECT json_group_array(json_object('matchId',r.match_id,'game',r.game,'tier',r.tier)) AS data
+      FROM classic_card_rewards r WHERE r.user_id=? AND NOT EXISTS (
+        SELECT 1 FROM economy_ledger l WHERE l.user_id=r.user_id AND l.source=r.game||':win:'||r.match_id
+      )`,id);
+    for (const win of wins) await this.creditCard(id,`${win.game}:win:${win.matchId}`,win.game,win.tier,CARD_WIN_POINTS[win.tier]);
   }
-  private async stats(id:string,wallet:EconomyWallet):Promise<EconomyStats> {
+  async syncTrustedRewards(identity:EconomyIdentity) {
+    const id = auth(identity);
+    await this.snapshot(id);
+    await this.syncClassicCardRewards(identity);
+    // A trusted reward with a tier has already been reconciled. Legacy rows
+    // still pass through the claim functions so missing tiers can be repaired.
+    const unchecked = (game: string) => `NOT EXISTS (
+      SELECT 1 FROM economy_ledger l WHERE l.user_id=? AND l.source='${game}:win:'||r.match_id
+      AND l.kind='reward' AND json_extract(l.detail,'$.tier') IN ('easy','normal','hard','humans')
+    )`;
+    const singleWinner = `json_extract(r.payload,'$.players['||json_extract(r.payload,'$.winner')||'].user_id')=?`;
+    const games = [
+      { name: 'five-dice', table: 'five_dice_rewards', claim: (payload: string) => {
+        const result = parse<FiveDiceMatchReward | null>(payload, null);
+        if (result && fiveDiceWinner(result) === id) return this.claimFiveDiceReward(result);
+      } },
+      { name: 'crown-court', table: 'crown_court_rewards', claim: (payload: string) => {
+        const result = parse<CrownCourtMatchReward | null>(payload, null);
+        if (result && crownCourtWinner(result) === id) return this.claimCrownCourtReward(result);
+      } },
+      { name: 'crown-chance', table: 'crown_chance_rewards', claim: (payload: string) => {
+        const result = parse<CrownChanceMatchReward | null>(payload, null);
+        if (result && crownChanceWinner(result) === id) return this.claimCrownChanceReward(result);
+      } },
+      { name: 'backgammon', table: 'backgammon_rewards', claim: (payload: string) => {
+        const result = parse<BGMatchReward | null>(payload, null);
+        if (result && bgWinner(result) === id) return this.claimBackgammonReward(result);
+      } },
+      { name: 'carrom', table: 'carrom_rewards', claim: (payload: string) => {
+        const result = parse<CarromMatchReward | null>(payload, null);
+        if (result && carromWinner(result) === id) return this.claimCarromReward(result);
+      } },
+      { name: 'farkle', table: 'farkle_rewards', claim: (payload: string) => {
+        const result = parse<FarkleMatchReward | null>(payload, null);
+        if (result && farkleWinner(result) === id) return this.claimFarkleReward(result);
+      } },
+      { name: 'dominoes', table: 'domino_rewards', claim: (payload: string) => {
+        const result = parse<DominoMatchReward | null>(payload, null);
+        if (result && dominoWinner(result) === id) return this.claimDominoReward(result);
+      } },
+    ];
+    const spadesWinner = `EXISTS(SELECT 1 FROM json_each(r.payload,'$.players') p
+      WHERE json_extract(p.value,'$.user_id')=? AND json_extract(p.value,'$.bot')=0
+      AND CASE WHEN json_extract(r.payload,'$.variant')='teams' THEN CAST(p.key AS INTEGER)%2 ELSE CAST(p.key AS INTEGER) END=json_extract(r.payload,'$.winner'))`;
+    const queries = [
+      `SELECT 'rummy' AS game, r.payload FROM reward_outbox r WHERE r.user_id=? AND ${unchecked('rummy')}`,
+      `SELECT 'spades' AS game, r.payload FROM spades_rewards r WHERE ${spadesWinner} AND ${unchecked('spades')}`,
+      ...games.map(({ name, table }) => `SELECT '${name}' AS game, r.payload FROM ${table} r WHERE ${singleWinner} AND ${unchecked(name)}`),
+    ];
+    const pending = await readJsonGroups<{game:string;payload:string}>(this.binding, queries.map(query => ({
+      sql: `SELECT json_group_array(json_object('game',game,'payload',payload)) FROM (${query})`,
+      values: [id, id],
+    })));
+    for (const { game, payload } of pending) {
+      if (game === 'rummy') {
+        const result = parse<MatchReward | null>(payload, null);
+        if (result) await this.claimRummyReward(result);
+      } else if (game === 'spades') {
+        const result = parse<SpadesMatchReward | null>(payload, null);
+        if (!result) continue;
+        const tier = spadesRewardTier(result.mode, result.players);
+        const winners = spadesWinners(result);
+        if (!tier || !winners.includes(id)) continue;
+        const source = `spades:win:${result.match_id}`;
+        const existing = await Promise.all(winners.map(winner => this.prior(winner, source)));
+        await this.creditCard(id, source, 'spades', tier, existing.find(receipt => receipt !== null && receipt.amount > 0)?.amount ?? SPADES_POINTS[tier]);
+      } else {
+        await games.find(entry => entry.name === game)?.claim(payload);
+      }
+    }
+  }
+  private async stats(id: string, wallet: EconomyWallet, progress?: EconomyView['progress']): Promise<EconomyStats> {
     const counts=await this.first<Record<string,number>>(`SELECT
       (SELECT count(*) FROM economy_progress WHERE user_id=? AND game='faith-3') faithLevels,
       ((SELECT count(*) FROM economy_progress WHERE user_id=? AND game='3-gems') + (SELECT count(*) FROM gems_extended_progress WHERE user_id=?)) gemsLevels,
@@ -292,29 +358,38 @@ export class EconomyStore {
       (SELECT count(*) FROM economy_visits WHERE user_id=?) visits,
       (SELECT CASE WHEN gamer_name NOT LIKE 'player\\_%' ESCAPE '\\' AND length(trim(bio))>0 AND name_flagged=0 THEN 1 ELSE 0 END FROM social_profiles WHERE user_id=?) profileComplete`,id,id,id,id,id,id,id,id,id,id,id,id,id,id,id);
     const row=await this.first<{created_at:number}>('SELECT created_at FROM economy_wallets WHERE user_id=?',id);
-    const faith=await this.puzzleProgress({principal:`member:${id}`},'faith-3'),gems=await this.puzzleProgress({principal:`member:${id}`},'3-gems');
+    if (!progress) await this.syncClassicCardRewards({ principal: `member:${id}` });
+    const [faith, gems] = progress ? [progress['faith-3'], progress['3-gems']] : await Promise.all([this.readPuzzleProgress(id, 'faith-3'), this.readPuzzleProgress(id, '3-gems')]);
     const chapters=(levels:number[],size:number,max:number)=>Array.from({length:max/size},(_,chapter)=>Array.from({length:size},(_,n)=>chapter*size+n+1).every(level=>levels.includes(level))).filter(Boolean).length;
-    const result:EconomyStats={faithLevels:0,faithChapters:chapters(faith.levels,20,280),gemsLevels:0,gemsStars:0,gemsChapters:chapters(gems.levels,50,GEMS_LEVEL_COUNT),rummyWins:0,rummyHumanWins:0,rummyHardWins:0,spadesWins:0,spadesHumanWins:0,spadesHardWins:0,diceWins:0,diceHumanWins:0,diceHardWins:0,dominoWins:0,dominoHumanWins:0,dominoHardWins:0,farkleWins:0,farkleHumanWins:0,farkleHardWins:0,crownWins:0,crownHumanWins:0,crownHardWins:0,chanceWins:0,chanceHumanWins:0,chanceHardWins:0,carromWins:0,carromHumanWins:0,carromHardWins:0,backgammonWins:0,backgammonHumanWins:0,backgammonHardWins:0,lifetime:wallet.lifetime_points,cosmetics:wallet.owned.filter(id=>ECONOMY_CATALOG.some(item=>item.id===id&&item.slot!==null)).length,friends:0,memberDays:Math.max(0,Math.floor((this.now()-(row?.created_at??this.now()))/86400000)),visits:0,profileComplete:0,gamesPlayed:0};
+    const result:EconomyStats={faithLevels:0,faithChapters:chapters(faith.levels,20,280),gemsLevels:0,gemsStars:0,gemsChapters:chapters(gems.levels,50,GEMS_LEVEL_COUNT),rummyWins:0,rummyHumanWins:0,rummyHardWins:0,spadesWins:0,spadesHumanWins:0,spadesHardWins:0,diceWins:0,diceHumanWins:0,diceHardWins:0,dominoWins:0,dominoHumanWins:0,dominoHardWins:0,farkleWins:0,farkleHumanWins:0,farkleHardWins:0,crownWins:0,crownHumanWins:0,crownHardWins:0,chanceWins:0,chanceHumanWins:0,chanceHardWins:0,eightsWins:0,eightsHumanWins:0,heartsWins:0,heartsHumanWins:0,carromWins:0,carromHumanWins:0,carromHardWins:0,backgammonWins:0,backgammonHumanWins:0,backgammonHardWins:0,lifetime:wallet.lifetime_points,cosmetics:wallet.owned.filter(id=>ECONOMY_CATALOG.some(item=>item.id===id&&item.slot!==null)).length,friends:0,memberDays:Math.max(0,Math.floor((this.now()-(row?.created_at??this.now()))/86400000)),visits:0,profileComplete:0,gamesPlayed:0};
     for(const key of Object.keys(counts??{}) as (keyof EconomyStats)[])result[key]=Number(counts?.[key]??0);
-    const dice=await this.first<{diceWins:number;diceHumanWins:number;diceHardWins:number}>(`SELECT count(*) diceWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) diceHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) diceHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'five-dice:win:%'`,id);
-    if(dice)Object.assign(result,dice);
-    const crown=await this.first<{crownWins:number;crownHumanWins:number;crownHardWins:number}>(`SELECT count(*) crownWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) crownHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) crownHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'crown-court:win:%'`,id);
-    if(crown)Object.assign(result,crown);
-    const chance=await this.first<{chanceWins:number;chanceHumanWins:number;chanceHardWins:number}>(`SELECT count(*) chanceWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) chanceHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) chanceHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'crown-chance:win:%'`,id);
-    if(chance)Object.assign(result,chance);
-    const backgammon=await this.first<{backgammonWins:number;backgammonHumanWins:number;backgammonHardWins:number}>(`SELECT count(*) backgammonWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) backgammonHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) backgammonHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'backgammon:win:%'`,id);
-    if(backgammon)Object.assign(result,backgammon);
-    const carrom=await this.first<{carromWins:number;carromHumanWins:number;carromHardWins:number}>(`SELECT count(*) carromWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) carromHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) carromHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'carrom:win:%'`,id);
-    if(carrom)Object.assign(result,carrom);
-    const farkle=await this.first<{farkleWins:number;farkleHumanWins:number;farkleHardWins:number}>(`SELECT count(*) farkleWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) farkleHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) farkleHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'farkle:win:%'`,id);
-    if(farkle)Object.assign(result,farkle);
-    const domino=await this.first<{dominoWins:number;dominoHumanWins:number;dominoHardWins:number}>(`SELECT count(*) dominoWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='humans' THEN 1 ELSE 0 END),0) dominoHumanWins,coalesce(sum(CASE WHEN json_extract(detail,'$.tier')='hard' THEN 1 ELSE 0 END),0) dominoHardWins FROM economy_ledger WHERE user_id=? AND source LIKE 'dominoes:win:%'`,id);
-    if(domino)Object.assign(result,domino);
+    const winGroups = {
+      'five-dice': 'dice', 'crown-court': 'crown', 'crown-chance': 'chance',
+      backgammon: 'backgammon', carrom: 'carrom', farkle: 'farkle',
+      dominoes: 'domino', 'crazy-eights': 'eights', hearts: 'hearts',
+    } as const;
+    const wins = await this.rows<{ game: keyof typeof winGroups; total: number; online: number; hard: number }>(`
+      SELECT json_group_array(json_object('game',game,'total',total,'online',online,'hard',hard)) AS data
+      FROM (
+        SELECT substr(source,1,instr(source,':')-1) AS game, count(*) AS total,
+          coalesce(sum(json_extract(detail,'$.tier')='humans'),0) AS online,
+          coalesce(sum(json_extract(detail,'$.tier')='hard'),0) AS hard
+        FROM economy_ledger
+        WHERE user_id=? AND substr(source,instr(source,':'),5)=':win:'
+        GROUP BY game
+      )`, id);
+    for (const win of wins) {
+      if (!Object.hasOwn(winGroups, win.game)) continue;
+      const group = winGroups[win.game];
+      result[`${group}Wins`] = win.total;
+      result[`${group}HumanWins`] = win.online;
+      if (group !== 'eights' && group !== 'hearts') result[`${group}HardWins`] = win.hard;
+    }
     const earned=await this.first<{n:number}>('SELECT count(*) AS n FROM reward_outbox WHERE user_id=?',id);
     const cosmetics=new Set(wallet.owned.filter(id=>ECONOMY_CATALOG.some(item=>item.id===id&&item.slot!==null)));
     for(const design of RUMMY_DESIGNS)if(design.wins>0&&design.wins<=Number(earned?.n??0))cosmetics.add(design.id);
     result.cosmetics=cosmetics.size;
-    result.gamesPlayed=[result.carromWins,result.faithLevels,result.gemsLevels,result.rummyWins,result.spadesWins,result.diceWins,result.farkleWins,result.backgammonWins,result.crownWins,result.chanceWins,result.dominoWins].filter(n=>n>0).length;
+    result.gamesPlayed=[result.carromWins,result.faithLevels,result.gemsLevels,result.rummyWins,result.spadesWins,result.diceWins,result.farkleWins,result.backgammonWins,result.crownWins,result.chanceWins,result.dominoWins,result.eightsWins,result.heartsWins].filter(n=>n>0).length;
     return result;
   }
   private async badgeViews(id:string,stats:EconomyStats) {
@@ -354,18 +429,34 @@ export class EconomyStore {
       return {wallet:{...wallet,points:allowance.targetCash},statements:[this.ledger(id,source,'reward','points',delta,`${allowance.reason} · balance set to ${allowance.targetCash.toLocaleString()}`,{targetCash:allowance.targetCash}),this.stmt('UPDATE economy_allowances SET applied_at=? WHERE id=? AND user_id=? AND applied_at IS NULL',this.now(),allowance.id,id)],result:undefined};
     });
   }
-  async read(identity:EconomyIdentity):Promise<EconomyView> {
-    const id=auth(identity);await this.snapshot(id);
-    await this.stmt('INSERT OR IGNORE INTO economy_visits(user_id,day) VALUES(?,?)',id,new Date(this.now()).toISOString().slice(0,10)).run();
+  async readWallet(identity: EconomyIdentity): Promise<EconomyWallet> {
+    const id = auth(identity);
     await this.syncTrustedRewards(identity);
+    await this.stmt('INSERT OR IGNORE INTO economy_visits(user_id,day) VALUES(?,?)', id, new Date(this.now()).toISOString().slice(0,10)).run();
     await this.syncAchievementCash(identity);
     await this.applyAllowances(identity);
-    const wallet=await this.wallet(identity),stats=await this.stats(id,wallet);
-    const sources=await this.rows<{source:string;tier:string|null}>(`SELECT json_group_array(json_object('source',source,'tier',json_extract(detail,'$.tier'))) AS data FROM (SELECT source,detail FROM economy_ledger WHERE user_id=? AND kind IN ('legacy','reward','achievement') AND source<>'legacy:shared-playing-decks' ORDER BY created_at DESC LIMIT 10000)`,id);
-    const history=await this.rows<EconomyHistory>(`SELECT json_group_array(json_object('id',id,'source',source,'kind',kind,'currency',currency,'amount',amount,'cash',cash,'label',label,'createdAt',created_at)) AS data FROM (SELECT * FROM economy_ledger WHERE user_id=? AND source<>'legacy:shared-playing-decks' ORDER BY created_at DESC,id DESC LIMIT 50)`,id);
-    const faith=await this.puzzleProgress(identity,'faith-3'),gems=await this.puzzleProgress(identity,'3-gems');
-    const rewardCrates={poker:await this.diceCrates(id,'poker'),carrom:await this.diceCrates(id,'carrom'),backgammon:await this.diceCrates(id,'backgammon'),dice:await this.diceCrates(id,'dice'),dominoes:await this.diceCrates(id,'dominoes'),cards:await this.diceCrates(id,'cards')};
-    return {rewardCrates,diceCrates:rewardCrates.dice,wallet,sources:sources.map(s=>s.source),humanWinSources:sources.filter(s=>s.tier==='humans'&&s.source.startsWith('rummy:win:')).map(s=>s.source),stats,achievements:await this.badgeViews(id,stats),history:history.map(item=>({...item,label:item.source.startsWith('five-dice:')?item.label.replace(/\bFarkle\b/g,'Quintsee'):item.label})),progress:{'faith-3':faith,'3-gems':gems},conversionRate:CONVERSION_RATE};
+    return this.wallet(identity);
+  }
+  async read(identity: EconomyIdentity): Promise<EconomyView> {
+    const id = auth(identity), wallet = await this.readWallet(identity);
+    const [sources, history, faith, gems] = await Promise.all([
+      this.rows<{source:string;tier:string|null}>(`SELECT json_group_array(json_object('source',source,'tier',json_extract(detail,'$.tier'))) AS data FROM (SELECT source,detail FROM economy_ledger WHERE user_id=? AND kind IN ('legacy','reward','achievement') AND source<>'legacy:shared-playing-decks' ORDER BY created_at DESC LIMIT 10000)`, id),
+      this.rows<EconomyHistory>(`SELECT json_group_array(json_object('id',id,'source',source,'kind',kind,'currency',currency,'amount',amount,'cash',cash,'label',label,'createdAt',created_at)) AS data FROM (SELECT * FROM economy_ledger WHERE user_id=? AND source<>'legacy:shared-playing-decks' ORDER BY created_at DESC,id DESC LIMIT 50)`, id),
+      this.readPuzzleProgress(id, 'faith-3'),
+      this.readPuzzleProgress(id, '3-gems'),
+    ]);
+    const progress = { 'faith-3': faith, '3-gems': gems };
+    const stats = await this.stats(id, wallet, progress);
+    const collections = Object.keys(REWARD_CRATE_POOLS) as RewardCrateCollection[];
+    const crates = await Promise.all(collections.map(async kind => [kind, await this.diceCrates(id, kind)] as const));
+    const rewardCrates = Object.fromEntries(crates) as Record<RewardCrateCollection, DiceCrateView>;
+    return {
+      rewardCrates, diceCrates: rewardCrates.dice, wallet, sources: sources.map(item => item.source),
+      humanWinSources: sources.filter(item => item.tier === 'humans' && item.source.startsWith('rummy:win:')).map(item => item.source),
+      stats, achievements: await this.badgeViews(id, stats),
+      history: history.map(item => ({ ...item, label: item.source.startsWith('five-dice:') ? item.label.replace(/\bFarkle\b/g, 'Quintsee') : item.label })),
+      progress, conversionRate: CONVERSION_RATE,
+    };
   }
   private async diceFragments(id:string,collection:RewardCrateCollection='dice'):Promise<Record<string,number>> {
     const pool=REWARD_CRATE_POOLS[collection],prefix=REWARD_CRATE_META[collection].opened;
@@ -410,20 +501,53 @@ export class EconomyStore {
   }
   async command(identity:EconomyIdentity,input:unknown):Promise<EconomyCommandResult> {
     const id=auth(identity);await this.wallet(identity);
-    if(await this.hasPendingAllowance(identity))await this.read(identity);
+    if(await this.hasPendingAllowance(identity))await this.readWallet(identity);
     if(!input||typeof input!=='object'||Array.isArray(input))throw new RummyError('Choose a points or rewards action.');
     const value=input as Record<string,unknown>;let receipt:EconomyReceipt;
     if(value.operation==='buy_fragments'){
-      const itemId=value.itemId,count=value.count,payment=value.payment,requestId=value.requestId;
-      const collection=(Object.keys(REWARD_CRATE_POOLS) as RewardCrateCollection[]).find(k=>REWARD_CRATE_POOLS[k].some(d=>d.id===itemId));
-      if(!collection||typeof itemId!=='string'||![1,2,3].includes(Number(count))||typeof count!=='number'||!['game','cash'].includes(String(payment))||typeof requestId!=='string'||!UUID.test(requestId))throw new RummyError('Choose a collectible and 1–3 fragments.');
-      const item=ECONOMY_CATALOG.find(d=>d.id===itemId)!,game=value.game;
-      if(game!==undefined&&(!isSharedDeck(itemId)||!['rummy','spades'].includes(String(game))))throw new RummyError('Choose a compatible card-game balance.');
-      const currency=payment==='cash'?'points':game==='spades'?'spades_points':item.currency,unit=Math.ceil((payment==='cash'?item.cashPrice:item.price)/3),amount=unit*count,source=`fragment-buy:${requestId.toLowerCase()}`;
-      receipt=await this.transact<EconomyReceipt>(id,async({wallet})=>{const prior=await this.prior(id,source);if(prior){const detail=parse<EconomyReceipt&{fragmentItem:string;fragmentCount:number}>(prior.detail,{} as any);if(detail.fragmentItem!==itemId||detail.fragmentCount!==count||detail.currency!==currency)throw new RummyError('This purchase ID belongs to another purchase.',409,'request_reused');return{result:{...detail,alreadyApplied:true}};}
-        const fragments=await this.diceFragments(id,collection),before=fragments[itemId]??0;
-        if(wallet.owned.includes(itemId)||before+count>3)throw new RummyError('Buy only the fragments still needed for this set.',409,'already_owned');if(wallet[currency]<amount)throw new RummyError('Not enough points or Cash.',409,'insufficient_points');
-        const result={type:'purchase' as const,alreadyApplied:false,itemId,amount,currency,fragmentItem:itemId,fragmentCount:count};return{wallet:{...wallet,[currency]:wallet[currency]-amount,owned:before+count===3?[...wallet.owned,itemId]:wallet.owned},statements:[this.ledger(id,source,'purchase',currency,-amount,`${item.name} · ${count} fragment${count===1?'':'s'}`,result)],result};
+      const { itemId, count, payment, requestId, game, expectedPrice } = value;
+      const collection = (Object.keys(REWARD_CRATE_POOLS) as RewardCrateCollection[])
+        .find(kind => REWARD_CRATE_POOLS[kind].some(design => design.id === itemId));
+      const item = ECONOMY_CATALOG.find(design => design.id === itemId);
+      if (!collection || !item || typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > DICE_FRAGMENTS_REQUIRED ||
+        (payment !== 'game' && payment !== 'cash') || typeof requestId !== 'string' || !UUID.test(requestId) ||
+        (expectedPrice !== undefined && !safe(expectedPrice))) {
+        throw new RummyError('Choose one collectible fragment.');
+      }
+      if (game !== undefined && (!isSharedDeck(item.id) || (game !== 'rummy' && game !== 'spades'))) {
+        throw new RummyError('Choose a compatible card-game balance.');
+      }
+      const currency = payment === 'cash' ? 'points' : game === 'spades' ? 'spades_points' : item.currency;
+      const source = `fragment-buy:${requestId.toLowerCase()}`;
+      receipt = await this.transact<EconomyReceipt>(id, async ({ wallet }) => {
+        const prior = await this.prior(id, source);
+        if (prior) {
+          const detail = parse<Partial<EconomyReceipt> & { fragmentItem?: string; fragmentCount?: number }>(prior.detail, {});
+          if (detail.type !== 'purchase' || detail.fragmentItem !== item.id || detail.fragmentCount !== count ||
+            detail.currency !== currency || (expectedPrice !== undefined && detail.amount !== expectedPrice)) {
+            throw new RummyError('This purchase ID belongs to another purchase.', 409, 'request_reused');
+          }
+          return { result: { ...detail, type: 'purchase', alreadyApplied: true } };
+        }
+        // Old bulk purchase receipts remain retryable, but every new purchase buys one fragment.
+        if (count !== 1) throw new RummyError('Fragments are sold one at a time.');
+        const fragments = await this.diceFragments(id, collection);
+        const before = fragments[item.id] ?? 0;
+        if (wallet.owned.includes(item.id) || before >= DICE_FRAGMENTS_REQUIRED) {
+          throw new RummyError('You already own this set.', 409, 'already_owned');
+        }
+        const amount = fragmentPrice(item, payment, before);
+        if (expectedPrice !== undefined && expectedPrice !== amount) {
+          throw new RummyError('Your fragment progress changed. Review the updated price and try again.', 409, 'fragment_price_changed');
+        }
+        if (wallet[currency] < amount) throw new RummyError('Not enough points or Clubhouse Cash for this fragment.', 409, 'insufficient_points');
+        const result = { type: 'purchase' as const, alreadyApplied: false, itemId: item.id, amount, currency, fragmentItem: item.id, fragmentCount: 1 };
+        const owned = before + 1 === DICE_FRAGMENTS_REQUIRED ? [...wallet.owned, item.id] : wallet.owned;
+        return {
+          wallet: { ...wallet, [currency]: wallet[currency] - amount, owned },
+          statements: [this.ledger(id, source, 'purchase', currency, -amount, `${item.name} · 1 fragment`, result)],
+          result,
+        };
       });
     } else if(value.operation==='open_reward_crate') {
       if(Object.keys(value).length!==3||typeof value.crateId!=='string'||typeof value.collection!=='string'||!Object.hasOwn(REWARD_CRATE_POOLS,value.collection))throw new RummyError('Choose one earned reward crate.');
@@ -455,11 +579,11 @@ export class EconomyStore {
     } else if(value.operation==='purchase') {
       const item=ECONOMY_CATALOG.find(item=>item.id===value.itemId);if(!item)throw new RummyError('This store item is unavailable.');
       if(value.payment!==undefined&&value.payment!=='game'&&value.payment!=='cash')throw new RummyError('Choose game points or Clubhouse Cash.');
-      const selectable: readonly PointGame[] = isProfileFrameItem(item.id) ? POINT_GAMES : isSharedDeck(item.id) ? ['rummy','spades'] : [];
+      const selectable = storePointSources(item);
       if(value.game!==undefined&&!selectable.includes(value.game as PointGame))throw new RummyError('Choose a supported game for this unlock.');
       const currency=value.payment==='cash'?'points':value.game?POINT_FIELDS[value.game as PointGame]:item.currency,price=value.payment==='cash'?item.cashPrice:item.price;
       receipt=await this.transact(id,async({wallet})=>{
-        if(wallet.owned.includes(item.id))return {result:{type:'purchase',alreadyApplied:true,itemId:item.id,amount:price,currency} as EconomyReceipt};
+        if(wallet.owned.includes(item.id) || (isSharedTable(item) && ownsCardTable(wallet.owned, item.id)))return {result:{type:'purchase',alreadyApplied:true,itemId:item.id,amount:price,currency} as EconomyReceipt};
         const bundle=nauticalBundle(item.id);
         if(bundle&&bundle.items.every(id=>wallet.owned.includes(id)))return {wallet:{...wallet,owned:[...wallet.owned,item.id]},result:{type:'purchase',alreadyApplied:true,itemId:item.id,amount:price,currency} as EconomyReceipt};
         const design=RUMMY_DESIGNS.find(design=>design.id===item.id);
@@ -469,12 +593,15 @@ export class EconomyStore {
         return {wallet:{...wallet,[currency]:wallet[currency]-price,owned:[...new Set([...wallet.owned,item.id,...(bundle?.items??[])])]},statements:[this.ledger(id,`purchase:${item.id}`,'purchase',currency,-price,item.name)],result:{type:'purchase',alreadyApplied:false,itemId:item.id,amount:price,currency} as EconomyReceipt};
       });
     } else if(value.operation==='equip') {
-      const slot=typeof value.slot==='string'?value.slot:'',itemId=typeof value.itemId==='string'?value.itemId:'',defaults:Record<string,string>={poker_dice:'poker-dice-ivory',[CARROM_STRIKER_SLOT]:CLASSIC_CARROM_STRIKER.id,[CARROM_BOARD_SLOT]:CLASSIC_CARROM_BOARD.id,[CARROM_PUCK_SLOT]:CLASSIC_CARROM_PUCKS.id,[D6_DICE_SLOT]:CLASSIC_D6_DICE.id,domino_skin:'domino-skin-classic',bg_board:'bg-board-classic',bg_checkers:'bg-checkers-classic',farkle_dice:'farkle-dice-classic',faith3_skin:'faith3-classic',spades_table:'spades-table-classic',spades_deck:'spades-deck-classic'};
+      const slot=typeof value.slot==='string'?value.slot:'',itemId=typeof value.itemId==='string'?(slot==='spades_table'?canonicalCardTable(value.itemId):value.itemId):'',defaults:Record<string,string>={poker_dice:'poker-dice-ivory',[CARROM_STRIKER_SLOT]:CLASSIC_CARROM_STRIKER.id,[CARROM_BOARD_SLOT]:CLASSIC_CARROM_BOARD.id,[CARROM_PUCK_SLOT]:CLASSIC_CARROM_PUCKS.id,[D6_DICE_SLOT]:CLASSIC_D6_DICE.id,domino_skin:'domino-skin-classic',bg_board:'bg-board-classic',bg_checkers:'bg-checkers-classic',farkle_dice:'farkle-dice-classic',faith3_skin:'faith3-classic',spades_table:'spades-table-classic',spades_deck:'spades-deck-classic'};
       if(!Object.hasOwn(defaults,slot))throw new RummyError('Choose a valid collection slot.');
-      const item=ECONOMY_CATALOG.find(item=>item.id===itemId&&(item.slot===slot||(slot==='spades_deck'&&item.slot==='card_deck')||(slot==='farkle_dice'&&item.slot===D6_DICE_SLOT)));
-      if(!item&&defaults[slot]!==itemId&&!(slot===DOMINO_SKIN_SLOT&&DOMINO_INCLUDED_SKINS.some(skin=>skin.id===itemId)))throw new RummyError('That design does not belong in this slot.');
+      const item=ECONOMY_CATALOG.find(item=>item.id===itemId&&(item.slot===slot||(slot==='spades_table'&&item.slot==='rummy_table')||(slot==='spades_deck'&&item.slot==='card_deck')||(slot==='farkle_dice'&&item.slot===D6_DICE_SLOT)));
+      if(!item&&defaults[slot]!==itemId&&!(slot==='spades_table'&&itemId==='rummy-table-classic')&&!(slot===DOMINO_SKIN_SLOT&&DOMINO_INCLUDED_SKINS.some(skin=>skin.id===itemId)))throw new RummyError('That design does not belong in this slot.');
       receipt=await this.transact(id,async({wallet})=>{
-        if(item&&!wallet.owned.includes(itemId))throw new RummyError('Collect this design before equipping it.',403,'not_owned');
+        const milestone = slot === 'spades_table' ? RUMMY_TABLE_SURFACES.find(table => table.id === itemId) : undefined;
+        const wins = milestone ? await this.first<{n:number}>('SELECT count(*) AS n FROM reward_outbox WHERE user_id=?', id) : null;
+        const owned = slot === 'spades_table' ? ownsCardTable(wallet.owned, itemId) || Boolean(milestone && Number(wins?.n ?? 0) >= milestone.wins) : wallet.owned.includes(itemId);
+        if(item&&!owned)throw new RummyError('Collect this design before equipping it.',403,'not_owned');
         if(wallet.equipped[slot]===itemId&&(!(slot===D6_DICE_SLOT||slot==='farkle_dice')||wallet.equipped[D6_DICE_SLOT]===itemId&&wallet.equipped.farkle_dice===itemId))return {result:{type:'equip',alreadyApplied:true,itemId} as EconomyReceipt};
         return {wallet:{...wallet,equipped:{...wallet.equipped,[slot]:itemId,...(slot===D6_DICE_SLOT||slot==='farkle_dice'?{[D6_DICE_SLOT]:itemId,farkle_dice:itemId}:{})}},result:{type:'equip',alreadyApplied:false,itemId} as EconomyReceipt};
       });

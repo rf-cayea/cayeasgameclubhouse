@@ -29,7 +29,7 @@ export class CloudDatabase {
       },
     };
   }
-  expectRoom(table: 'rooms' | 'spades_rooms', code: string, priorRevision: number) {
+  expectRoom(table: 'rooms' | 'spades_rooms' | 'classic_card_rooms', code: string, priorRevision: number) {
     if (!this.pending) throw new Error('Room writes require a command transaction.');
     this.guards.push(this.binding.prepare(`INSERT INTO command_guards(valid)
       SELECT CASE WHEN COALESCE((SELECT json_extract(data,'$.revision') FROM ${table} WHERE code=?),0)=? THEN 1 ELSE 0 END`).bind(code, priorRevision));

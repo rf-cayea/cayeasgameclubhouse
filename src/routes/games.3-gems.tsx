@@ -1,7 +1,9 @@
+import { GameEffectsButton } from '@/components/GameEffectsButton';
+import { useGameCue } from '@/lib/game-cues';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { HubNav } from '@/components/HubNav';
-import { useClubhouse } from '@/lib/clubhouse';
+import { useClubhouseAccount } from '@/lib/clubhouse';
 import { usePuzzleRewards } from '@/lib/puzzle-rewards';
 import { puzzleLevelPoints } from '@/lib/economy-protocol';
 import { GemArtwork, GemCrate, GemsBoosterIcon, GemsWheel, GEM_SPECIAL_NAMES } from '@/components/GemsArtwork';
@@ -18,6 +20,7 @@ import { BOOSTERS, GEM_COLORS, GEMS_CHAPTERS, GEMS_LEVEL_COUNT, GEMS_NAME, GEMS_
 import { enterGemsLevel, GEMS_SAVE_KEY, newGemsJourney, playGemsJourney, readGemsJourney, gemsMonastery, repairGemsMonastery, type GemsJourney } from '@/lib/gems-progress';
 
 export const Route = createFileRoute('/games/3-gems')({
+  loader: async () => { await Promise.all([import('@/styles/gems.css'), import('@/styles/gems-effects.css'), import('@/styles/monastery.css'), import('@/styles/monastery-menu.css')]); },
   head: () => ({ meta: [{ title: `${GEMS_NAME} — Restore the Monastery | Cayea’s Game Clubhouse` }, { name: 'description', content: 'An elegant match-three journey through 200 levels. Create special gems, clear obstacles, earn boosters, and restore a Buddhist monastery.' }] }),
   component: ThreeGemsPage,
 });
@@ -116,7 +119,7 @@ function useGemsJourney(userId: string | null) {
 }
 
 function ThreeGemsPage() {
-  const { user, ready } = useClubhouse();
+  const { user, ready } = useClubhouseAccount();
   const { journey, busy: animationBusy, frame, notice, saved, change, setNotice, rewards } = useGemsJourney(user?.id ?? null);
   const busy = animationBusy || rewards.starting || rewards.submitting || rewards.repairing || !ready;
   const [view, setView] = useState<'play' | 'journey' | 'monastery' | 'rules'>('play');
@@ -131,6 +134,8 @@ function ThreeGemsPage() {
   const synced = !user || Boolean(rewards.receipt);
   function visitMonastery() { setDismissed(true); setView('monastery'); }
   const board = frame?.board ?? play.board, hits = frame?.removed ?? [];
+  useGameCue('gems',frame?.stepId,frame?.phase==='clear'?'match':frame?.phase==='swap'?'gem':frame?.phase==='shuffle'?'tile':undefined);
+  useGameCue('gems-result',`${play.level}:${play.status}`,play.status==='won'?'win':play.status==='play'?undefined:'miss');
   const actionable = !busy && play.status === 'play';
   useEffect(() => {
     setSelected(null); setBooster(null); setHint([]); setStartRequest(null);
@@ -190,7 +195,7 @@ function ThreeGemsPage() {
   }
   return <div className={`gems-scene game-viewport gems-viewport ${view === 'play' ? '' : 'gems-menu-viewport'}`}><HubNav/><main className="gems-shell">
     <header className="gems-heading" data-playing={view === 'play' && play.turns > 0}><div><Link to="/" className="gems-back">← THE CLUBHOUSE</Link><p className="gems-eyebrow">A LITTLE MATCH. A MEANINGFUL JOURNEY.</p><h1><span>3 Gems</span>{' '}<em>of Buddhism</em></h1><p className="gems-intro">Earn stars. Restore four Buddhist monasteries.</p></div><button className="gems-temple-preview" onClick={() => setView('monastery')} aria-label="Visit your monastery"><MonasteryScene site={site} restored={siteRepairs(site, monastery.completedTasks) / (site.end - site.start)} compact/><span><span className="gems-eyebrow">{restoration.reopened ? 'THE MONASTERY IS OPEN' : 'YOUR MONASTERY'}</span><strong>{monastery.stars} restoration stars · {monastery.completedTasks} / 50 repairs <span aria-hidden="true">→</span></strong></span></button></header>
-    <nav className="gems-tabs" aria-label="Gem game sections">{(['play', 'journey', 'monastery', 'rules'] as const).map(tab => <button key={tab} aria-pressed={view === tab} onClick={() => setView(tab)}>{tab === 'play' ? 'The garden' : tab === 'journey' ? '200 levels' : tab === 'monastery' ? 'The monastery' : 'How to play'}{tab === 'monastery' && <span className="monastery-tab-stars" aria-hidden="true">★ {user && !rewards.monastery ? '—' : monastery.stars}</span>}</button>)}</nav>
+    <nav className="gems-tabs" aria-label="Gem game sections"><GameEffectsButton/>{(['play', 'journey', 'monastery', 'rules'] as const).map(tab => <button key={tab} aria-pressed={view === tab} onClick={() => setView(tab)}>{tab === 'play' ? 'The garden' : tab === 'journey' ? '200 levels' : tab === 'monastery' ? 'The monastery' : 'How to play'}{tab === 'monastery' && <span className="monastery-tab-stars" aria-hidden="true">★ {user && !rewards.monastery ? '—' : monastery.stars}</span>}</button>)}</nav>
     {view === 'monastery' ? <MonasteryJournal progress={monastery} loading={Boolean(user && !rewards.monastery)} busy={busy} error={rewards.monasteryError || (user && !rewards.monastery ? rewards.error : '')} notice={repairNotice} onRetry={() => { void rewards.refreshMonastery(); }} onRepair={taskId => { void repairMonastery(taskId); }} onPlay={() => setView('play')}/>
      : view === 'journey' ? <section className="gems-level-menu"><div className="gems-section-heading"><div><p className="gems-eyebrow">FOUR MONASTERIES. FIFTY LEVELS EACH.</p><h2>Your path to the monastery</h2><p>{completed} levels complete · {totalStars} / 600 rating stars</p></div><button className="gems-primary" onClick={() => setView('play')}>Resume level {play.level} →</button></div><label className="gems-chapter-picker">Choose chapter<select aria-label="Choose level chapter" value={journeyChapter} onChange={e=>setJourneyChapter(Number(e.target.value))}>{GEMS_CHAPTERS.map((part,i)=><option key={part.name} value={i}>Levels {i*50+1}–{(i+1)*50} · {part.name}</option>)}</select></label><div className="gems-chapters">{GEMS_CHAPTERS.map((part, chapterIndex) => chapterIndex !== journeyChapter ? null : <section key={part.name} className="gems-chapter"><div className="gems-chapter-heading"><span>{String(chapterIndex + 1).padStart(2, '0')}</span><div><p className="gems-eyebrow">LEVELS {chapterIndex * 50 + 1}–{(chapterIndex + 1) * 50}</p><h3>{part.name}</h3></div></div><div className="gems-level-grid">{Array.from({ length: 50 }, (_, n) => chapterIndex * 50 + n + 1).map(id => <button key={id} disabled={id > journey.unlocked || busy} className={id === play.level ? 'gems-level-current' : ''} data-complete={Boolean(journey.stars[String(id)])} onClick={() => requestLevel(id)} aria-label={`Level ${id}${id > journey.unlocked ? ' · locked' : journey.stars[String(id)] ? ` · ${journey.stars[String(id)]} stars` : ' · unlocked'}`}><span>{id > journey.unlocked ? <span className="gems-level-lock" aria-hidden="true">♧</span> : id}</span><small>{journey.stars[String(id)] ? '★'.repeat(journey.stars[String(id)]!) : id > journey.unlocked ? id : '•'}</small></button>)}</div></section>)}</div></section> : view === 'rules' ? <GemsGuide/> : <div className="gems-play-layout">
       <section className="gems-board-panel" aria-label="Match-three game"><div className="gems-board-heading"><div><p className="gems-eyebrow">CHAPTER {String(level.chapter + 1).padStart(2, '0')} · {chapter.name}</p><h2>Level {play.level}<span>{level.barrier ?? (level.checkpoint ? 'Sanctuary challenge' : level.name.split(' · ').at(-1))}</span></h2></div><div className="gems-moves" data-low={play.movesLeft <= 5}><strong data-testid="gems-moves">{play.movesLeft}</strong><span>MOVES LEFT</span></div></div>

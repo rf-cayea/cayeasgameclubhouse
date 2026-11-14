@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { browserAuthStorage } from '@/lib/auth-storage';
 import { incomingPasswordReturn } from '@/lib/password-reset';
 void incomingPasswordReturn;
 import { incomingEmailReturn } from '@/lib/email-confirmation';
@@ -7,8 +8,10 @@ void incomingEmailReturn;
 
 declare global { interface Window { __CLUBHOUSE_CONFIG__?: { supabaseUrl?: string; supabaseKey?: string } } }
 const runtime = typeof window === 'undefined' ? undefined : window.__CLUBHOUSE_CONFIG__;
-const url = (runtime?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL)?.trim();
-const key = (runtime?.supabaseKey || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY)?.trim();
+const pageConfig = (name: string) => typeof document === 'undefined' ? undefined
+  : document.querySelector<HTMLMetaElement>(`meta[name="clubhouse-supabase-${name}"]`)?.content;
+const url = (pageConfig('url') || runtime?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL)?.trim();
+const key = (pageConfig('key') || runtime?.supabaseKey || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY)?.trim();
 let validUrl = false;
 try { validUrl = Boolean(url && new URL(url).protocol === 'https:'); } catch { /* Show configuration message below. */ }
 
@@ -18,4 +21,7 @@ export const configurationError = !url || !key
 
 // Email callbacks rely on the SDK consuming implicit tokens while our return
 // handler explicitly exchanges token hashes or codes once.
-export const supabase = configurationError ? null : createClient(url!, key!, { auth: { flowType: 'implicit' } });
+export const supabase = configurationError ? null : createClient(url!, key!, { auth: {
+  flowType: 'implicit', persistSession: true, autoRefreshToken: true,
+  ...(typeof window !== 'undefined' ? { storage: browserAuthStorage() } : {}),
+} });

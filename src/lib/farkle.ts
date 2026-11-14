@@ -99,7 +99,7 @@ export function applyFarkleMove(state: FarkleState, seat: number, move: FarkleMo
   if (move.t === 'keep') return record(state, next, 'keep', { points: scored, hot: next.kept.every(Boolean), label });
   if (!canBankFarkle(next)) return null;
   const scores = next.scores.map((value, index) => value + (index === seat ? next.turnPoints : 0));
-  return record(state, advance(next, scores), 'bank', { dice: [...next.dice], kept: [...next.kept], turnPoints: next.turnPoints, points: next.turnPoints, hot: next.kept.every(Boolean), label: `Banked ${next.turnPoints.toLocaleString()}` });
+  return record(state, advance(next, scores), 'bank', { dice: [...next.dice], kept: [...next.kept], turnPoints: next.turnPoints, points: next.turnPoints, hot: next.kept.every(Boolean) && !state.kept.every(Boolean), label: `Banked ${next.turnPoints.toLocaleString()}` });
 }
 export function parseFarkleMove(value: unknown): FarkleMove | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -127,4 +127,4 @@ export function farkleBotMove(state: FarkleState, seat: number, level: Level = '
   return { t: bank ? 'bank' : 'roll' };
 }
 export const FARKLE_ROLL_MS = 850;
-export const farkleActivityDuration = (event:FarkleActivity,opponent=true) => event.kind==='roll' ? event.bust?4000:opponent?1900:FARKLE_ROLL_MS : event.kind==='keep'?opponent?1200:450:opponent?2000:1000;
+export const farkleActivityDuration = (event:FarkleActivity,opponent=true) => event.kind==='roll' ? event.bust?4000:opponent?2400:FARKLE_ROLL_MS : event.hot?1250:event.kind==='keep'?opponent?1200:450:opponent?2000:1000;

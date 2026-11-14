@@ -31,10 +31,10 @@ export function PokerDieFace({ value, ghost = false, held = false, design = CLAS
   </svg>;
 }
 const orientations: Record<number, [number, number]> = { 1: [0, 0], 2: [-90, 0], 3: [0, -90], 4: [0, 90], 5: [90, 0], 6: [0, 180] };
-export function PokerDie({ value, held, disabled, rolling, rollId, onHold, index, design = CLASSIC_POKER_DICE }: { value: number; held: boolean; disabled: boolean; rolling: boolean; rollId: number; onHold: () => void; index: number; design?: PokerDiceSet }) {
+export function PokerDie({ value, held, disabled, rolling, rollId, onHold, index, playable = false, design = CLASSIC_POKER_DICE }: { value: number; held: boolean; disabled: boolean; rolling: boolean; rollId: number; onHold: () => void; index: number; playable?: boolean; design?: PokerDiceSet }) {
   const [x, y] = orientations[value] ?? orientations[1]!, tumbling = rolling && !held;
   const style = { '--fd-x': `${x}deg`, '--fd-y': `${y}deg`, '--fd-roll-delay': `${index * 18}ms`, '--fd-die-body': held ? '#e4bd63' : design.edge } as CSSProperties;
-  return <button type="button" className="fd-die cc-die" style={style} data-held={held} data-rolling={tumbling} disabled={disabled} aria-pressed={held} aria-label={`Die ${index + 1}: ${value ? courtRank(value) : 'not rolled'}${held ? ', held' : ''}`} onClick={onHold}>
+  return <button type="button" className="fd-die cc-die" style={style} data-held={held} data-playable={playable && !held && !rolling} data-rolling={tumbling} disabled={disabled} aria-pressed={held} aria-label={`Die ${index + 1}: ${value ? courtRank(value) : 'not rolled'}${held ? ', held' : ''}`} onClick={onHold}>
     <div className="fd-die-visual" aria-hidden="true"><div className="fd-die-cube" key={tumbling ? `roll-${rollId}` : 'settled'}>{[1, 2, 3, 4, 5, 6].map(face => <div key={face} className="fd-cube-face" data-face={face}><PokerDieFace value={face} ghost={!value} held={held} design={design}/></div>)}</div></div>
     <span className="fd-hold-label">{held ? '✓ HELD' : value ? 'HOLD' : 'READY'}</span>
   </button>;

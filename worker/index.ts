@@ -1,3 +1,5 @@
+import { ClassicCardRooms } from '../server/classic-card-rooms';
+import { classicEndpoint } from '../src/lib/classic-card-protocol';
 import {CarromRoomStore} from '../server/carrom-rooms';
 import {CollectiblesStore} from '../server/collectibles';
 import {BackgammonRoomStore} from '../server/backgammon-rooms';
@@ -21,7 +23,8 @@ import assets from 'clubhouse:assets';
 import { SocialStore } from '../server/social';
 import { namedGameCommand, mirrorLoungeName } from '../server/social-members';
 import { EconomyStore } from '../server/economy';
-import { canonicalMemberIdentity } from '../server/economy-members';
+import { verifyMemberAccount } from '../server/economy-members';
+import { serviceErrorDetails } from '../server/service-error';
 import { ECONOMY_CATALOG } from '../src/lib/economy-protocol';
 import { settleCashAllowances } from '../server/economy-allowances';
 import { PuzzleRewardStore } from '../server/puzzle-rewards';
@@ -43,18 +46,14 @@ function json(data: unknown, status = 200, headers = new Headers()) {
   headers.set('X-Content-Type-Options', 'nosniff');
   return new Response(JSON.stringify(data), { status, headers });
 }
-async function identify(request: Request, env: Environment, store: CloudRoomStore, headers: Headers, economy: EconomyStore): Promise<Identity> {
+async function identify(request: Request, env: Environment, store: CloudRoomStore, headers: Headers, economy: EconomyStore, purpose: 'economy' | 'game'): Promise<Identity> {
   const authorization = request.headers.get('authorization');
   if (authorization) {
     if (!authorization.startsWith('Bearer ') || authorization.length > 8192) throw new RummyError('Invalid authorization.', 401);
     const { supabaseUrl, supabaseKey } = publicConfig(env);
     if (!supabaseUrl || !supabaseKey) throw new RummyError('Member verification is not configured. Sign out to play as a guest.', 503, 'auth_unavailable');
     const client = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: authorization } } });
-    const { data, error } = await client.auth.getUser(authorization.slice(7));
-    if (error || !data.user) throw new RummyError('Your sign-in expired. Sign in again.', 401, 'unauthorized');
-    const permissions = await client.rpc('lounge_permissions');
-    if (permissions.error) throw new RummyError('Could not verify player profile. Please try again.', 503, 'auth_unavailable');
-    return canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
+    return verifyMemberAccount(client, authorization.slice(7), economy, purpose);
   }
   const token = request.headers.get('cookie')?.split(';').map(item => item.trim()).find(item => item.startsWith('cayea_rummy='))?.slice(12);
   const guest = await store.guest(token);
@@ -134,8 +133,9 @@ async function api(request: Request, env: Environment, context: Context) {
   const headers = new Headers();
   try {
     if (!['GET', 'POST'].includes(request.method)) throw new RummyError('Method not allowed.', 405);
-    if (!/^\/api\/(rummy|spades|five-dice|farkle|backgammon|carrom|crown-court|crown-chance|dominoes|social|economy|collectibles|puzzles)(?:\/|$)/.test(path)) throw new RummyError('Endpoint not found.', 404);
+    if (!/^\/api\/(rummy|spades|five-dice|farkle|backgammon|carrom|crown-court|crown-chance|dominoes|social|economy|collectibles|puzzles|classic-cards)(?:\/|$)/.test(path)) throw new RummyError('Endpoint not found.', 404);
     const game = path.startsWith('/api/carrom')?'carrom':path.startsWith('/api/backgammon')?'backgammon':path.startsWith('/api/crown-court') ? 'crown-court' : path.startsWith('/api/farkle') ? 'farkle' : path.startsWith('/api/dominoes') ? 'dominoes' : path.startsWith('/api/five-dice') ? 'five-dice' : path.startsWith('/api/spades') ? 'spades' : 'rummy';
+    if (path === '/api/classic-cards/health') return json({ app: 'clubhouse-classic-cards', version: 1 }, 200, headers);
     if (path === '/api/crown-chance/health') return json({ app: 'clubhouse-crown-chance', version: 1 }, 200, headers);
     if (path === `/api/${game}/health`) return json({ app: `cayea-${game}`, version: 1 }, 200, headers);
     if (!env.DB) throw new RummyError('The game database is not connected yet.', 503);
@@ -152,9 +152,13 @@ async function api(request: Request, env: Environment, context: Context) {
     const rummy = new CloudRoomStore(env.DB), spades = new CloudSpadesRoomStore(env.DB);
     if (path === '/api/economy/catalog' && request.method === 'GET') return json({ items: ECONOMY_CATALOG }, 200, headers);
     const economy = new EconomyStore(env.DB), puzzles = new PuzzleRewardStore(env.DB, economy);
-    const actor = await identify(request, env, rummy, headers, economy);
+    const economyRequest = path === '/api/economy' || path.startsWith('/api/economy/');
+    const actor = await identify(request, env, rummy, headers, economy, economyRequest ? 'economy' : 'game');
     if(path==='/api/collectibles'){const collection=new CollectiblesStore(env.DB);if(request.method==='GET')return json(await collection.read(actor),200,headers);const receipt=await collection.command(actor,await readCommand(request));return json({album:await collection.read(actor),wallet:await economy.wallet(actor),receipt},200,headers);}
-    if (path === '/api/economy' || path.startsWith('/api/economy/')) {
+    if (economyRequest) {
+      if (path === '/api/economy/wallet' && request.method === 'GET') {
+        return json({ wallet: await economy.readWallet(actor) }, 200, headers);
+      }
       if (path === '/api/economy') {
         if (request.method === 'GET') return json(await economy.read(actor), 200, headers);
         return json(await economy.command(actor, await readCommand(request)), 200, headers);
@@ -168,6 +172,13 @@ async function api(request: Request, env: Environment, context: Context) {
       return json(await puzzles.command(actor, await readCommand(request, 73728)), 200, headers);
     }
     const social = new SocialStore(env.DB);
+    const classic = classicEndpoint(path);
+    if (classic) {
+      const tables = new ClassicCardRooms(env.DB);
+      if (request.method === 'GET') return json(classic.code ? await tables.get(classic.kind, classic.code, actor) : await tables.list(classic.kind, actor), 200, headers);
+      if (!classic.code) return json(await tables.command(classic.kind, actor, await namedGameCommand(social, actor, await readCommand(request))), 200, headers);
+      throw new RummyError('Method not allowed.', 405);
+    }
     if (path === '/api/social' || path.startsWith('/api/social/')) {
       if (request.method === 'GET') return json(await social.read(actor, new URL(request.url)), 200, headers);
       if (path !== '/api/social') throw new RummyError('Endpoint not found.', 404);
@@ -335,7 +346,7 @@ async function api(request: Request, env: Environment, context: Context) {
     throw new RummyError('Endpoint not found.', 404);
   } catch (error) {
     if (error instanceof RummyError) return json({ error: error.message, code: error.code }, error.status, headers);
-    console.error('Unexpected game service error.');
+    console.error('Unexpected game service error.', serviceErrorDetails(error));
     return json({ error: 'The game service could not complete that request. Reconnect to check your table.', code: 'server_error' }, 500, headers);
   }
 }
@@ -351,7 +362,36 @@ export default {
     }
     const asset = assets[path] || (!path.split('/').at(-1)?.includes('.') ? assets['/index.html'] : undefined);
     if (!asset) return new Response('Not found.', { status: 404 });
-    const headers = { 'Content-Type': asset.type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-store' };
-    return new Response(request.method === 'HEAD' ? null : Uint8Array.from(atob(asset.data), char => char.charCodeAt(0)), { headers });
+    const htmlAsset = asset === assets['/index.html'];
+    const hashedAsset = path.startsWith('/assets/plain/');
+    const headers = new Headers({
+      'Content-Type': asset.type,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': htmlAsset ? 'no-store' : hashedAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
+    });
+    if (!htmlAsset && asset.etag) {
+      headers.set('ETag', asset.etag);
+      const cached = request.headers.get('If-None-Match')?.split(',').some(tag => {
+        const value = tag.trim().replace(/^W\//, '');
+        return value === '*' || value === asset.etag;
+      });
+      if (cached) return new Response(null, { status: 304, headers });
+    }
+    if (request.method === 'HEAD') return new Response(null, { headers });
+    const binary = atob(asset.data);
+    const bytes = new Uint8Array(binary.length);
+    for (let offset = 0; offset < binary.length; offset++) bytes[offset] = binary.charCodeAt(offset);
+    if (htmlAsset) {
+      const { supabaseUrl, supabaseKey } = publicConfig(env);
+      if (supabaseUrl && supabaseKey) {
+        const escapeAttribute = (value: string) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const config = `<meta name="clubhouse-supabase-url" content="${escapeAttribute(supabaseUrl)}"><meta name="clubhouse-supabase-key" content="${escapeAttribute(supabaseKey)}">`;
+        const html = new TextDecoder().decode(bytes)
+          .replace('<!--clubhouse-runtime-config-->', () => config)
+          .replace('<script src="/clubhouse-config.js"></script>', '');
+        return new Response(html, { headers });
+      }
+    }
+    return new Response(bytes, { headers });
   },
 };

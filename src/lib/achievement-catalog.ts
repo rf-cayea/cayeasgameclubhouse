@@ -16,6 +16,10 @@ for (const [game,label,icon] of [['carrom','Carrom & Disc Pool','target'],['back
   chain(game,`${stat}HardWins`,currency,'crown',`${game}-hard`,[[1,200,'Challenge Accepted'],[10,1500,'Hard Table Hero'],[50,5000,'Expert Conqueror']],n=>`Win ${n} full ${label} ${n===1?'match':'matches'} against Hard computer opponents.`);
   chain(game,`${stat}HumanWins`,currency,'rivals',`${game}-rivals`,[[1,200,'Friendly Rival'],[10,1500,'Online Champion'],[50,5000,'Multiplayer Legend']],n=>`Win ${n} verified online ${label} ${n===1?'match':'matches'} against signed-in players.`);
 }
+for (const [game,label,stat,currency] of [['crazy-eights','Crazy 8’s','eights','rummy_points'],['hearts','Hearts','hearts','spades_points']] as const) {
+  chain(game,`${stat}Wins`,currency,'cards',`${game}-victory`,[[1,100,'First Victory'],[5,250,'Table Regular'],[10,500,'Skilled Contender'],[25,1000,'Club Champion'],[50,2000,'Master of the Table'],[100,5000,'Legendary Player']],n=>`Win ${n} verified ${label} ${n===1?'match':'matches'}.`);
+  chain(game,`${stat}HumanWins`,currency,'rivals',`${game}-rivals`,[[1,200,'Friendly Rival'],[10,1500,'Online Champion'],[50,5000,'Multiplayer Legend']],n=>`Win ${n} verified online ${label} ${n===1?'match':'matches'} against signed-in players.`);
+}
 chain('clubhouse','lifetime','points','coin','member-points',[[100,5,'Welcome In'],[1000,15,'Clubhouse Regular'],[5000,40,'Rising Star'],[25000,100,'Clubhouse Legend']],n=>`Earn ${n.toLocaleString()} lifetime reward points.`);
 chain('clubhouse','visits','points','calendar','member-visits',[[3,5,'Good Company'],[7,15,'A Familiar Face'],[30,45,'Clubhouse Companion'],[90,120,'Part of the Club']],n=>`Visit while signed in on ${n} different UTC days.`);
 chain('clubhouse','memberDays','points','anniversary','member-days',[[30,25,'One Month Together'],[365,200,'Clubhouse Anniversary']],n=>`Reach ${n} days of Clubhouse membership.`);

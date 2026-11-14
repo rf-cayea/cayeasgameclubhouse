@@ -4,14 +4,14 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { PlayerRewards } from '@/components/PlayerRewards';
 import { HubNav } from '@/components/HubNav';
 import { PlayerAvatar, PLAYER_AVATARS, SocialFeedback, SocialSignIn } from '@/components/PlayerProfileCard';
-import { useClubhouse } from '@/lib/clubhouse';
+import { useClubhouseAccount } from '@/lib/clubhouse';
 import { usePlayerProfile, useSocialAction } from '@/lib/social';
 import { PROFILE_AVATARS, type PlayerProfile, type ProfileAvatar } from '@/lib/social-protocol';
 
 export const Route = createFileRoute('/profile')({ head: () => ({ meta: [{ title: "My player profile — Cayea's Game Clubhouse" }] }), component: ProfilePage });
 
 function ProfilePage() {
-  const { user, ready } = useClubhouse(), profile = usePlayerProfile(user?.id ?? null);
+  const { user, ready } = useClubhouseAccount(), profile = usePlayerProfile(user?.id ?? null);
   return <><HubNav/><main className="social-shell"><div className="social-heading"><div><p className="social-eyebrow">YOUR PLACE IN THE CLUBHOUSE</p><h1>My player profile</h1><p>Choose the gamer name your friends will know you by.</p></div><div className="flex flex-wrap gap-2"><Link to="/auth/reset" className="btn-ghost-gold">Reset password</Link><Link to="/friends" className="btn-ghost-gold">Find friends</Link></div></div>
     {!ready ? <p role="status">Checking your account…</p> : !user ? <SocialSignIn label="Make your player profile"/> : profile.data ? <><ProfileEditor key={user.id} profile={profile.data}/><PlayerRewards key={`rewards-${user.id}`} userId={user.id}/></> : <section className="card-hub"><p role={profile.error ? 'alert' : 'status'}>{profile.error || 'Opening your player profile…'}</p>{profile.error && <button className="btn-ghost-gold mt-4" onClick={() => void profile.refresh()}>Retry profile</button>}</section>}
   </main></>;

@@ -97,7 +97,7 @@
       "idx": 13,
       "version": "6",
       "when": 1793886805840,
-      "tag": "0013_cayea87_tester_cash",
+      "tag": "0013_private_deployment_placeholder",
       "breakpoints": true
     },
     {
@@ -147,6 +147,13 @@
       "version": "6",
       "when": 1794397058129,
       "tag": "0020_clubhouse_crown_chance",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1794397058130,
+      "tag": "0021_clubhouse_classic_cards",
       "breakpoints": true
     }
   ]

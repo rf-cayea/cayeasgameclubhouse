@@ -25,12 +25,14 @@ import { Route as AuthResetRouteImport } from './routes/auth_.reset'
 import { Route as Games3GemsRouteImport } from './routes/games.3-gems'
 import { Route as GamesBackgammonRouteImport } from './routes/games.backgammon'
 import { Route as GamesCarromRouteImport } from './routes/games.carrom'
+import { Route as GamesCrazyEightsRouteImport } from './routes/games.crazy-eights'
 import { Route as GamesCrownChanceRouteImport } from './routes/games.crown-chance'
 import { Route as GamesCrownCourtRouteImport } from './routes/games.crown-court'
 import { Route as GamesDominoesRouteImport } from './routes/games.dominoes'
 import { Route as GamesFaith3RouteImport } from './routes/games.faith-3'
 import { Route as GamesFarkleRouteImport } from './routes/games.farkle'
 import { Route as GamesFiveDiceRouteImport } from './routes/games.five-dice'
+import { Route as GamesHeartsRouteImport } from './routes/games.hearts'
 import { Route as GamesQuintseeRouteImport } from './routes/games.quintsee'
 import { Route as GamesRummyRouteImport } from './routes/games.rummy'
 import { Route as GamesSpadesRouteImport } from './routes/games.spades'
@@ -116,6 +118,11 @@ const GamesCarromRoute = GamesCarromRouteImport.update({
   path: '/games/carrom',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesCrazyEightsRoute = GamesCrazyEightsRouteImport.update({
+  id: '/games/crazy-eights',
+  path: '/games/crazy-eights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesCrownChanceRoute = GamesCrownChanceRouteImport.update({
   id: '/games/crown-chance',
   path: '/games/crown-chance',
@@ -144,6 +151,11 @@ const GamesFarkleRoute = GamesFarkleRouteImport.update({
 const GamesFiveDiceRoute = GamesFiveDiceRouteImport.update({
   id: '/games/five-dice',
   path: '/games/five-dice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesHeartsRoute = GamesHeartsRouteImport.update({
+  id: '/games/hearts',
+  path: '/games/hearts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesQuintseeRoute = GamesQuintseeRouteImport.update({
@@ -184,12 +196,14 @@ export interface FileRoutesByFullPath {
   '/games/3-gems': typeof Games3GemsRoute
   '/games/backgammon': typeof GamesBackgammonRoute
   '/games/carrom': typeof GamesCarromRoute
+  '/games/crazy-eights': typeof GamesCrazyEightsRoute
   '/games/crown-chance': typeof GamesCrownChanceRoute
   '/games/crown-court': typeof GamesCrownCourtRoute
   '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
   '/games/farkle': typeof GamesFarkleRoute
   '/games/five-dice': typeof GamesFiveDiceRoute
+  '/games/hearts': typeof GamesHeartsRoute
   '/games/quintsee': typeof GamesQuintseeRoute
   '/games/rummy': typeof GamesRummyRoute
   '/games/spades': typeof GamesSpadesRoute
@@ -212,12 +226,14 @@ export interface FileRoutesByTo {
   '/games/3-gems': typeof Games3GemsRoute
   '/games/backgammon': typeof GamesBackgammonRoute
   '/games/carrom': typeof GamesCarromRoute
+  '/games/crazy-eights': typeof GamesCrazyEightsRoute
   '/games/crown-chance': typeof GamesCrownChanceRoute
   '/games/crown-court': typeof GamesCrownCourtRoute
   '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
   '/games/farkle': typeof GamesFarkleRoute
   '/games/five-dice': typeof GamesFiveDiceRoute
+  '/games/hearts': typeof GamesHeartsRoute
   '/games/quintsee': typeof GamesQuintseeRoute
   '/games/rummy': typeof GamesRummyRoute
   '/games/spades': typeof GamesSpadesRoute
@@ -241,12 +257,14 @@ export interface FileRoutesById {
   '/games/3-gems': typeof Games3GemsRoute
   '/games/backgammon': typeof GamesBackgammonRoute
   '/games/carrom': typeof GamesCarromRoute
+  '/games/crazy-eights': typeof GamesCrazyEightsRoute
   '/games/crown-chance': typeof GamesCrownChanceRoute
   '/games/crown-court': typeof GamesCrownCourtRoute
   '/games/dominoes': typeof GamesDominoesRoute
   '/games/faith-3': typeof GamesFaith3Route
   '/games/farkle': typeof GamesFarkleRoute
   '/games/five-dice': typeof GamesFiveDiceRoute
+  '/games/hearts': typeof GamesHeartsRoute
   '/games/quintsee': typeof GamesQuintseeRoute
   '/games/rummy': typeof GamesRummyRoute
   '/games/spades': typeof GamesSpadesRoute
@@ -271,12 +289,14 @@ export interface FileRouteTypes {
     | '/games/3-gems'
     | '/games/backgammon'
     | '/games/carrom'
+    | '/games/crazy-eights'
     | '/games/crown-chance'
     | '/games/crown-court'
     | '/games/dominoes'
     | '/games/faith-3'
     | '/games/farkle'
     | '/games/five-dice'
+    | '/games/hearts'
     | '/games/quintsee'
     | '/games/rummy'
     | '/games/spades'
@@ -299,12 +319,14 @@ export interface FileRouteTypes {
     | '/games/3-gems'
     | '/games/backgammon'
     | '/games/carrom'
+    | '/games/crazy-eights'
     | '/games/crown-chance'
     | '/games/crown-court'
     | '/games/dominoes'
     | '/games/faith-3'
     | '/games/farkle'
     | '/games/five-dice'
+    | '/games/hearts'
     | '/games/quintsee'
     | '/games/rummy'
     | '/games/spades'
@@ -327,12 +349,14 @@ export interface FileRouteTypes {
     | '/games/3-gems'
     | '/games/backgammon'
     | '/games/carrom'
+    | '/games/crazy-eights'
     | '/games/crown-chance'
     | '/games/crown-court'
     | '/games/dominoes'
     | '/games/faith-3'
     | '/games/farkle'
     | '/games/five-dice'
+    | '/games/hearts'
     | '/games/quintsee'
     | '/games/rummy'
     | '/games/spades'
@@ -356,12 +380,14 @@ export interface RootRouteChildren {
   Games3GemsRoute: typeof Games3GemsRoute
   GamesBackgammonRoute: typeof GamesBackgammonRoute
   GamesCarromRoute: typeof GamesCarromRoute
+  GamesCrazyEightsRoute: typeof GamesCrazyEightsRoute
   GamesCrownChanceRoute: typeof GamesCrownChanceRoute
   GamesCrownCourtRoute: typeof GamesCrownCourtRoute
   GamesDominoesRoute: typeof GamesDominoesRoute
   GamesFaith3Route: typeof GamesFaith3Route
   GamesFarkleRoute: typeof GamesFarkleRoute
   GamesFiveDiceRoute: typeof GamesFiveDiceRoute
+  GamesHeartsRoute: typeof GamesHeartsRoute
   GamesQuintseeRoute: typeof GamesQuintseeRoute
   GamesRummyRoute: typeof GamesRummyRoute
   GamesSpadesRoute: typeof GamesSpadesRoute
@@ -482,6 +508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesCarromRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/crazy-eights': {
+      id: '/games/crazy-eights'
+      path: '/games/crazy-eights'
+      fullPath: '/games/crazy-eights'
+      preLoaderRoute: typeof GamesCrazyEightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/crown-chance': {
       id: '/games/crown-chance'
       path: '/games/crown-chance'
@@ -522,6 +555,13 @@ declare module '@tanstack/react-router' {
       path: '/games/five-dice'
       fullPath: '/games/five-dice'
       preLoaderRoute: typeof GamesFiveDiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/hearts': {
+      id: '/games/hearts'
+      path: '/games/hearts'
+      fullPath: '/games/hearts'
+      preLoaderRoute: typeof GamesHeartsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/quintsee': {
@@ -572,12 +612,14 @@ const rootRouteChildren: RootRouteChildren = {
   Games3GemsRoute: Games3GemsRoute,
   GamesBackgammonRoute: GamesBackgammonRoute,
   GamesCarromRoute: GamesCarromRoute,
+  GamesCrazyEightsRoute: GamesCrazyEightsRoute,
   GamesCrownChanceRoute: GamesCrownChanceRoute,
   GamesCrownCourtRoute: GamesCrownCourtRoute,
   GamesDominoesRoute: GamesDominoesRoute,
   GamesFaith3Route: GamesFaith3Route,
   GamesFarkleRoute: GamesFarkleRoute,
   GamesFiveDiceRoute: GamesFiveDiceRoute,
+  GamesHeartsRoute: GamesHeartsRoute,
   GamesQuintseeRoute: GamesQuintseeRoute,
   GamesRummyRoute: GamesRummyRoute,
   GamesSpadesRoute: GamesSpadesRoute,

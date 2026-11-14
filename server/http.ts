@@ -1,3 +1,5 @@
+import { ClassicCardRooms } from './classic-card-rooms';
+import { classicEndpoint } from '../src/lib/classic-card-protocol';
 import {CarromRoomStore} from './carrom-rooms';
 import {CollectiblesStore} from './collectibles';
 import {BackgammonRoomStore} from './backgammon-rooms';
@@ -28,22 +30,18 @@ import { nodeSocialBinding, initializeSocialNode } from './social-node';
 import { namedGameCommand, mirrorLoungeName } from './social-members';
 import { EconomyStore } from './economy';
 import { initializeEconomyNode } from './economy-node';
-import { canonicalMemberIdentity } from './economy-members';
+import { verifyMemberAccount } from './economy-members';
 import { ECONOMY_CATALOG } from '../src/lib/economy-protocol';
 import { PuzzleRewardStore } from './puzzle-rewards';
 
 interface ServerOptions { store: RoomStore; dist?: string; origin?: string; secureCookie?: boolean; verifyMember?: (token: string) => Promise<Identity>; rewardWriter?: RewardWriter; spadesRewardWriter?: SpadesRewardWriter }
 
-async function verifyMember(token: string, economy: EconomyStore): Promise<Identity> {
+async function verifyMember(token: string, economy: EconomyStore, purpose: 'economy' | 'game'): Promise<Identity> {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new RummyError('Member verification is not configured on the game server. Sign out to play as a guest, or configure the server’s Supabase project.', 503, 'auth_unavailable');
   const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data, error } = await client.auth.getUser(token);
-  if (error || !data.user) throw new RummyError('Your sign-in expired. Sign in again.', 401, 'unauthorized');
-  const permissions = await client.rpc('lounge_permissions');
-  if (permissions.error) throw new RummyError('Could not verify player profile. Please try again.', 503, 'auth_unavailable');
-  return canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
+  return verifyMemberAccount(client, token, economy, purpose);
 }
 
 function json(response: ServerResponse, status: number, body: unknown) {
@@ -70,6 +68,7 @@ export function createGameServer(options: ServerOptions) {
   initializeFarkleNode(options.store.db);
   initializeCrownCourtNode(options.store.db);
   initializeCrownChanceNode(options.store.db);
+  const classicTables = new ClassicCardRooms(binding);
   initializeMatchmakingNode(options.store.db);
   const dice = new FiveDiceRoomStore(binding);
   const farkle = new FarkleRoomStore(binding);const backgammon=new BackgammonRoomStore(binding);const carrom=new CarromRoomStore(binding);
@@ -79,11 +78,11 @@ export function createGameServer(options: ServerOptions) {
   const economy = new EconomyStore(binding), puzzles = new PuzzleRewardStore(binding, economy);
   const streams = new Map<string, Set<{ response: ServerResponse; principal: string }>>();
   const limits = new Map<string, { start: number; count: number }>();
-  const identity = async (request: IncomingMessage, response: ServerResponse): Promise<Identity> => {
+  const identity = async (request: IncomingMessage, response: ServerResponse, purpose: 'economy' | 'game'): Promise<Identity> => {
     const authorization = request.headers.authorization;
     if (authorization) {
       if (!authorization.startsWith('Bearer ') || authorization.length > 8192) throw new RummyError('Invalid authorization.', 401);
-      if (!options.verifyMember) return verifyMember(authorization.slice(7), economy);
+      if (!options.verifyMember) return verifyMember(authorization.slice(7), economy, purpose);
       const actor = await options.verifyMember(authorization.slice(7));
       if (!actor.principal.startsWith('member:')) throw new RummyError('Sign in required.', 401);
       // Injected verification is used only by isolated server tests. It never
@@ -112,6 +111,7 @@ export function createGameServer(options: ServerOptions) {
       if (path === '/api/rummy/health') { json(response, 200, { app: 'cayea-rummy', version: 1 }); return; }
       if (path === '/api/dominoes/health') { json(response, 200, { app: 'clubhouse-dominoes', version: 1 }); return; }
       if (path === '/api/crown-court/health') { json(response, 200, { app: 'clubhouse-crown-court', version: 1 }); return; }
+      if (path === '/api/classic-cards/health') { json(response, 200, { app: 'clubhouse-classic-cards', version: 1 }); return; }
       if (path === '/api/crown-chance/health') { json(response, 200, { app: 'clubhouse-crown-chance', version: 1 }); return; }
       if(path==='/api/carrom/health'){json(response,200,{app:'clubhouse-carrom',version:1});return;}
       if(path==='/api/backgammon/health'){json(response,200,{app:'clubhouse-backgammon',version:1});return;}
@@ -132,9 +132,25 @@ export function createGameServer(options: ServerOptions) {
           if (Number(request.headers['content-length'] ?? 0) > (path === '/api/puzzles' ? 73_728 : 16_384)) { request.resume(); throw new RummyError('Request too large.', 413); }
         }
         if (path === '/api/economy/catalog' && request.method === 'GET') { json(response, 200, { items: ECONOMY_CATALOG }); return; }
-        const actor = await identity(request, response);
+        const economyRequest = path === '/api/economy' || path.startsWith('/api/economy/');
+        const actor = await identity(request, response, economyRequest ? 'economy' : 'game');
+        const classic = classicEndpoint(path);
+        if (classic) {
+          if (request.method === 'GET') {
+            json(response, 200, classic.code ? await classicTables.get(classic.kind, classic.code, actor) : await classicTables.list(classic.kind, actor));
+            return;
+          }
+          if (request.method === 'POST' && !classic.code) {
+            json(response, 200, await classicTables.command(classic.kind, actor, await namedGameCommand(social, actor, await body(request))));
+            return;
+          }
+          throw new RummyError('Method not allowed.', 405);
+        }
         if(path==='/api/collectibles'){const collection=new CollectiblesStore(binding);if(request.method==='GET'){json(response,200,await collection.read(actor));return;}const receipt=await collection.command(actor,await body(request));json(response,200,{album:await collection.read(actor),wallet:await economy.wallet(actor),receipt});return;}
-        if (path === '/api/economy' || path.startsWith('/api/economy/')) {
+        if (economyRequest) {
+          if (path === '/api/economy/wallet' && request.method === 'GET') {
+            json(response, 200, { wallet: await economy.readWallet(actor) }); return;
+          }
           if (path === '/api/economy') {
             if (request.method === 'GET') { json(response, 200, await economy.read(actor)); return; }
             if (request.method === 'POST') { json(response, 200, await economy.command(actor, await body(request))); return; }

@@ -188,6 +188,50 @@ describe('hosted Worker economy migration boundary', () => {
     await Promise.all(pending);
   });
 
+  it('returns just the verified member balance from the lightweight wallet endpoint', async () => {
+    const { DB, request, pending } = workerApp();
+    expect((await request(null, '/api/economy/wallet')).status).toBe(401);
+    const response = await request(alice, '/api/economy/wallet');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    const body = await response.json() as { wallet: EconomyWallet };
+    expect(Object.keys(body)).toEqual(['wallet']);
+    expect(body.wallet).toMatchObject({ points: 900, rummy_points: 1000, owned: ['faith3-skin-jade'] });
+    const calls = vi.spyOn(DB, 'prepare');
+    try {
+      const next = await request(alice, '/api/economy/wallet');
+      expect(await next.json()).toEqual(body);
+      expect(calls.mock.calls.length).toBeLessThanOrEqual(11);
+    } finally {
+      calls.mockRestore();
+    }
+    await Promise.all(pending);
+  });
+
+  it('debits the selected table balance and sells card-deck fragments one at a time', async () => {
+    const { request, pending } = workerApp();
+    const purchase = async (command: unknown) => {
+      const response = await request(alice, '/api/economy', command);
+      expect(response.status).toBe(200);
+      return response.json() as Promise<EconomyCommandResult>;
+    };
+    const table = await purchase({ operation: 'purchase', itemId: 'spades-table-nocturne', payment: 'game', game: 'rummy' });
+    expect(table.receipt).toMatchObject({ currency: 'rummy_points', amount: 125, alreadyApplied: false });
+    expect(table.wallet).toMatchObject({ rummy_points: 875, spades_points: 1000, points: 900 });
+    const itemId = 'card-deck-standard';
+    const order = { operation: 'buy_fragments', itemId, count: 1, payment: 'game', game: 'spades' };
+    expect((await request(alice, '/api/economy', { ...order, count: 3, requestId: randomUUID() })).status).toBe(400);
+    for (const [index, price] of [188, 188, 187].entries()) {
+      const result = await purchase({ ...order, expectedPrice: price, requestId: randomUUID() });
+      expect(result.receipt).toMatchObject({ currency: 'spades_points', amount: price });
+      expect(result.rewardCrates?.cards.fragments[itemId]).toBe(index + 1);
+      expect(result.wallet.owned.includes(itemId)).toBe(index === 2);
+    }
+    const balance = await (await request(alice)).json() as EconomyView;
+    expect(balance.wallet).toMatchObject({ rummy_points: 875, spades_points: 437, points: 900 });
+    await Promise.all(pending);
+  });
+
   it('preserves an older pre-Spades wallet without requiring later Supabase columns', async () => {
     const { request } = workerApp({ preSpades: true });
     const response = await request(alice); expect(response.status).toBe(200);

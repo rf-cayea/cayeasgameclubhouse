@@ -6,6 +6,8 @@ import { fiveDiceActivityDuration, fiveDiceActivityFrames } from './five-dice-ac
 /** Display committed moves at a readable pace. Never writes to or predicts the game state. */
 export function useFiveDicePresentation(room: FiveDiceRoomView | null) {
   const scope = room ? `${room.code}:${room.mySeat}` : '';
+  const seat = useRef(room?.mySeat);
+  seat.current = room?.mySeat;
   const owner = useRef(''), seen = useRef(0), queue = useRef<FiveDiceActivity[]>([]);
   const current = useRef<FiveDiceActivity | null>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [frame, setFrame] = useState<FiveDiceActivity | null>(null);
@@ -16,7 +18,7 @@ export function useFiveDicePresentation(room: FiveDiceRoomView | null) {
   const advance = useCallback(function next() {
     const event = queue.current.shift() ?? null;
     current.current = event; setFrame(event);
-    timer.current = event ? setTimeout(next, fiveDiceActivityDuration(event)) : null;
+    timer.current = event ? setTimeout(next, fiveDiceActivityDuration(event) + (event.kind === 'roll' && event.seat !== seat.current ? 1200 : 0)) : null;
   }, []);
   useEffect(() => {
     const state = room?.state, sequence = state?.actionSequence ?? state?.activity?.at(-1)?.id ?? 0;

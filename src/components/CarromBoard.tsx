@@ -1,3 +1,4 @@
+import '@/styles/carrom.css';
 import {useEffect,useRef,useState,useId,type PointerEvent} from 'react';
 import {CARROM,CARROM_POCKETS,canPlaceStriker,carromAimGuide,nearestStrikerX,makeDisc,shotWorld,stepCarrom,strikerY,type CarromReplay,type CarromSeat,type CarromShot,type Disc} from '@/lib/carrom';
 import {BoardEmblem} from './BoardEmblem';

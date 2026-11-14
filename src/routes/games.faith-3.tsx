@@ -1,3 +1,5 @@
+import { playGameCue } from '@/lib/game-cues';
+import { GameEffectsButton } from '@/components/GameEffectsButton';
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useClubhouse } from "@/lib/clubhouse";
@@ -79,6 +81,8 @@ function Faith3Page() {
     if (rewards.starting || rewards.submitting || !ready) return;
     const previous = currentPractice.current, next = practiceReducer(previous, { t: "move", action });
     if (next === previous) return;
+    if (next.play !== previous.play) playGameCue(next.play.status === 'won' ? 'win'
+      : next.play.status === 'lost' ? 'miss' : next.play.matches > previous.play.matches ? 'match' : 'tile');
     currentPractice.current = next; rewards.record(action); dispatch({ t: "replace", state: next });
   };
 
@@ -87,7 +91,7 @@ function Faith3Page() {
       <header className="faith-play-header">
         <Link to="/" className="faith-hub-link" aria-label="Back to the Clubhouse">← <span>Clubhouse</span></Link>
         <h1>Faith 3 <em>Tile Match</em></h1>
-        <div><button aria-label="Tiles & settings" onClick={() => setPanel("tiles")}>Tiles</button><button aria-label="How to play" onClick={() => setPanel("help")}>Help</button></div>
+        <div><GameEffectsButton/><button aria-label="Tiles & settings" onClick={() => setPanel("tiles")}>Tiles</button><button aria-label="How to play" onClick={() => setPanel("help")}>Help</button></div>
       </header>
       <main className="faith-shell">
         <div className="faith-controls">

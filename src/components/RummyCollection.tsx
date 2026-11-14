@@ -9,12 +9,12 @@ import { rummyDeck } from '@/lib/card-decks';
 import { CardArtwork } from './CardArtwork';
 import { DeckShowcase } from './DeckShowcase';
 
-export function useRummyAppearance(userId: string | null, finishedMatch: string) {
+export function useRummyAppearance(userId: string | null, finishedMatch: string, enabled = true) {
   const [data, setData] = useState(() => rummyAppearanceView(false, 0)), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const [unlocked, setUnlocked] = useState<string[]>([]), observed = useRef<RummyAppearanceView | null>(null);
   const epoch = useRef(0), pending = useRef(false);
   const refresh = useCallback(async () => {
-    if (pending.current) return;
+    if (!enabled || pending.current) return;
     const version = ++epoch.current;
     try {
       const next = await gameRequest<RummyAppearanceView>('/api/rummy/appearance');
@@ -25,13 +25,14 @@ export function useRummyAppearance(userId: string | null, finishedMatch: string)
       }
     }
     catch (cause) { if (version === epoch.current) setError(cause instanceof Error ? cause.message : 'Your collection could not load.'); }
-  }, []);
+  }, [enabled]);
   useEffect(() => {
     setData(rummyAppearanceView(false, 0)); setError(''); setBusy(false); setUnlocked([]); observed.current = null; pending.current = false;
+    if (!enabled) return;
     void refresh();
     const focused = () => void refresh(); window.addEventListener('focus', focused); window.addEventListener('clubhouse-wallet', focused);
     return () => { ++epoch.current; window.removeEventListener('focus', focused); window.removeEventListener('clubhouse-wallet', focused); };
-  }, [userId, refresh]);
+  }, [userId, refresh, enabled]);
   useEffect(() => { if (finishedMatch) void refresh(); }, [finishedMatch, refresh]);
   async function equip(slot: RummyAppearanceSlot, id: string) {
     if (pending.current) return false;

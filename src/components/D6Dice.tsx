@@ -27,14 +27,15 @@ export function D6DieFace({ value, ghost = false, held = false, design }: { valu
   </svg>;
 }
 const orientations: Record<number, [number, number]> = { 1: [0, 0], 2: [-90, 0], 3: [0, -90], 4: [0, 90], 5: [90, 0], 6: [0, 180] };
-export function D6Die({ value, held, disabled, rolling, rollId, onHold, index, holdLabel, ariaLabel }: {
+export function D6Die({ value, held, disabled, rolling, rollId, onHold, index, holdLabel, ariaLabel, playable = false }: {
+  playable?: boolean;
   value: number; held: boolean; disabled: boolean; rolling: boolean; rollId: number; onHold: () => void; index: number; holdLabel?: string; ariaLabel?: string;
 }) {
   const theme = useContext(D6DiceTheme);
   const [x, y] = orientations[value] ?? orientations[1]!;
   const tumbling = rolling && !held;
   const style = { '--fd-x': `${x}deg`, '--fd-y': `${y}deg`, '--fd-roll-delay': `${index * 18}ms`, '--fd-die-body': !value ? '#c9c5b7' : held && theme.id === CLASSIC_D6_DICE.id ? '#f6d47e' : theme.face } as CSSProperties;
-  return <button type="button" className="fd-die" style={style} data-held={held} data-rolling={tumbling} disabled={disabled} aria-pressed={held} aria-label={ariaLabel ?? `Die ${index + 1}: ${value || 'not rolled'}${held ? ', held' : ''}`} onClick={onHold}>
+  return <button type="button" className="fd-die" style={style} data-held={held} data-playable={playable && !held && !rolling} data-rolling={tumbling} disabled={disabled} aria-pressed={held} aria-label={ariaLabel ?? `Die ${index + 1}: ${value || 'not rolled'}${held ? ', held' : ''}`} onClick={onHold}>
     <div className="fd-die-visual" aria-hidden="true">
       <div className="fd-die-cube" key={tumbling ? `roll-${rollId}` : 'settled'}>
         {[1, 2, 3, 4, 5, 6].map(face => <div key={face} className="fd-cube-face" data-face={face}><D6DieFace value={face} ghost={!value} held={held} /></div>)}

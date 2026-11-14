@@ -57,7 +57,25 @@ export async function loadLegacySnapshot(client: MemberClient, userId: string) {
 export async function canonicalMemberIdentity(economy: EconomyStore, client: MemberClient, userId: string, nameFlagged: boolean, joinedAt?: string): Promise<Identity> {
   const actor: Identity = { principal: `member:${userId}`, jokers: false, owned: [], nameFlagged };
   if (!await economy.hasMember(actor)) await economy.ensureMember(actor, { ...await loadLegacySnapshot(client, userId), joinedAt });
-  if (await economy.hasPendingAllowance(actor)) await economy.read(actor);
-  const wallet = await economy.ensureMember(actor);
+  const wallet = await economy.hasPendingAllowance(actor) ? await economy.readWallet(actor) : await economy.wallet(actor);
   return { ...actor, owned: wallet.owned, jokers: wallet.owned.includes('rummy-jokers') };
+}
+
+/** The auth service can be temporarily unavailable while a session is still valid. */
+export async function verifyMemberAccount(client: MemberClient, token: string, economy: EconomyStore, purpose: 'economy' | 'game' = 'game'): Promise<Identity> {
+  const { data, error } = await client.auth.getUser(token);
+  if (error && (error.status === undefined || error.status === 0 || error.status === 429 || error.status >= 500)) {
+    throw new RummyError('The account service is temporarily unavailable. Please try again.', 503, 'auth_unavailable');
+  }
+  if (error || !data.user) throw new RummyError('Your sign-in expired. Sign in again.', 401, 'unauthorized');
+  if (purpose === 'economy') {
+    const actor = { principal: `member:${data.user.id}`, jokers: false };
+    if (!await economy.hasMember(actor)) {
+      await economy.ensureMember(actor, { ...await loadLegacySnapshot(client, data.user.id), joinedAt: data.user.created_at });
+    }
+    return actor;
+  }
+  const permissions = await client.rpc('lounge_permissions');
+  if (permissions.error) throw new RummyError('Could not verify player profile. Please try again.', 503, 'auth_unavailable');
+  return canonicalMemberIdentity(economy, client, data.user.id, permissions.data?.name_flagged === true, data.user.created_at);
 }

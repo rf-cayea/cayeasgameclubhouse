@@ -10,3 +10,8 @@ export const gameAchievementCash = (reward: number) => Math.max(2, Math.floor(re
 export const validCardRewardAmount = (tier: keyof typeof CARD_WIN_POINTS, amount: number) => amount === CARD_WIN_POINTS[tier] || amount === PREVIOUS_CARD_WIN_POINTS[tier] || amount === LEGACY_CARD_WIN_POINTS[tier];
 
 export const legacyGameAchievementCash=(reward:number)=>Math.max(5,Math.round(reward*2/13));
+
+export const CONVERSION_RATE = { points: 13, cash: 10 } as const;
+/** One Cash buys 1.3 game points of value; round store debits up to whole Cash. */
+export const cashPriceFor = (pointPrice: number) => Math.ceil(pointPrice * CONVERSION_RATE.cash / CONVERSION_RATE.points);
+export const puzzleLevelPoints = (game: 'faith-3' | '3-gems', level: number) => game === 'faith-3' ? reducedGameReward(25 + Math.floor((level - 1) / 20) * 5) : Math.min(50, 10 + Math.floor((level - 1) / 40) * 10);

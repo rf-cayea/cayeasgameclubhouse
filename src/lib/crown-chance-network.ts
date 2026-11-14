@@ -32,7 +32,7 @@ export function useCrownChanceRoom(userId: string | null, ready: boolean) {
       if(body!==undefined)headers['Content-Type']='application/json';
       let response:Response;try{response=await fetch(path,{method:body===undefined?'GET':'POST',headers,credentials:'same-origin',signal:controller.signal,...(body===undefined?{}:{body:JSON.stringify(body)})});}
       catch{throw new DiceNetworkError('Connection interrupted. Check the table or retry the same action before playing again.');}
-      let data:unknown;try{data=await response.json();}catch{throw new DiceNetworkError('The server reply could not be confirmed. Retry the same action.');}
+      let data:unknown;try{data=await response.json();}catch{throw new DiceNetworkError('The server reply could not be confirmed. Retry the same action.', response.ok ? 0 : response.status);}
       if(!response.ok)throw new DiceNetworkError(data&&typeof data==='object'&&'error'in data?String(data.error):'This action could not be completed.',response.status);
       return data as T;
     }finally{clearTimeout(timeout);signal?.removeEventListener('abort',cancel);controllers.current.delete(controller);}

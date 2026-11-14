@@ -27,7 +27,8 @@ async function collect(directory, prefix = '') {
         try { bytes = await readFile(join('art/optimized-assets', relative.slice(1).replace(/\.webp$/, '.avif'))); type = 'image/avif'; }
         catch (error) { if (error.code !== 'ENOENT') throw error; }
       }
-      assets[relative] = { type, data: bytes.toString('base64') };
+      const etag = createHash('sha256').update(bytes).digest('base64url');
+      assets[relative] = { type, data: bytes.toString('base64'), etag: `"${etag}"` };
     }
   }
 }
@@ -45,7 +46,7 @@ await writeFile('dist/server/package.json', '{"type":"module"}\n');
 await writeFile('dist/server/wrangler.json', JSON.stringify({ main: 'index.js', compatibility_date: '2026-10-01', compatibility_flags: ['nodejs_compat'], d1_databases: [{ binding: 'DB', database_name: 'clubhouse', database_id: '00000000-0000-0000-0000-000000000000', migrations_dir: '../../drizzle' }] }, null, 2));
 const { default: worker } = await import(new URL('../dist/server/index.js', import.meta.url));
 if (typeof worker?.fetch !== 'function') throw new Error('Missing Worker fetch entrypoint.');
-for (const path of ['/', '/collectibles', '/store', '/about', '/matchmaking', '/games/faith-3', '/games/3-gems', '/games/rummy', '/games/spades', '/games/quintsee', '/games/backgammon','/games/carrom','/games/farkle', '/games/crown-court', '/games/crown-chance', '/games/five-dice', '/games/dominoes', '/clubhouse-config.js', '/api/rummy/health', '/api/five-dice/health', '/api/farkle/health', '/api/crown-court/health', '/api/carrom/health', '/api/crown-chance/health', '/api/dominoes/health']) {
+for (const path of ['/', '/collectibles', '/store', '/about', '/matchmaking', '/games/faith-3', '/games/3-gems', '/games/rummy', '/games/spades', '/games/crazy-eights', '/games/hearts', '/games/quintsee', '/games/backgammon','/games/carrom','/games/farkle', '/games/crown-court', '/games/crown-chance', '/games/five-dice', '/games/dominoes', '/clubhouse-config.js', '/api/rummy/health', '/api/five-dice/health', '/api/farkle/health', '/api/crown-court/health', '/api/carrom/health', '/api/crown-chance/health', '/api/classic-cards/health', '/api/dominoes/health']) {
   const response = await worker.fetch(new Request(`https://clubhouse.test${path}`), {}, { waitUntil() {} });
   if (!response.ok) throw new Error(`Worker route failed: ${path}`);
   if (response.headers.get('content-encoding')) throw new Error(`Worker asset requires a Content-Encoding header: ${path}`);

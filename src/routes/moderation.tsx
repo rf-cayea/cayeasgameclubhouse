@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { HubNav } from "@/components/HubNav";
 import { supabase } from "@/integrations/supabase/client";
-import { useClubhouse } from "@/lib/clubhouse";
+import { useClubhouseAccount } from "@/lib/clubhouse";
 import {
   fetchModerationReports, moderationActionsFor, moderationErrorMessage,
   REPORT_PAGE_SIZE, resolveModerationReport, useModerationRole,
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/moderation")({
 });
 
 function ModerationPage() {
-  const { user, ready } = useClubhouse();
+  const { user, ready } = useClubhouseAccount();
   const access = useModerationRole(user?.id);
   return <>
     <HubNav />

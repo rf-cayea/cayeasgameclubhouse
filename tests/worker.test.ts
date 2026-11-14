@@ -15,10 +15,10 @@ beforeAll(async () => {
     plugins: [{ name: 'test-assets', setup(builder) {
       builder.onResolve({ filter: /^clubhouse:assets$/ }, () => ({ path: 'assets', namespace: 'test-assets' }));
       builder.onLoad({ filter: /.*/, namespace: 'test-assets' }, () => ({ contents: `export default ${JSON.stringify({
-        '/assets/transport-test.js': { type: 'application/javascript', data: Buffer.from('window.packagingTest=true;').toString('base64') },
-        '/assets/transport-test.css': { type: 'text/css', data: Buffer.from('body{color:green}').toString('base64') },
-        '/assets/transport-test.webp': { type: 'image/webp', data: Buffer.from([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80]).toString('base64') },
-        '/index.html': { type: 'text/html', data: Buffer.from('<!doctype html><title>Clubhouse</title>').toString('base64') },
+        '/assets/plain/transport-test.js': { type: 'application/javascript', data: Buffer.from('window.packagingTest=true;').toString('base64') },
+        '/assets/plain/transport-test.css': { type: 'text/css', data: Buffer.from('body{color:green}').toString('base64') },
+        '/assets/transport-test.webp': { type: 'image/webp', etag: '"art-v1"', data: Buffer.from([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80]).toString('base64') },
+        '/index.html': { type: 'text/html', data: Buffer.from('<!doctype html><!--clubhouse-runtime-config--><title>Clubhouse</title><script src="/clubhouse-config.js"></script>').toString('base64') },
       })}`, loader: 'js' }));
     } }],
   });
@@ -55,11 +55,11 @@ describe('Sites Worker request integration', () => {
   it.each(['identity', 'gzip, br'])('serves readable HTML, scripts and CSS through gateways with %s accepted', async acceptEncoding => {
     const { fetch } = setup();
     for (const [path, type, body] of [
-      ['/', 'text/html', '<!doctype html><title>Clubhouse</title>'],
-      ['/games/quintsee', 'text/html', '<!doctype html><title>Clubhouse</title>'],
-      ['/games/3-gems', 'text/html', '<!doctype html><title>Clubhouse</title>'],
-      ['/assets/transport-test.js', 'application/javascript', 'window.packagingTest=true;'],
-      ['/assets/transport-test.css', 'text/css', 'body{color:green}'],
+      ['/', 'text/html', '<!doctype html><!--clubhouse-runtime-config--><title>Clubhouse</title><script src="/clubhouse-config.js"></script>'],
+      ['/games/quintsee', 'text/html', '<!doctype html><!--clubhouse-runtime-config--><title>Clubhouse</title><script src="/clubhouse-config.js"></script>'],
+      ['/games/3-gems', 'text/html', '<!doctype html><!--clubhouse-runtime-config--><title>Clubhouse</title><script src="/clubhouse-config.js"></script>'],
+      ['/assets/plain/transport-test.js', 'application/javascript', 'window.packagingTest=true;'],
+      ['/assets/plain/transport-test.css', 'text/css', 'body{color:green}'],
     ]) {
       const response = await fetch(path, { headers: { 'Accept-Encoding': acceptEncoding } });
       expect(response.headers.get('content-type')).toBe(type);
@@ -70,7 +70,7 @@ describe('Sites Worker request integration', () => {
       const head = await fetch(path, { method: 'HEAD' });
       expect(head.body).toBeNull();
       expect(head.headers.get('content-type')).toBe(type);
-      expect(head.headers.get('cache-control')).toBe(path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-store');
+      expect(head.headers.get('cache-control')).toBe(path.startsWith('/assets/plain/') ? 'public, max-age=31536000, immutable' : 'no-store');
     }
     expect(new Uint8Array(await (await fetch('/assets/transport-test.webp')).arrayBuffer())).toEqual(new Uint8Array([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80]));
   });
@@ -183,9 +183,59 @@ describe('Sites Worker request integration', () => {
     expect(text).toContain('https://example.supabase.co'); expect(text).toContain('public-key');
     expect(text).not.toContain('server-secret'); expect(text).not.toContain('reward-secret');
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect((await fetch('/games/rummy')).status).toBe(200);
+    const auth = await fetch('/auth');
+    expect(auth.headers.get('cache-control')).toBe('no-store');
+    const html = await auth.text();
+    expect(html).toContain('<meta name="clubhouse-supabase-url" content="https://example.supabase.co">');
+    expect(html).toContain('<meta name="clubhouse-supabase-key" content="public-key">');
+    expect(html).not.toContain('/clubhouse-config.js');
+    expect(html).not.toContain('server-secret');
+    expect(html).not.toContain('reward-secret');
     expect((await fetch('/missing.js')).status).toBe(404);
     expect(await (await fetch('/games/spades', { method: 'HEAD' })).text()).toBe('');
+  });
+  it('revalidates artwork and treats auth outages as temporary service failures', async () => {
+    const { fetch } = setup({ SUPABASE_URL: 'https://accounts.example.test', SUPABASE_PUBLISHABLE_KEY: 'public-key' });
+    const image = await fetch('/assets/transport-test.webp');
+    expect(image.headers.get('cache-control')).toBe('public, max-age=300');
+    expect(image.headers.get('etag')).toBe('"art-v1"');
+    const cached = await fetch('/assets/transport-test.webp', { headers: { 'If-None-Match': 'W/"art-v1"' } });
+    expect(cached.status).toBe(304);
+    expect(cached.body).toBeNull();
+
+    const auth = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ message: 'Auth unavailable' }, { status: 503 }));
+    try {
+      const response = await fetch('/api/crown-chance/session', { headers: { Authorization: 'Bearer test-member-session' } });
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({ code: 'auth_unavailable' });
+    } finally {
+      auth.mockRestore();
+    }
+  });
+  it('starts Crown & Chance against a computer as a verified member', async () => {
+    const id = randomUUID();
+    const { fetch } = setup({ SUPABASE_URL: 'https://accounts.example.test', SUPABASE_PUBLISHABLE_KEY: 'public-key' });
+    const responseFor = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+      const path = new URL(input instanceof Request ? input.url : String(input)).pathname;
+      if (path === '/auth/v1/user') return Response.json({ id, created_at: '2026-01-01T00:00:00Z' });
+      if (path === '/rest/v1/rpc/lounge_permissions') return Response.json({ name_flagged: false });
+      if (path === '/rest/v1/wallets') return Response.json({ points: 0, f3_points: 0, rummy_points: 0, lifetime_points: 0, owned: [], equipped: {}, pending_perks: {} });
+      if (path === '/rest/v1/point_awards') return Response.json([]);
+      throw new Error('Unexpected account request');
+    });
+    try {
+      const headers = { Authorization: 'Bearer test-member-session', 'Content-Type': 'application/json' };
+      const session = await fetch('/api/crown-chance/session', { headers });
+      expect(await session.json()).toMatchObject({ member: true });
+      const response = await fetch('/api/crown-chance', { method: 'POST', headers, body: JSON.stringify({
+        operation: 'create', requestId: randomUUID(), name: 'Player',
+        options: { mode: 'bot', seats: 2, level: 'normal', length: 'fast', minimum: 0 },
+      }) });
+      expect(await response.json()).toMatchObject({ view: { status: 'playing', reward: { status: 'eligible' } } });
+      expect(response.status).toBe(200);
+    } finally {
+      responseFor.mockRestore();
+    }
   });
   it('reports missing member configuration while guest play remains available', async () => {
     const { fetch } = setup();

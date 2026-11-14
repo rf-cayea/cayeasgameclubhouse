@@ -1,6 +1,7 @@
 import { profileFrameItem, customProfileImage } from '../src/lib/profile-image';
 import { randomUUID } from 'node:crypto';
 import type { D1Binding } from './database';
+import { readJsonGroups } from './json-groups';
 import { RummyError } from '../src/lib/rummy-protocol';
 import { memberId } from '../src/lib/rummy-rewards';
 import { containsProfanity } from '../src/lib/moderation';
@@ -120,25 +121,34 @@ export class SocialStore {
     const match = /^\/api\/social\/players\/([^/]+)$/.exec(path);
     if (match) { const target = uid(match[1]); if (!target) throw new RummyError('Invalid player link.'); return this.profile(viewer, target); }
     if (path === '/api/social/activity') {
-      const rows = await this.rows<FriendActivity>(CTE + `SELECT json_group_array(json(activity)) AS data FROM (SELECT json_object('id',wins.game||':'||wins.match_id||':'||p.user_id,
-        'game',wins.game,'player',${profileJSON('p')},'completedAt',wins.completed_at) AS activity FROM (
-        SELECT 'rummy' AS game,rw.match_id,rw.user_id,json_extract(rw.payload,'$.completed_at') AS completed_at FROM reward_outbox rw
-        UNION ALL SELECT 'spades',sw.match_id,json_extract(winner.value,'$.user_id'),json_extract(sw.payload,'$.completed_at') FROM spades_rewards sw,json_each(sw.payload,'$.players') winner
-        WHERE json_extract(winner.value,'$.bot')=0 AND CASE WHEN json_extract(sw.payload,'$.variant')='teams' THEN CAST(winner.key AS INTEGER)%2 ELSE CAST(winner.key AS INTEGER) END=json_extract(sw.payload,'$.winner')
-        UNION ALL SELECT 'five-dice',dw.match_id,json_extract(winner.value,'$.user_id'),json_extract(dw.payload,'$.completed_at') FROM five_dice_rewards dw,json_each(dw.payload,'$.players') winner
-        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0
-        UNION ALL SELECT 'crown-court',dw.match_id,json_extract(winner.value,'$.user_id'),json_extract(dw.payload,'$.completed_at') FROM crown_court_rewards dw,json_each(dw.payload,'$.players') winner
-        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0
-        UNION ALL SELECT 'backgammon',dw.match_id,json_extract(winner.value,'$.user_id'),json_extract(dw.payload,'$.completed_at') FROM backgammon_rewards dw,json_each(dw.payload,'$.players') winner
-        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0
-        UNION ALL SELECT 'carrom',dw.match_id,json_extract(winner.value,'$.user_id'),json_extract(dw.payload,'$.completed_at') FROM carrom_rewards dw,json_each(dw.payload,'$.players') winner
-        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0
-        UNION ALL SELECT 'farkle',dw.match_id,json_extract(winner.value,'$.user_id'),json_extract(dw.payload,'$.completed_at') FROM farkle_rewards dw,json_each(dw.payload,'$.players') winner
-        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0
-        UNION ALL SELECT 'dominoes',dm.match_id,json_extract(winner.value,'$.user_id'),json_extract(dm.payload,'$.completed_at') FROM domino_rewards dm,json_each(dm.payload,'$.players') winner
-        WHERE json_type(dm.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dm.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0
-        ) wins JOIN social_profiles p ON p.user_id=wins.user_id WHERE ${linked(VIEWER, 'p.user_id')} AND NOT ${blocked(VIEWER, 'p.user_id')} ORDER BY wins.completed_at DESC LIMIT 20)`, viewer);
-      return { activity: rows.map(row => ({ ...row, player: normalizeProfile(row.player) })) };
+      const sources = [
+        `SELECT 'rummy' AS game,rw.match_id,rw.user_id,json_extract(rw.payload,'$.completed_at') AS completed_at FROM reward_outbox rw`,
+        `SELECT 'spades' AS game,sw.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(sw.payload,'$.completed_at') AS completed_at FROM spades_rewards sw,json_each(sw.payload,'$.players') winner
+        WHERE json_extract(winner.value,'$.bot')=0 AND CASE WHEN json_extract(sw.payload,'$.variant')='teams' THEN CAST(winner.key AS INTEGER)%2 ELSE CAST(winner.key AS INTEGER) END=json_extract(sw.payload,'$.winner')`,
+        `SELECT 'five-dice' AS game,dw.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(dw.payload,'$.completed_at') AS completed_at FROM five_dice_rewards dw,json_each(dw.payload,'$.players') winner
+        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0`,
+        `SELECT 'crown-court' AS game,dw.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(dw.payload,'$.completed_at') AS completed_at FROM crown_court_rewards dw,json_each(dw.payload,'$.players') winner
+        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0`,
+        `SELECT 'backgammon' AS game,dw.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(dw.payload,'$.completed_at') AS completed_at FROM backgammon_rewards dw,json_each(dw.payload,'$.players') winner
+        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0`,
+        `SELECT 'carrom' AS game,dw.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(dw.payload,'$.completed_at') AS completed_at FROM carrom_rewards dw,json_each(dw.payload,'$.players') winner
+        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0`,
+        `SELECT 'farkle' AS game,dw.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(dw.payload,'$.completed_at') AS completed_at FROM farkle_rewards dw,json_each(dw.payload,'$.players') winner
+        WHERE json_type(dw.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dw.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0`,
+        `SELECT 'dominoes' AS game,dm.match_id,json_extract(winner.value,'$.user_id') AS user_id,json_extract(dm.payload,'$.completed_at') AS completed_at FROM domino_rewards dm,json_each(dm.payload,'$.players') winner
+        WHERE json_type(dm.payload,'$.winner')='integer' AND CAST(winner.key AS INTEGER)=json_extract(dm.payload,'$.winner') AND json_extract(winner.value,'$.bot')=0`,
+      ];
+      const rows = await readJsonGroups<FriendActivity>(this.binding, sources.map(source => ({
+        sql: CTE + `SELECT json_group_array(json(activity)) FROM (
+          SELECT json_object('id',wins.game||':'||wins.match_id||':'||p.user_id,
+            'game',wins.game,'player',${profileJSON('p')},'completedAt',wins.completed_at) AS activity
+          FROM (${source}) wins JOIN social_profiles p ON p.user_id=wins.user_id
+          WHERE ${linked(VIEWER, 'p.user_id')} AND NOT ${blocked(VIEWER, 'p.user_id')}
+          ORDER BY wins.completed_at DESC LIMIT 20)`,
+        values: [viewer],
+      })));
+      rows.sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+      return { activity: rows.slice(0, 20).map(row => ({ ...row, player: normalizeProfile(row.player) })) };
     }
     throw new RummyError('Social endpoint not found.', 404, 'not_found');
   }

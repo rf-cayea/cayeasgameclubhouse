@@ -1,25 +1,25 @@
-import {PokerDiceCollection} from '@/components/PokerDiceCollection';
-import {CarromCollection} from '@/components/CarromCollection';
-import {CollectibleBoosterShop} from '@/components/CollectibleBoosterShop';
-import {FragmentShop} from '@/components/FragmentShop';
-import {BackgammonCollection} from '@/components/BackgammonCollection';
-import '@/styles/backgammon.css';
-import { DominoSkinCollection } from '@/components/DominoSkinCollection';
-import { useEffect, useRef, useState } from 'react';
+import { ownsCardTable } from '@/lib/card-table-themes';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createFileRoute, Link, useLocation } from '@tanstack/react-router';
-import { FarkleDiceCollection } from '@/components/FarkleDiceCollection';
-import '@/styles/farkle-dice-store.css';
-import { CustomProfileImage } from '@/components/CustomProfileImage';
 import { HubNav } from '@/components/HubNav';
-import { WalletCredits } from '@/components/WalletCredits';
-import { FaithSkinStore } from '@/components/FaithSkinStore';
 import { SpadesPartnershipUnlock } from '@/components/SpadesPartnershipUnlock';
-import { SpadesCollection } from '@/components/SpadesCollection';
 import { RummyCollection, useRummyAppearance } from '@/components/RummyCollection';
 import { StorePurchaseControls } from '@/components/StorePurchaseControls';
 import { RUMMY_DESIGNS } from '@/lib/rummy-cosmetics';
 import { CLASSIC_DECK, CLASSIC_VENUE, SPADES_DECKS, SPADES_VENUES } from '@/lib/spades-cosmetics';
 import { useClubhouse } from '@/lib/clubhouse';
+
+const PokerDiceCollection = lazy(() => import('@/components/PokerDiceCollection').then(module => ({ default: module.PokerDiceCollection })));
+const CarromCollection = lazy(() => import('@/components/CarromCollection').then(module => ({ default: module.CarromCollection })));
+const CollectibleBoosterShop = lazy(() => import('@/components/CollectibleBoosterShop').then(module => ({ default: module.CollectibleBoosterShop })));
+const FragmentShop = lazy(() => import('@/components/FragmentShop').then(module => ({ default: module.FragmentShop })));
+const BackgammonCollection = lazy(() => import('@/components/BackgammonCollection').then(module => ({ default: module.BackgammonCollection })));
+const DominoSkinCollection = lazy(() => import('@/components/DominoSkinCollection').then(module => ({ default: module.DominoSkinCollection })));
+const FarkleDiceCollection = lazy(() => import('@/components/FarkleDiceCollection').then(module => ({ default: module.FarkleDiceCollection })));
+const CustomProfileImage = lazy(() => import('@/components/CustomProfileImage').then(module => ({ default: module.CustomProfileImage })));
+const WalletCredits = lazy(() => import('@/components/WalletCredits').then(module => ({ default: module.WalletCredits })));
+const FaithSkinStore = lazy(() => import('@/components/FaithSkinStore').then(module => ({ default: module.FaithSkinStore })));
+const SpadesCollection = lazy(() => import('@/components/SpadesCollection').then(module => ({ default: module.SpadesCollection })));
 
 const CATEGORIES = [
  {id:'boosters',label:'Card boosters',icon:'★'},
@@ -47,18 +47,20 @@ function legacyCategory(hash: string): Category {
   return 'tables';
 }
 function StorePage() {
-  const { user, wallet, ready, error, applyWallet } = useClubhouse(), collection = useRummyAppearance(user?.id ?? null, '');
+  const { user, wallet, ready, error, applyWallet } = useClubhouse();
   const search = Route.useSearch(), location = useLocation(), navigate = Route.useNavigate();
   const category = search.category ?? legacyCategory(location.hash), game = search.game ?? 'rummy';
+  const cardCategory = category === 'tables' || category === 'decks';
+  const collection = useRummyAppearance(user?.id ?? null, '', cardCategory && game === 'rummy');
   const [query, setQuery] = useState(''), [ownedOnly, setOwnedOnly] = useState(false), [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(() => window.matchMedia('(max-width: 640px)').matches ? 2 : 4);
   const browser = useRef<HTMLElement>(null);
   useEffect(() => { const media = window.matchMedia('(max-width: 640px)'), resize = () => { setPageSize(media.matches ? 2 : 4); setPage(0); }; media.addEventListener('change', resize); return () => media.removeEventListener('change', resize); }, []);
   useEffect(() => { setQuery(''); setOwnedOnly(false); setPage(0); }, [category, game, user?.id]);
-  const cardCategory = category === 'tables' || category === 'decks', slot = category === 'decks' ? 'deck' : 'table';
+  const slot = category === 'decks' ? 'deck' : 'table';
   const allItems = game === 'rummy'
     ? RUMMY_DESIGNS.filter(item => item.slot === slot).map(item => ({ id:item.id, name:item.name, included:!item.purchaseOnly && item.wins === 0, owned:collection.data.owned.includes(item.id) }))
-    : (slot === 'table' ? [CLASSIC_VENUE, ...SPADES_VENUES] : [CLASSIC_DECK, ...SPADES_DECKS]).map(item => ({ id:item.id, name:item.name, included:item.price === 0, owned:item.price === 0 || Boolean(wallet?.owned.includes(item.id)) }));
+    : (slot === 'table' ? [CLASSIC_VENUE, ...SPADES_VENUES] : [CLASSIC_DECK, ...SPADES_DECKS]).map(item => ({ id:item.id, name:item.name, included:item.price === 0, owned:item.price === 0 || Boolean(slot === 'table' ? ownsCardTable(wallet?.owned ?? [], item.id) : wallet?.owned.includes(item.id)) }));
   const filtered = allItems.filter(item => item.name.toLowerCase().includes(query.trim().toLowerCase()) && (!ownedOnly || item.owned)).sort((a,b) => Number(b.included) - Number(a.included));
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize)), currentPage = Math.min(page, pages - 1), shown = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   function choose(next: Category, nextGame = game) {
@@ -70,8 +72,9 @@ function StorePage() {
   return <><HubNav/><main className="store-shell"><header className="store-heading"><div><h1>Clubhouse Store</h1><p>Pick a category to find your next unlock.</p></div>{user && wallet && <button className="store-wallet-link" onClick={() => choose('wallet')}><span>Clubhouse Cash</span><strong>{wallet.points.toLocaleString()}</strong><span>Points &amp; conversion →</span></button>}</header>
     <nav className="store-categories" aria-label="Store categories">{CATEGORIES.map(item => <Link key={item.id} to="/store" search={{ category:item.id, game }} hash="" resetScroll={false} aria-current={category === item.id ? 'page' : undefined} onClick={() => browser.current?.scrollIntoView({ block:'start' })}><span aria-hidden="true">{item.icon}</span>{item.label}</Link>)}</nav>
     {error && <p role="alert" className="store-error">{error}</p>}
-    <section ref={browser} id="store-browse" className="store-browse" aria-labelledby="store-category-title"><header className="store-category-heading"><h2 id="store-category-title">{cardCategory ? category === 'decks' ? 'Shared card decks' : `${game === 'rummy' ? 'Rummy+' : 'Spades'} ${title.toLowerCase()}` : title}</h2>{cardCategory && <div className="store-game-switch" role="group" aria-label="Card game">{(['rummy','spades'] as const).map(value => <button key={value} aria-pressed={game === value} onClick={() => choose(category,value)}>{value === 'rummy' ? 'Rummy+' : 'Spades'}</button>)}</div>}</header>
-      {category==='poker'?<PokerDiceCollection store/>:category==='boosters'?<CollectibleBoosterShop/>:category==='fragments'?<FragmentShop/>:category==='carrom'?<CarromCollection key={user?.id??'guest'} store/>:category==='backgammon'?<BackgammonCollection store/>:cardCategory ? <><p className="store-price-note">{category === 'tables' ? 'Every paid table surface: 125 game points or 97 Cash. Default tables stay free.' : 'Each shared deck: 563 Rummy+ or Spades points, or 434 Cash. Buy once for all compatible 52-card games. Includes 52 cards + 2 jokers. Choose a game below to equip your deck.'}{user && wallet && <span>{game === 'rummy' ? wallet.rummy_points : wallet.spades_points} {game === 'rummy' ? 'Rummy+' : 'Spades'} points · {wallet.points} Cash</span>}</p>
+    <section ref={browser} id="store-browse" className="store-browse" aria-labelledby="store-category-title"><header className="store-category-heading"><h2 id="store-category-title">{cardCategory ? category === 'decks' ? 'Shared card decks' : 'Shared card tables' : title}</h2>{cardCategory && <div className="store-game-switch" role="group" aria-label="Card game">{(['rummy','spades'] as const).map(value => <button key={value} aria-pressed={game === value} onClick={() => choose(category,value)}>{value === 'rummy' ? 'Rummy+' : 'Spades'}</button>)}</div>}</header>
+      <Suspense fallback={<p role="status">Loading {title.toLowerCase()}…</p>}>
+      {category==='poker'?<PokerDiceCollection store/>:category==='boosters'?<CollectibleBoosterShop/>:category==='fragments'?<FragmentShop/>:category==='carrom'?<CarromCollection key={user?.id??'guest'} store/>:category==='backgammon'?<BackgammonCollection store/>:cardCategory ? <><p className="store-price-note">{category === 'tables' ? 'Shared table surfaces work in Rummy+, Spades, Crazy 8’s and Hearts. Buy once for 125 Rummy+ or Spades points, or 97 Cash, or earn select surfaces through Rummy+ wins.' : 'Each shared deck: 563 Rummy+ or Spades points, or 434 Cash. Buy once for all compatible 52-card games. Includes 52 cards + 2 jokers. Use your collection in Rummy+, Spades, Crazy 8’s and Hearts.'}{user && wallet && <span>{game === 'rummy' ? wallet.rummy_points : wallet.spades_points} {game === 'rummy' ? 'Rummy+' : 'Spades'} points · {wallet.points} Cash</span>}</p>
         <div className="store-filters"><label><span className="sr-only">Search {title.toLowerCase()}</span><input type="search" aria-label={`Search ${title.toLowerCase()}`} placeholder={`Search ${title.toLowerCase()}…`} value={query} onChange={event => { setQuery(event.target.value); setPage(0); }}/></label><label><input type="checkbox" checked={ownedOnly} onChange={event => { setOwnedOnly(event.target.checked); setPage(0); }}/> Owned only</label></div>
         <div className="store-pagination" aria-label="Product pages"><button className="btn-ghost-gold" aria-label="Previous products" disabled={currentPage === 0} onClick={() => changePage(currentPage-1)}>← Previous</button><p role="status">{filtered.length ? `${currentPage*pageSize+1}–${Math.min((currentPage+1)*pageSize,filtered.length)} of ${filtered.length}` : 'No matches'}</p><button className="btn-ghost-gold" aria-label="Next products" disabled={currentPage+1 >= pages} onClick={() => changePage(currentPage+1)}>Next →</button></div>
         <div className="store-product-panel" key={`${game}:${slot}`}>{shown.length ? game === 'rummy' ? <RummyCollection compact slots={[slot]} itemIds={shown.map(item=>item.id)} collection={collection}/> : <SpadesCollection compact kind={slot} itemIds={shown.map(item=>item.id)}/> : <p className="store-empty">No matching {title.toLowerCase()}.<button className="text-gold underline" onClick={() => { setQuery(''); setOwnedOnly(false); }}>Show every design</button></p>}</div>
@@ -81,6 +84,7 @@ function StorePage() {
       : category === 'dice' ? <FarkleDiceCollection key={user?.id??'guest'} userId={user?.id??null} wallet={wallet} onEquipped={applyWallet}/>
       : category === 'frames' ? <CustomProfileImage/>
       : category === 'modes' ? <div className="store-modes"><section className="card-hub" id="rummy-jokers" aria-labelledby="joker-title"><div className="text-4xl" aria-hidden="true">🃏</div><h3 id="joker-title" className="mt-3 font-display text-2xl text-gold">Joker Mode</h3><p className="mt-3 text-muted-foreground">Permanently unlock wild jokers for Rummy+ computer, pass-and-play, and online tables you host.</p><StorePurchaseControls itemId="rummy-jokers" userId={user?.id ?? null} wallet={wallet}/></section><SpadesPartnershipUnlock/><section className="card-hub" id="farkle-party" aria-labelledby="farkle-party-title"><div className="text-4xl" aria-hidden="true">🎲</div><h3 id="farkle-party-title" className="mt-3 font-display text-2xl text-gold">Farkle · 3–4 players</h3><p className="mt-3 text-muted-foreground">Permanently unlock three- and four-player online Farkle tables for Classic and Fast Match. Every participant needs this unlock. Computer games and two-player online games are free.</p><StorePurchaseControls itemId="farkle-party" userId={user?.id ?? null} wallet={wallet}/><Link to="/games/farkle" className="mt-4 inline-block text-gold underline">Play Farkle →</Link></section><section className="card-hub" id="five-dice-party" aria-labelledby="dice-party-title"><div className="text-4xl" aria-hidden="true">🎲</div><h3 id="dice-party-title" className="mt-3 font-display text-2xl text-gold">Quintsee · 3–4 players</h3><p className="mt-3 text-muted-foreground">Permanently unlock online tables for three or four real players. Every participant needs this unlock. Two-player online matches and all computer difficulties stay free.</p><StorePurchaseControls itemId="five-dice-party" userId={user?.id ?? null} wallet={wallet}/><Link to="/games/quintsee" className="mt-4 inline-block text-gold underline">Play Quintsee →</Link></section></div>
-      : user && wallet ? <WalletCredits key={user.id} userId={user.id} wallet={wallet}/> : <div className="card-hub"><p>Sign in to see your points and convert them to Clubhouse Cash.</p><Link className="btn-gold mt-3 inline-block" to="/auth">Sign in</Link></div>}
+      : user ? wallet ? <WalletCredits key={user.id} userId={user.id} wallet={wallet}/> : <p role="status">{error ? "Your balance is temporarily unavailable." : "Loading your balance…"}</p> : <div className="card-hub"><p>Sign in to see your points and convert them to Clubhouse Cash.</p><Link className="btn-gold mt-3 inline-block" to="/auth">Sign in</Link></div>}
+      </Suspense>
     </section></main></>;
 }

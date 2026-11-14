@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Hub() {
-  const { user, wallet, error } = useClubhouse();
+  const { user, ready, wallet, error } = useClubhouse();
   return (
     <>
       <HubNav />
@@ -30,21 +30,21 @@ function Hub() {
             <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Welcome to</p>
             <h1 className="mt-2 font-display text-5xl leading-tight text-gold md:text-6xl">{HUB_NAME}</h1>
             <p className="mt-4 max-w-xl text-lg text-foreground/85">
-              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn points from all eleven games into Clubhouse Cash, or follow a 200-level journey to restore the monastery in 3 Gems of Buddhism.
+              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn eligible game points into Clubhouse Cash, or follow a 200-level journey to restore the monastery in 3 Gems of Buddhism.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link to="/games/faith-3" className="btn-gold">Play Faith 3 Tile Match</Link>
-              {user ? (
-                <Link to="/store" className="chip self-center">⭐ {wallet?.rummy_points ?? 0} Rummy+ points · {wallet?.points ?? 0} Clubhouse Cash</Link>
-              ) : (
+              {user ? (wallet ? (
+                <Link to="/store" className="chip self-center">⭐ {wallet.rummy_points} Rummy+ points · {wallet.points} Clubhouse Cash</Link>
+              ) : <span className="chip self-center" role="status">{error ? 'Balance temporarily unavailable' : 'Loading your balance…'}</span>) : ready ? (
                 <Link to="/auth" className="btn-ghost-gold">Create a free account</Link>
-              )}
+              ) : null}
             </div>
           </div>
           <AnimatedClubhouseLogo />
         </section>
 
-        <p role="status" className="mt-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Crown &amp; Chance, Crown &amp; Court, Rummy+, Spades and Quintsee, or restore a monastery in 3 Gems of Buddhism. Sign in before an eligible match to earn points. Guests can try the puzzles; signed-in puzzle runs save verified first clears and rewards to your account.</p>
+        <p role="status" className="mt-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Crazy 8’s or Hearts solo or online, or explore the rest of the Clubhouse. Sign in before an eligible match to earn points. Guests can play the new card games online. Signed-in players can earn card-deck crate progress.</p>
 
         <h2 className="mt-14 font-display text-3xl text-gold">Games</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -58,6 +58,10 @@ function Hub() {
                   <Link to="/games/rummy" className="btn-gold mt-4 inline-block text-sm">Play Rummy+</Link>
                 ) : g.slug === 'spades' ? (
                   <Link to="/games/spades" className="btn-gold mt-4 inline-block text-sm">Play Spades</Link>
+                ) : g.slug === 'crazy-eights' ? (
+                  <Link to="/games/crazy-eights" className="btn-gold mt-4 inline-block text-sm">Play Crazy 8’s</Link>
+                ) : g.slug === 'hearts' ? (
+                  <Link to="/games/hearts" className="btn-gold mt-4 inline-block text-sm">Play Hearts</Link>
                 ) : g.slug === 'dominoes' ? (
                   <Link to="/games/dominoes" className="btn-gold w-full justify-center">Play Dominoes →</Link>
                 ) : g.slug === 'crown-chance' ? (
@@ -95,10 +99,10 @@ function Hub() {
           <div className="card-hub">
             <div className="text-2xl" aria-hidden="true">🛍</div>
             <h3 className="mt-1 font-display text-xl text-gold">Spend</h3>
-            <p className="text-sm text-muted-foreground">Shared card decks cost 563 Rummy+ or Spades points, or 434 Cash. Buy once and use them in both card games. Joker Mode and Spades Partnerships each cost 500 game points or 385 Cash.</p>
+            <p className="text-sm text-muted-foreground">Shared card decks cost 563 Rummy+ or Spades points, or 434 Cash. Buy once and use them in Rummy+, Spades, Crazy 8’s and Hearts. Joker Mode and Spades Partnerships each cost 500 game points or 385 Cash.</p>
           </div>
         </div>
-        <section className="home-about" aria-labelledby="home-about-title"><div><h2 id="home-about-title">New to the Clubhouse?</h2><p>Get to know all eleven games, monastery restoration, points, Clubhouse Cash, shared decks, achievements, profiles, and playing with friends.</p></div><Link to="/about" className="btn-ghost-gold">About &amp; player guide →</Link></section>
+        <section className="home-about" aria-labelledby="home-about-title"><div><h2 id="home-about-title">New to the Clubhouse?</h2><p>Get to know all {GAMES.length} games, monastery restoration, points, Clubhouse Cash, shared decks, achievements, profiles, and playing with friends.</p></div><Link to="/about" className="btn-ghost-gold">About &amp; player guide →</Link></section>
       </main>
     </>
   );

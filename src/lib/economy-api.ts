@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchWithSession } from './auth-fetch';
 import type { EconomyCommand, EconomyCommandResult, EconomyView } from './economy-protocol';
 
 export const ECONOMY_CHANGED = 'clubhouse-economy-changed';
@@ -18,15 +19,17 @@ async function request<T>(path: string, command?: EconomyCommand, expectedUserId
   if (signal?.aborted) cancel();
   const timer = setTimeout(cancel, 15000);
   try {
-    const response = await fetch(path, { method: command ? 'POST' : 'GET', credentials: 'same-origin', signal: controller.signal,
+    const response = await fetchWithSession(path, { method: command ? 'POST' : 'GET', credentials: 'same-origin', signal: controller.signal,
       headers: { Authorization: `Bearer ${data.session.access_token}`, ...(command ? { 'Content-Type': 'application/json' } : {}) },
-      ...(command ? { body: JSON.stringify(command) } : {}) });
+      ...(command ? { body: JSON.stringify(command) } : {}) }, data.session);
     let result: unknown;
     try { result = await response.json(); } catch { throw new EconomyRequestError('Rewards are unavailable. Please try again.', response.status); }
     if (!response.ok) throw new EconomyRequestError(result && typeof result === 'object' && 'error' in result ? String(result.error) : 'The reward request could not be completed.', response.status);
     return result as T;
   } catch (cause) {
-    if (controller.signal.aborted) throw new EconomyRequestError('The request was interrupted. Refresh before retrying. A conversion retry uses the same receipt and cannot charge twice.', 0);
+    if (controller.signal.aborted) throw new EconomyRequestError(command?.operation === 'buy_fragments'
+      ? 'The fragment purchase was interrupted. Retry the same purchase to check its result.'
+      : 'The request was interrupted. Refresh before retrying.', 0);
     throw cause;
   } finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); }
 }
@@ -73,7 +76,6 @@ export function useEconomyResource<T>(path: string, userId: string | null) {
   }, [refresh, userId]);
   return { data: record?.key === key ? record.data : null, error: failure?.key === key ? failure.error : '', loading, refresh };
 }
-export const useEconomy = (userId: string | null) => useEconomyResource<EconomyView>('/api/economy', userId);
 
 export function useEconomyAction(userId: string | null) {
   const account = useRef(userId), mounted = useRef(false), generation = useRef(0), pending = useRef(false);

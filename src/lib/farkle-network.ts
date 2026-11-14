@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchWithSession } from './auth-fetch';
+import type { Session } from '@supabase/supabase-js';
 import { notifyWallet } from './clubhouse';
 import type { FarkleCommand, FarkleRoomView } from './farkle-protocol';
 
@@ -24,13 +26,13 @@ export function useFarkleRoom(userId: string | null, ready: boolean) {
     const cancel=()=>controller.abort();signal?.addEventListener('abort',cancel,{once:true});if(signal?.aborted)cancel();
     const timeout=setTimeout(cancel,15000);
     try{
-      const headers:Record<string,string>={};
+      const headers:Record<string,string>={};let session:Session|null=null;
       if(supabase){const{data,error}=await supabase.auth.getSession();if(error)throw error;
         if((data.session?.user.id??null)!==owner)throw new DiceNetworkError('Your account changed. Reopen your table.',401);
-        if(data.session)headers.Authorization=`Bearer ${data.session.access_token}`;}
+        session=data.session;if(session)headers.Authorization=`Bearer ${session.access_token}`;}
       if(actor.current!==ownerScope||controller.signal.aborted)throw new DiceNetworkError('Your account changed. Reopen your table.',401);
       if(body!==undefined)headers['Content-Type']='application/json';
-      let response:Response;try{response=await fetch(path,{method:body===undefined?'GET':'POST',headers,credentials:'same-origin',signal:controller.signal,...(body===undefined?{}:{body:JSON.stringify(body)})});}
+      let response:Response;try{const init:RequestInit={method:body===undefined?'GET':'POST',headers,credentials:'same-origin',signal:controller.signal,...(body===undefined?{}:{body:JSON.stringify(body)})};response=session?await fetchWithSession(path,init,session):await fetch(path,init);}
       catch{throw new DiceNetworkError('Connection interrupted. Check the table or retry the same action before playing again.');}
       let data:unknown;try{data=await response.json();}catch{throw new DiceNetworkError('The server reply could not be confirmed. Retry the same action.');}
       if(!response.ok)throw new DiceNetworkError(data&&typeof data==='object'&&'error'in data?String(data.error):'This action could not be completed.',response.status);
@@ -48,9 +50,9 @@ export function useFarkleRoom(userId: string | null, ready: boolean) {
     const version=epoch.current,selected=currentCode.current;readBusy.current=true;
     try{const next=await request<FarkleRoomView>(`/api/farkle/room/${selected}`,undefined);
       if(!mounted.current||version!==epoch.current||selected!==currentCode.current)return;accept(next);if(!uncertainRef.current)setError('');}
-    catch(cause){if(mounted.current&&version===epoch.current){setHealthy(false);setError(errorText(cause));
+    catch(cause){if(mounted.current&&version===epoch.current&&selected===currentCode.current){setHealthy(false);setError(errorText(cause));
       if(cause instanceof DiceNetworkError&&[401,403,404].includes(cause.status)&&!uncertainRef.current){save(scope+':room',null);currentCode.current=null;setCode(null);setRoom(null);}}}
-    finally{if(version===epoch.current)readBusy.current=false;}
+    finally{if(version===epoch.current&&selected===currentCode.current)readBusy.current=false;}
   },[accept,ready,request,scope]);
 
   useEffect(()=>{
@@ -86,8 +88,17 @@ export function useFarkleRoom(userId: string | null, ready: boolean) {
     void stream();return()=>{active=false;controller.abort();clearInterval(poll);window.removeEventListener('focus',focused);};
   },[code,initialized,ready,refresh,userId]);
 
+  const clearTable=useCallback(()=>{
+    currentCode.current=null;readBusy.current=false;
+    save(scope+':room',null);save(scope+':uncertain',null);
+    // A rejected or delayed read of the old table must not affect the next one.
+    for(const controller of controllers.current)controller.abort();
+    setCode(null);setRoom(null);setUncertain(null);uncertainRef.current=null;
+    setHealthy(false);setLive(false);setError('');
+  },[scope]);
+
   const execute=useCallback(async(input:FarkleCommand,retry=false)=>{
-    if(!ready||!initialized||busy.current||uncertainRef.current&&!retry)return false;
+    if(!ready||!initialized||busy.current||uncertainRef.current&&!retry&&input.operation!=='leave')return false;
     const version=epoch.current,ownerScope=scope;busy.current=true;setPending(true);setError('');
     // Save before sending: a reload after a committed roll must retry this ID.
     save(ownerScope+':uncertain',JSON.stringify(input));
@@ -95,18 +106,20 @@ export function useFarkleRoom(userId: string | null, ready: boolean) {
       const result=await request<{view:FarkleRoomView;changed:boolean}>('/api/farkle',input);
       if(!mounted.current||version!==epoch.current||ownerScope!==actor.current)return false;
       save(ownerScope+':uncertain',null);setUncertain(null);uncertainRef.current=null;
-      if(input.operation==='leave'){save(ownerScope+':room',null);currentCode.current=null;setCode(null);setRoom(null);setHealthy(false);setLive(false);}
+      if(input.operation==='leave')clearTable();
       else{accept(result.view);currentCode.current=result.view.code;save(ownerScope+':room',result.view.code);setCode(result.view.code);}
       return true;
     }catch(cause){
-      if(mounted.current&&version===epoch.current&&ownerScope===actor.current){setError(errorText(cause));
+      if(mounted.current&&version===epoch.current&&ownerScope===actor.current){
+        if(input.operation==='leave'&&cause instanceof DiceNetworkError&&[403,404].includes(cause.status)){clearTable();return true;}
+        setError(errorText(cause));
         if(!(cause instanceof DiceNetworkError)||cause.status===0||cause.status>=500){save(ownerScope+':uncertain',JSON.stringify(input));setUncertain(input);uncertainRef.current=input;setHealthy(false);}
         else{save(ownerScope+':uncertain',null);setUncertain(null);uncertainRef.current=null;}
         void refresh();}
       return false;
     }finally{if(version===epoch.current){busy.current=false;if(mounted.current)setPending(false);}}
-  },[accept,initialized,ready,refresh,request,scope]);
-  const command=useCallback((input:DiceInput)=>execute({...input,requestId:crypto.randomUUID()} as FarkleCommand),[execute]);
+  },[accept,clearTable,initialized,ready,refresh,request,scope]);
+  const command=useCallback((input:DiceInput)=>{const saved=uncertainRef.current;return execute(input.operation==='leave'&&saved?.operation==='leave'&&saved.code===input.code?saved:{...input,requestId:crypto.randomUUID()} as FarkleCommand);},[execute]);
   const retry=useCallback(()=>uncertainRef.current?execute(uncertainRef.current,true):Promise.resolve(false),[execute]);
   const visible=ready&&dataScope.current===scope;
   return{room:visible?room:null,code:visible?code:null,pending:visible&&pending,healthy:visible&&healthy,live:visible&&live,error:visible?error:'',initialized:visible&&initialized,uncertain:visible?uncertain:null,command,retry,refresh};

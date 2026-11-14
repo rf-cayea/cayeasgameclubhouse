@@ -1,3 +1,4 @@
+import { useEconomy } from '@/lib/clubhouse-account';
 import {POKER_DICE_SETS} from '@/lib/poker-dice-sets';
 import {PokerSetArtwork} from './PokerDiceCollection';
 import {CARROM_COLLECTIBLES} from '@/lib/carrom-sets';
@@ -15,7 +16,7 @@ import {CardArtwork} from './CardArtwork';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useClubhouse } from '@/lib/clubhouse';
-import { useEconomy, economyRequest, notifyEconomy, EconomyRequestError } from '@/lib/economy-api';
+import { economyRequest, notifyEconomy, EconomyRequestError } from '@/lib/economy-api';
 import { DICE_CRATE_DESIGNS, type DiceCrateReward } from '@/lib/dice-crates';
 import { D6_COLLECTIONS } from '@/lib/d6-collections';
 import type { EconomyCommandResult } from '@/lib/economy-protocol';

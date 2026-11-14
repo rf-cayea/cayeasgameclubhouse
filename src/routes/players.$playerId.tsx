@@ -3,14 +3,14 @@ import { PublicPlayerRewards } from '@/components/PlayerRewards';
 import { HubNav } from '@/components/HubNav';
 import { FriendActions, PlayerAvatar, SocialFeedback, SocialSignIn } from '@/components/PlayerProfileCard';
 import { PlayerReportProvider, ReportPlayer } from '@/components/ReportPlayer';
-import { useClubhouse } from '@/lib/clubhouse';
+import { useClubhouseAccount } from '@/lib/clubhouse';
 import { useSocialAction, useSocialResource } from '@/lib/social';
 import type { PlayerProfile } from '@/lib/social-protocol';
 
 export const Route = createFileRoute('/players/$playerId')({ head: () => ({ meta: [{ title: "Player profile — Cayea's Game Clubhouse" }] }), component: PlayerPage });
 
 function PlayerPage() {
-  const { playerId } = Route.useParams(), { user, ready } = useClubhouse();
+  const { playerId } = Route.useParams(), { user, ready } = useClubhouseAccount();
   const profile = useSocialResource<PlayerProfile>(`/api/social/players/${encodeURIComponent(playerId)}`, user?.id ?? null), action = useSocialAction(user?.id ?? null);
   const player = profile.data;
   return <PlayerReportProvider><HubNav/><main className="social-shell"><div className="social-heading"><div><p className="social-eyebrow">THE PEOPLE BEHIND THE PLAY</p><h1>Player profile</h1></div><Link to="/friends" className="btn-ghost-gold">Friends & invitations</Link></div>

@@ -14,7 +14,7 @@ describe('Crown & Chance rulebook',()=>{
   it.each([
     [[1],50],[[6],100],[[2,2],200],[[6,6],250],[[1,1,2,2],450],[[1,1,2,2,3,3],900],
     [[1,1,1],500],[[6,6,6],750],[[1,2,3,4,5],1200],[[2,3,4,5,6],1400],
-    [[2,2,2,4,4],1600],[[2,2,2,2],2000],[[1,2,3,4,5,6],2700],[[3,3,3,3,3],3000],[[5,5,5,5,5,5],5000],
+    [[2,2,2,4,4],1500],[[2,2,2,2],1750],[[1,2,3,4,5,6],2000],[[3,3,3,3,3],2400],[[5,5,5,5,5,5],2850],
   ] as const)('scores %j as %i', (ranks,points)=>{
     const state = make();
     state.dice = [...ranks,...Array(6-ranks.length).fill(0)];
@@ -48,6 +48,25 @@ describe('Crown & Chance rulebook',()=>{
     state = act(state,{t:'roll'},[4]);
     expect(state.scores[0]).toMatchObject({points:0,busts:1,turns:1,hot:1});
     expect(state.pending).toBe(0);
+    expect(state.activity?.at(-1)).toMatchObject({
+      kind: 'roll', seat: 0, lost: 2700, dice: [1,2,2,2,4,6],
+      rolled: [false,false,false,false,true,false],
+    });
+  });
+
+  it('records claims and banks when resuming a table saved before move history', () => {
+    const previous = make(2);
+    delete previous.activity;
+    const rolled = act(previous, {t:'roll'}, [1,2,3,4,5,6]);
+    const claimed = act(rolled, {t:'claim',mask:63});
+    const banked = act(claimed, {t:'bank'});
+    expect(previous.activity).toBeUndefined();
+    expect(banked.activity).toMatchObject([
+      { id:1, kind:'roll', seat:0, dice:[1,2,3,4,5,6] },
+      { id:2, kind:'claim', seat:0, hand:'Six-Dice Straight', points:2000, hot:true },
+      { id:3, kind:'bank', seat:0, points:2000, total:2000 },
+    ]);
+    expect(banked.turn).toBe(1);
   });
 
   it('finishes equal turns and then gives only tied leaders extra turns',()=>{
@@ -85,7 +104,7 @@ it('credits a verified computer win once and shares the poker crate progress',as
   try {
     await economy.ensureMember(actor);
     let {view} = await send({operation:'create',name:'Player',options:{mode:'bot',seats:2,level:'hard',length:'fast',minimum:0}});
-    for (const move of [{t:'roll'},{t:'claim',mask:63},{t:'bank'}]) {
+    for (const move of [{t:'roll'},{t:'claim',mask:63},{t:'roll'},{t:'claim',mask:63},{t:'bank'}]) {
       ({view} = await send({operation:'move',code:view.code,revision:view.revision,move}));
     }
     expect(view.status).toBe('finished');

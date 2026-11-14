@@ -1,3 +1,4 @@
+import '@/styles/farkle-dice-store.css';
 import { D6_COLLECTIONS } from '@/lib/d6-collections';
 import { NauticalBundleOffer } from './NauticalBundleOffer';
 import { NAUTICAL_FINISHES } from '@/lib/nautical-sets';

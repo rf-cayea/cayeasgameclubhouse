@@ -80,8 +80,9 @@ fragments, ownership and credited rewards remain valid.
 
 Open crates from a game's Rewards panel or Rewards & Cash. Openings have an
 animation, synthesized sounds, a saved mute setting and reduced-motion support.
-An interrupted opening retries the same crate. Store → Fragments sells one or
-the remaining fragments, each at `ceil(set price / 3)` in points or Cash.
+An interrupted opening retries the same crate. Store → Fragments sells
+individual fragments at one-third of the listed price in points or Cash.
+Whole-unit rounding is spread across the three fragments.
 
 ## Cayea’s Collectibles — Harvest & Hearth
 

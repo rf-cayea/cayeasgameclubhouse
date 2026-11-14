@@ -53,7 +53,9 @@ describe.each(['node','d1']as const)('authoritative Carrom on %s',backend=>{
   await expect(economy.command(a,{operation:'equip',itemId:striker.id,slot:striker.slot})).rejects.toMatchObject({code:'not_owned'});
   raw.prepare("UPDATE economy_wallets SET dice_points=dice_points+100 WHERE user_id=?").run(id);
   for(const [item,count] of [[board,2],[striker,3]] as const){
-   await economy.command(a,{operation:'buy_fragments',itemId:item.id,count,payment:'game',requestId:randomUUID()});
+   for (let bought = 0; bought < count; bought++) {
+    await economy.command(a, { operation: 'buy_fragments', itemId: item.id, count: 1, payment: 'game', requestId: randomUUID() });
+   }
    await economy.command(a,{operation:'equip',itemId:item.id,slot:item.slot});
   }
   const appearance=equippedCarrom(await economy.wallet(a));

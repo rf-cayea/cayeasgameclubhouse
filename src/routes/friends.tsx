@@ -3,13 +3,13 @@ import { useState, type FormEvent } from 'react';
 import { HubNav } from '@/components/HubNav';
 import { PlayerProfileCard, SocialFeedback, SocialSignIn } from '@/components/PlayerProfileCard';
 import { GameInvitations } from '@/components/FriendInvitePanel';
-import { useClubhouse } from '@/lib/clubhouse';
+import { useClubhouseAccount } from '@/lib/clubhouse';
 import { useSocialAction, useSocialResource } from '@/lib/social';
 import type { FriendsView, PlayerProfile } from '@/lib/social-protocol';
 
 export const Route = createFileRoute('/friends')({ head: () => ({ meta: [{ title: "Friends & invitations — Cayea's Game Clubhouse" }] }), component: FriendsPage });
 function FriendsPage() {
-  const { user, ready } = useClubhouse();
+  const { user, ready } = useClubhouseAccount();
   return <><HubNav/><main className="social-shell"><div className="social-heading"><div><p className="social-eyebrow">GOOD GAMES. FAMILIAR FACES.</p><h1>Friends & invitations</h1><p>Find players by gamer name, connect, and take a seat together.</p></div><Link to="/profile" className="btn-ghost-gold">My player profile</Link></div>{!ready ? <p role="status">Checking your account…</p> : !user ? <SocialSignIn/> : <FriendsMember key={user.id} userId={user.id}/>}</main></>;
 }
 function FriendsMember({ userId }: { userId: string }) {
