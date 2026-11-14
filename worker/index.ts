@@ -18,6 +18,8 @@ import type { Identity } from '../server/rooms';
 import type { MatchReward, RewardReceipt } from '../src/lib/rummy-rewards';
 import type { SpadesMatchReward, SpadesReceipt } from '../src/lib/spades-rewards';
 import assets from 'clubhouse:assets';
+let overrides: Record<string, string> | undefined;
+const staticTypes = () => (overrides ??= JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(assets.__static_types__!.data), char => char.charCodeAt(0)))));
 import { SocialStore } from '../server/social';
 import { namedGameCommand, mirrorLoungeName, seedLoungeName } from '../server/social-members';
 import { EconomyStore } from '../server/economy';
@@ -28,6 +30,7 @@ import { PuzzleRewardStore } from '../server/puzzle-rewards';
 
 export interface Environment {
   DB: any;
+  ASSETS?: { fetch(input: Request | string, init?: RequestInit): Promise<Response> };
   SUPABASE_URL?: string;
   SUPABASE_PUBLISHABLE_KEY?: string;
   SUPABASE_ANON_KEY?: string;
@@ -352,8 +355,21 @@ export default {
       return new Response(request.method === 'HEAD' ? null : body, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
     }
     const asset = assets[path] || (!path.split('/').at(-1)?.includes('.') ? assets['/index.html'] : undefined);
-    if (!asset) return new Response('Not found.', { status: 404 });
-    const headers = { 'Content-Type': asset.type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-store' };
-    return new Response(request.method === 'HEAD' ? null : Uint8Array.from(atob(asset.data), char => char.charCodeAt(0)), { headers });
+    if (asset) {
+      const raw = Uint8Array.from(atob(asset.data), char => char.charCodeAt(0));
+      const body = asset.gzip ? await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer() : raw;
+      const headers = { 'Content-Type': asset.type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-store' };
+      return new Response(request.method === 'HEAD' ? null : body, { headers });
+    }
+    // Artwork and fonts ship as static assets; some WebP URLs carry pre-encoded AVIF.
+    if (env.ASSETS) {
+      const response = await env.ASSETS.fetch(request);
+      const type = staticTypes()[path];
+      if (!type) return response;
+      const headers = new Headers(response.headers);
+      headers.set('Content-Type', type);
+      return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, headers });
+    }
+    return new Response('Not found.', { status: 404 });
   },
 };

@@ -5,18 +5,21 @@
 import ts from 'typescript';
 import fs from 'node:fs';
 
-const affected = new Set(['guest', 'load', 'save', 'enqueueReward', 'rewardView', 'claimReward', 'finishReward', 'retryReward', 'view', 'get', 'command', 'reward', 'appearance', 'equipAppearance']);
+const affected = new Set(['guest', 'load', 'save', 'persistPresence', 'enqueueReward', 'rewardView', 'claimReward', 'finishReward', 'retryReward', 'view', 'get', 'command', 'reward', 'appearance', 'equipAppearance']);
 for (const game of ['rooms', 'spades-rooms']) {
   let input = fs.readFileSync(new URL(`../server/${game}.ts`, import.meta.url), 'utf8');
   const spades = game === 'spades-rooms';
   input = input.replace(/import (?:type )?\{ DatabaseSync \} from 'node:sqlite';/, "import { CloudDatabase, type D1Binding } from './database';");
   input = input.replace("import { chmodSync, mkdirSync } from 'node:fs';\n", '').replace("import { dirname } from 'node:path';\n", '');
   input = input.replace(spades ? 'export class SpadesRoomStore {' : 'export class RoomStore {', spades ? 'export class CloudSpadesRoomStore {' : 'export class CloudRoomStore {');
-  const start = input.indexOf(spades ? '  constructor(readonly db: DatabaseSync)' : '  readonly db: DatabaseSync;');
+  const start = input.indexOf(spades ? '  constructor(readonly db: DatabaseSync' : '  readonly db: DatabaseSync;');
   const end = input.indexOf(spades ? '  private load(' : '  guest(', start);
   if (start < 0 || end < 0) throw new Error(`Cannot find the ${game} constructor; update this transformer before building.`);
-  input = input.slice(0, start) + '  readonly db: CloudDatabase;\n  constructor(binding: D1Binding) { this.db = new CloudDatabase(binding); }\n' + input.slice(end);
-  input = input.replace('  private save(room: Room) {', `  private save(room: Room) {\n    this.db.expectRoom('${spades ? 'spades_rooms' : 'rooms'}', room.code, room.revision - 1);`);
+  input = input.slice(0, start) + '  readonly db: CloudDatabase;\n  constructor(binding: D1Binding, private readonly now = Date.now) { this.db = new CloudDatabase(binding); }\n' + input.slice(end);
+  input = input.replace('if (settlePresence(room, principal, this.now())) this.save(room);', 'if (settlePresence(room, principal, this.now())) this.persistPresence(room);');
+  // Presence must not bump the revision, so it writes around save() and only
+  // lands while the row is still the revision this request read.
+  input = input.replace('  private save(room: Room) {', `  private persistPresence(room: Room) {\n    this.db.prepare("UPDATE ${spades ? 'spades_rooms' : 'rooms'} SET data=? WHERE code=? AND json_extract(data,'$.revision')=?").run(JSON.stringify(room), room.code, room.revision);\n  }\n  private save(room: Room) {\n    this.db.expectRoom('${spades ? 'spades_rooms' : 'rooms'}', room.code, room.revision - 1);`);
   const file = `server/cloud-${game}.ts`;
   const source = ts.createSourceFile(file, input, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const result = ts.transform(source, [context => root => {
