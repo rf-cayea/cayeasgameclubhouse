@@ -10,7 +10,7 @@ import { crownCourtRewardTier, crownCourtWinner, type CrownCourtMatchReward, typ
 import { crownChanceRewardTier, crownChanceWinner, type CrownChanceMatchReward, type CrownChanceReceipt } from '../src/lib/crown-chance-rewards';
 import { farkleRewardTier, farkleWinner, type FarkleMatchReward, type FarkleReceipt } from '../src/lib/farkle-rewards';
 import { D6_DICE_SLOT, CLASSIC_D6_DICE } from '../src/lib/d6-dice';
-import { nauticalBundle } from '../src/lib/nautical-sets';
+import { collectionBundle } from '../src/lib/collection-bundles';
 import { DOMINO_INCLUDED_SKINS,DOMINO_SKIN_SLOT } from '../src/lib/dominoes-skins';
 import { dominoRewardTier, dominoWinner, type DominoMatchReward, type DominoReceipt } from '../src/lib/dominoes-rewards';
 import { fiveDiceRewardTier, fiveDiceWinner, type FiveDiceMatchReward, type FiveDiceReceipt } from '../src/lib/five-dice-rewards';
@@ -460,7 +460,7 @@ export class EconomyStore {
   }
   private async diceFragments(id:string,collection:RewardCrateCollection='dice'):Promise<Record<string,number>> {
     const pool=REWARD_CRATE_POOLS[collection],prefix=REWARD_CRATE_META[collection].opened;
-    const rows=await this.rows<{itemId:string;n:number}>(`SELECT json_group_array(json_object('itemId',item_id,'n',n)) AS data FROM (SELECT coalesce(json_extract(detail,'$.crate.itemId'),json_extract(detail,'$.fragmentItem')) AS item_id,sum(coalesce(json_extract(detail,'$.fragmentCount'),1)) AS n FROM economy_ledger WHERE user_id=? AND ((kind='reward' AND source LIKE ?) OR (kind='purchase' AND source LIKE 'fragment-buy:%')) GROUP BY item_id)`,id,`${prefix}%`);
+    const rows=await this.rows<{itemId:string;n:number}>(`SELECT json_group_array(json_object('itemId',item_id,'n',n)) AS data FROM (SELECT coalesce(json_extract(detail,'$.crate.itemId'),json_extract(detail,'$.fragmentItem')) AS item_id,sum(coalesce(json_extract(detail,'$.fragmentCount'),1)) AS n FROM economy_ledger WHERE user_id=? AND ((kind='reward' AND (source LIKE ? OR json_extract(detail,'$.crate.itemId') IN ('card-deck-four-nations','card-deck-rome'))) OR (kind='purchase' AND source LIKE 'fragment-buy:%')) GROUP BY item_id)`,id,`${prefix}%`);
     return Object.fromEntries(rows.filter(row=>pool.some(d=>d.id===row.itemId)).map(row=>[row.itemId,Number(row.n)]));
   }
   private async diceCrates(id:string,collection:RewardCrateCollection='dice'):Promise<DiceCrateView> {
@@ -472,7 +472,7 @@ export class EconomyStore {
     return {progress:{humanWins:(Number(countsProgress?.humanWins??0)+await this.crateCarry(id,collection,'human'))%6,computerWins:(Number(countsProgress?.computerWins??0)+await this.crateCarry(id,collection,'bot'))%9},unopened:Math.max(0,Number(counts?.earned??0)-Number(counts?.opened??0)),totalEarned:Number(counts?.earned??0),available,fragments:await this.diceFragments(id,collection),recent};
   }
   private async openDiceCrate(id:string,crateId:string,collection:RewardCrateCollection='dice'):Promise<EconomyReceipt> {
-    if(!/^(carrom|backgammon|five-dice|farkle|dominoes|rummy|spades):[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(crateId)||crateCollectionForGame(crateId.split(':')[0].toLowerCase())!==collection)throw new RummyError('Choose one of your earned crates.');
+    if(!/^(carrom|backgammon|five-dice|farkle|dominoes|rummy|spades|hearts|crazy-eights|crown-court|crown-chance):[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(crateId)||crateCollectionForGame(crateId.split(':')[0].toLowerCase())!==collection)throw new RummyError('Choose one of your earned crates.');
     crateId=crateId.toLowerCase();const meta=REWARD_CRATE_META[collection],catalog=REWARD_CRATE_POOLS[collection];
     return this.transact(id,async({wallet})=>{
       const source=`${meta.opened}${crateId}`,prior=await this.prior(id,source);
@@ -584,7 +584,7 @@ export class EconomyStore {
       const currency=value.payment==='cash'?'points':value.game?POINT_FIELDS[value.game as PointGame]:item.currency,price=value.payment==='cash'?item.cashPrice:item.price;
       receipt=await this.transact(id,async({wallet})=>{
         if(wallet.owned.includes(item.id) || (isSharedTable(item) && ownsCardTable(wallet.owned, item.id)))return {result:{type:'purchase',alreadyApplied:true,itemId:item.id,amount:price,currency} as EconomyReceipt};
-        const bundle=nauticalBundle(item.id);
+        const bundle=collectionBundle(item.id);
         if(bundle&&bundle.items.every(id=>wallet.owned.includes(id)))return {wallet:{...wallet,owned:[...wallet.owned,item.id]},result:{type:'purchase',alreadyApplied:true,itemId:item.id,amount:price,currency} as EconomyReceipt};
         const design=RUMMY_DESIGNS.find(design=>design.id===item.id);
         const wins=design?await this.first<{n:number}>('SELECT count(*) AS n FROM reward_outbox WHERE user_id=?',id):null;

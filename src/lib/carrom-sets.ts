@@ -1,3 +1,4 @@
+import { CARROM_MANDALAS } from './carrom-mandalas';
 import type { BGDesign } from './backgammon-sets';
 import type { CollectionDice } from './d6-collections';
 import { D6_DICE_SETS } from './d6-dice';
@@ -17,7 +18,7 @@ const themes = [
 
 export interface CarromBoardDesign {
   id: string; name: string; price: number; slot: typeof CARROM_BOARD_SLOT;
-  frame: string; trim: string; surface: string; shade: string; ink: string; motif?: BGDesign['motif'];
+  frame: string; trim: string; surface: string; shade: string; ink: string; motif?: BGDesign['motif']; mandala?: number;
 }
 export const CLASSIC_CARROM_BOARD: CarromBoardDesign = {
   id: 'carrom-board-classic', name: 'Classic Maple', price: 0, slot: CARROM_BOARD_SLOT,
@@ -26,7 +27,7 @@ export const CLASSIC_CARROM_BOARD: CarromBoardDesign = {
 export interface CarromPuckDesign {
   id: string; name: string; price: number; slot: typeof CARROM_PUCK_SLOT;
   light: string; white: string; rim: string; dark: string; darkLight: string;
-  accent?: string; finish?: CollectionDice; collection?: CollectionDice['collection'] | 'nautical';
+  accent?: string; finish?: CollectionDice; collection?: CollectionDice['collection'] | 'nautical' | 'mandala'; mandala?: number;
 }
 export const CLASSIC_CARROM_PUCKS: CarromPuckDesign = {
   id: 'carrom-pucks-classic', name: 'Classic Pucks', price: 0, slot: CARROM_PUCK_SLOT,
@@ -50,7 +51,7 @@ export const CARROM_BOARDS: CarromBoardDesign[] = [...themes.map<CarromBoardDesi
     slot: CARROM_BOARD_SLOT, frame: finish.edge, trim: finish.face };
 }), ...newBoards.map<CarromBoardDesign>(([key,name,frame,trim,surface,shade,ink,motif])=>({
   id: `carrom-board-${key}`, name, price:300, slot:CARROM_BOARD_SLOT, frame, trim, surface, shade, ink, motif,
-}))];
+})), ...CARROM_MANDALAS.map<CarromBoardDesign>(theme=>({id:`carrom-board-mandala-${theme.key}`,name:`${theme.name} Board`,price:300,slot:CARROM_BOARD_SLOT,frame:theme.frame,trim:theme.trim,surface:theme.surface,shade:theme.shade,ink:theme.ink,mandala:theme.art}))];
 function tint(hex: string, target: number, fraction: number) {
   const channels = [1, 3, 5].map(index => {
     const channel = parseInt(hex.slice(index, index + 2), 16);
@@ -59,7 +60,7 @@ function tint(hex: string, target: number, fraction: number) {
   return `#${channels.join('')}`;
 }
 
-export const CARROM_PUCKS: CarromPuckDesign[] = D6_DICE_SETS.map(die => {
+export const CARROM_PUCKS: CarromPuckDesign[] = [...D6_DICE_SETS.map<CarromPuckDesign>(die => {
   const key = die.id.slice('farkle-dice-'.length);
   const original = themes.find(theme => theme.key === key);
   const finish = 'collection' in die ? die : undefined;
@@ -70,7 +71,7 @@ export const CARROM_PUCKS: CarromPuckDesign[] = D6_DICE_SETS.map(die => {
     darkLight: original?.ink ? die.light : tint(die.light, 0, .46), accent: die.pip, finish,
     collection: finish?.collection ?? (key.startsWith('nautical-') ? 'nautical' : undefined),
   };
-});
+}), ...CARROM_MANDALAS.map<CarromPuckDesign>(theme=>({id:`carrom-pucks-mandala-${theme.key}`,name:`${theme.name} Pucks`,price:150,slot:CARROM_PUCK_SLOT,light:'#fffdf7',white:theme.surface,rim:theme.trim,dark:theme.dark,darkLight:theme.face,accent:theme.accent,collection:'mandala' as const,mandala:theme.art}))];
 
 export function equippedCarrom(wallet: Pick<EconomyWallet, 'equipped' | 'owned'> | null) {
   return {
@@ -81,7 +82,10 @@ export function equippedCarrom(wallet: Pick<EconomyWallet, 'equipped' | 'owned'>
 }
 
 export const CARROM_STRIKER_SLOT = 'carrom_striker';
-export const CLASSIC_CARROM_STRIKER = {
+export interface CarromStrikerDesign {
+ id:string;name:string;price:number;slot:typeof CARROM_STRIKER_SLOT;face:string;light:string;edge:string;accent:string;engraving:string;mandala?:number;
+}
+export const CLASSIC_CARROM_STRIKER: CarromStrikerDesign = {
   id: 'carrom-striker-classic', name: 'Classic Jade Striker', price: 0, slot: CARROM_STRIKER_SLOT,
   face: '#55a9a2', light: '#fcf3a7', edge: '#15554e', accent: '#f8dda1', engraving: 'star',
 };
@@ -91,10 +95,10 @@ const strikerThemes = [
   'fruit-apple', 'fruit-orange', 'fabric-silk', 'fabric-denim', 'animal-cat',
   'material-glass', 'material-gold', 'material-marble', 'sport-bowling',
 ] as const;
-export const CARROM_STRIKERS = strikerThemes.map((key, index) => {
+export const CARROM_STRIKERS: CarromStrikerDesign[] = [...strikerThemes.map<CarromStrikerDesign>((key, index) => {
   const finish = D6_DICE_SETS.find(item => item.id === `farkle-dice-${key}`)!;
   return { id: `carrom-striker-${key}`, name: `${finish.name.replace('Onyx Skulls', 'Onyx')} Striker`,
     price: 120, slot: CARROM_STRIKER_SLOT, face: finish.face, light: finish.light,
     edge: finish.edge, accent: finish.pip, engraving: ['star', 'diamond', 'rings', 'flower', 'compass'][index % 5]! };
-});
+}), ...CARROM_MANDALAS.map<CarromStrikerDesign>(theme=>({id:`carrom-striker-mandala-${theme.key}`,name:`${theme.name} Striker`,price:120,slot:CARROM_STRIKER_SLOT,face:theme.face,light:theme.surface,edge:theme.frame,accent:theme.accent,engraving:'mandala',mandala:theme.art}))];
 export const CARROM_COLLECTIBLES = [...CARROM_BOARDS, ...CARROM_PUCKS, ...CARROM_STRIKERS];

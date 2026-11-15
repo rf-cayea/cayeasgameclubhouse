@@ -5,7 +5,7 @@ export const PLAYING_CARDS = [...'SHDC'].flatMap(suit => [...'A23456789TJQK'].ma
 export const PLAYING_CARDS_WITH_JOKERS = [...PLAYING_CARDS, 'X1', 'X2'];
 export interface PlayingDeck {
   id: string; name: string; price: number; description: string; paper: string; ink: string; red: string; back: string; accent: string;
-  motif: 'classic' | 'stars' | 'crown' | 'leaves' | 'deco' | 'standard' | 'fantasy' | 'scifi' | 'sultanate' | 'four-color' | 'chinese' | 'egypt' | 'merfolk';
+  motif: 'classic' | 'stars' | 'crown' | 'leaves' | 'deco' | 'standard' | 'fantasy' | 'scifi' | 'sultanate' | 'four-color' | 'chinese' | 'egypt' | 'merfolk' | 'indigenous' | 'rome';
   suitColors?: Record<'S' | 'H' | 'D' | 'C', string>;
   plain?: boolean;
 }
@@ -22,6 +22,8 @@ export const SHARED_DECKS: PlayingDeck[] = [
   { id: 'card-deck-ember', name: 'Ember Crown', price: 450, description: 'Ruby-and-gold painted courts, phoenix ornament, copper filigree and a lavish royal back.', paper: '#fff0d5', ink: '#4a2525', red: '#ab253c', back: '#622137', accent: '#efbd72', motif: 'crown' },
   { id: 'card-deck-grove', name: 'Verdant Grove', price: 450, description: 'Botanical Art Nouveau portraits, illuminated aces, fine gold foliage and a verdant patterned back.', paper: '#ecf4df', ink: '#174d40', red: '#9b4540', back: '#133f35', accent: '#b8d497', motif: 'leaves' },
   { id: 'card-deck-deco', name: 'Ivory Deco', price: 450, description: 'Sculpted Art Deco court paintings, champagne-gold ornament and an intricate black-lacquer back.', paper: '#fff9ed', ink: '#292631', red: '#9e3549', back: '#24202e', accent: '#e8c77f', motif: 'deco' },
+  {id:'card-deck-four-nations',name:'Four Nations · Indigenous Courts',price:450,description:'Maya spades, Aztec hearts, Cherokee diamonds and Blackfoot clubs: four distinct art-inspired courts with chiefs as kings and two elder shaman jokers. Traditional ranks and suit marks remain clear.',paper:'#fff6e1',ink:'#21382e',red:'#9e2935',back:'#263b36',accent:'#c9a366',motif:'indigenous'},
+  {id:'card-deck-rome',name:'Imperial Rome',price:450,description:'Roman emperors, empresses and legion officers in painted imperial robes and laurel crowns, with two theatrical court-entertainer jokers, ornate aces and an eagle-and-laurel back.',paper:'#fff6e5',ink:'#302a36',red:'#a52835',back:'#512536',accent:'#d2ad62',motif:'rome'},
 ];
 /** Read old purchases and saved looks without offering old, cheaper SKUs for sale. */
 export function canonicalDeckId(id: string) {
@@ -32,3 +34,6 @@ export const isSharedDeck = (id: string) => SHARED_DECKS.some(deck => deck.id ==
 export const ownsPlayingDeck = (owned: readonly string[], id: string) => owned.some(item => canonicalDeckId(item) === canonicalDeckId(id));
 /** These thresholds apply only to the one-time migration of existing rewards. */
 export const LEGACY_DECK_WINS = { 'card-deck-atlas': 1, 'card-deck-ember': 3, 'card-deck-grove': 5, 'card-deck-deco': 10 } as const;
+
+/** These featured deck fragments can drop in every reward-crate collection. */
+export const CROSS_GAME_DECKS=SHARED_DECKS.filter(deck=>deck.id==='card-deck-four-nations'||deck.id==='card-deck-rome');

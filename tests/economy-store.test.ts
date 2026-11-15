@@ -1,3 +1,4 @@
+import { collectionBundle } from '../src/lib/collection-bundles';
 import { canonicalCardTable, ownsCardTable } from '../src/lib/card-table-themes';
 import { D6_DICE_SETS, D6_DICE_SLOT, equippedD6Dice } from '../src/lib/d6-dice';
 import { NAUTICAL_BUNDLES } from '../src/lib/nautical-sets';
@@ -318,7 +319,8 @@ describe.each(['node','d1'] as const)('authoritative economy on %s',backend=>{
   for(const item of ECONOMY_CATALOG) {
     const before=await store.wallet(actor());
     const result=await store.command(actor(),{operation:'purchase',itemId:item.id,payment:'cash',cashPrice:0});
-    const alreadyOwned=item.slot==='spades_table'||item.slot==='rummy_table'?ownsCardTable(before.owned,item.id):before.owned.includes(item.id);
+    const bundle=collectionBundle(item.id);
+    const alreadyOwned=Boolean(bundle&&bundle.items.every(id=>before.owned.includes(id)))||(item.slot==='spades_table'||item.slot==='rummy_table'?ownsCardTable(before.owned,item.id):before.owned.includes(item.id));
     expect(result.receipt).toMatchObject({currency:'points',amount:item.cashPrice,alreadyApplied:alreadyOwned});
     expect(result.wallet.points).toBe(before.points-(alreadyOwned?0:item.cashPrice));
     expect(result.wallet.rummy_points).toBe(0);expect(result.wallet.spades_points).toBe(0);

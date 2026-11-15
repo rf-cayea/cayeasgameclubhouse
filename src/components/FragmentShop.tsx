@@ -29,6 +29,7 @@ function FragmentMember({ userId }: { userId: string | null }) {
   const wallet = rewards.data?.wallet;
   const [kind, setKind] = useState<RewardCrateCollection>('dice');
   const [page, setPage] = useState(0);
+  const [mandalasOnly,setMandalasOnly] = useState(false);
   const [payment, setPayment] = useState<StorePayment>('game');
   const [cardGame, setCardGame] = useState<'rummy' | 'spades'>('rummy');
   const [busy, setBusy] = useState(false);
@@ -37,7 +38,7 @@ function FragmentMember({ userId }: { userId: string | null }) {
   const orderKey = `clubhouse-fragment-order:${userId}`;
   const [pending, setPending] = useState(() => userId ? savedOrder(orderKey) : null);
   const inFlight = useRef(false);
-  const items = REWARD_CRATE_POOLS[kind];
+  const items = REWARD_CRATE_POOLS[kind].filter(item=>kind!=='carrom'||!mandalasOnly||item.id.includes('-mandala-'));
   const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const fragments = rewards.data?.rewardCrates?.[kind]?.fragments ?? {};
 
@@ -88,6 +89,7 @@ function FragmentMember({ userId }: { userId: string | null }) {
         </button>)}
     </div>
     <div className="dice-fragment-filters">
+      {kind==='carrom'&&<label>Carrom designs<select value={mandalasOnly?'mandala':'all'} disabled={busy||Boolean(pending)} onChange={event=>{setMandalasOnly(event.target.value==='mandala');setPage(0);}}><option value="all">All Carrom designs</option><option value="mandala">Mandala collection · 18 pieces</option></select></label>}
       <label>Pay with<select value={payment} disabled={busy || Boolean(pending)} onChange={event => setPayment(event.target.value as StorePayment)}>
         <option value="game">Game points</option><option value="cash">Clubhouse Cash</option>
       </select></label>

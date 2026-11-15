@@ -2,6 +2,7 @@ import { HotDiceCallout } from '@/components/HotDiceCallout';
 import { PokerDieFace } from '@/components/PokerDice';
 import { chanceCanBank, chanceHands, CHANCE_HIGH_HANDS, CHANCE_LIMITS, CHANCE_TARGETS, type ChanceActivity, type ChanceHand, type CrownChanceMove, type CrownChanceState } from '@/lib/crown-chance';
 import type { PokerDiceSet } from '@/lib/poker-dice-sets';
+import { chancePlaybackScores } from '@/lib/crown-chance-playback';
 
 const rank = ['9', '10', 'J', 'Q', 'K', 'A'];
 const rankName = ['9', '10', 'Jack', 'Queen', 'King', 'Ace'];
@@ -78,25 +79,27 @@ function ClaimedDice({ state, design, through }: { state: CrownChanceState; desi
 
 type BoardProps = {
   state: CrownChanceState; frame?: ChanceActivity; design: PokerDiceSet; mask: number; hands: ChanceHand[]; choices: ChanceHand[]; selected?: ChanceHand;
-  canPlay: boolean; locked: boolean; mySeat?: number; connection?: string; record?: string; reward?: string;
+  canPlay: boolean; locked: boolean; rolling?: boolean; mySeat?: number; connection?: string; record?: string; reward?: string;
   onToggle: (index: number) => void; onPick: (mask: number) => void; onAllHands: () => void; onMoves: () => void;
   onMove: (move: CrownChanceMove) => void; onLeave: () => void;
 };
 
 export function CrownChanceBoard({
-  state, frame, design, mask, hands, choices, selected, canPlay, locked, mySeat, connection, record, reward,
+  state, frame, design, mask, hands, choices, selected, canPlay, locked, rolling = false, mySeat, connection, record, reward,
   onToggle, onPick, onAllHands, onMoves, onMove, onLeave,
 }: BoardProps) {
   const finished = state.phase === 'finished' && !frame;
+  const scores = chancePlaybackScores(state, frame, rolling);
+  const activeSeat = frame?.seat ?? state.turn;
   const player = state.players[frame?.seat ?? state.turn]!;
   const last = frame ?? state.activity?.at(-1);
-  const bust = last?.kind === 'roll' && last.lost !== undefined ? last : undefined;
+  const bust = !rolling && last?.kind === 'roll' && last.lost !== undefined ? last : undefined;
   const hotClaim = frame?.kind === 'claim' && frame.hot;
   const hot = frame ? hotClaim : state.claimed.every(Boolean);
   const frameRoll = frame && (state.activity ?? []).slice().reverse().find(event =>
     event.id <= frame.id && event.seat === frame.seat && event.kind === 'roll');
   const visibleDice = frameRoll?.kind === 'roll' ? frameRoll.dice : state.dice;
-  const visibleClaimed = frame ? visibleDice.map((_, index) => hotClaim ||
+  const visibleClaimed = frame ? frame.kind === 'claim' && frame.claimed ? frame.claimed : visibleDice.map((_, index) => hotClaim ||
     (frameRoll?.kind === 'roll' && !frameRoll.rolled[index])) : state.claimed;
   const turnEvents = frame ? (state.activity ?? []).filter(event => event.id <= frame.id).reverse() : [];
   let replayPoints = frame?.kind === 'bank' ? frame.points : 0;
@@ -106,12 +109,12 @@ export function CrownChanceBoard({
   }
   const rolled = state.dice.some(Boolean);
   const canSelect = canPlay && !finished && rolled && !hot;
-  const rollHands = frame?.kind === 'roll' && !bust
+  const rollHands = frame?.kind === 'roll' && !bust && !rolling
     ? chanceHands({ ...state, phase: 'play', dice: visibleDice, claimed: visibleClaimed }) : [];
   const playableMask = (canSelect ? hands : rollHands).reduce((available, hand) => available | hand.mask, 0);
   const nextMask = canSelect ? hands.reduce((available, hand) =>
     (hand.mask & mask) === mask ? available | hand.mask : available, 0) : 0;
-  const remaining = hot ? 6 : state.claimed.filter(claimed => !claimed).length;
+  const remaining = hot ? 6 : visibleClaimed.filter(claimed => !claimed).length;
   const opened = state.scores[state.turn]!.points > 0;
   const target = state.challenge === 'attack' ? '10-turn Score Attack' : `${formatChancePoints(CHANCE_TARGETS[state.length])} point target`;
   const limit = state.challenge ? CHANCE_LIMITS[state.challenge] : 0;
@@ -119,9 +122,9 @@ export function CrownChanceBoard({
     ? state.challenge === 'attack' ? 'Score Attack complete' : state.challenge ? state.winners.length ? 'Target reached' : 'Turn limit reached' : `${state.players[state.winners[0]!]!.name} wins`
     : frame && player.bot ? `${player.name}’s turn` : state.players.length === 1 || mySeat === (frame?.seat ?? state.turn) ? 'Your turn' : `${player.name}’s turn`;
   const notice = last?.kind === 'bank'
-    ? `${state.players[last.seat]?.name} banked ${formatChancePoints(last.points)} points.${state.notice.includes('Tied leaders') ? ' Tied leaders take another turn each.' : ''}`
+    ? `${state.players[last.seat]?.name} banked ${formatChancePoints(last.points)} points.`
     : state.notice;
-  const guidance = !opened && !state.qualified
+  const guidance = frame ? '' : !opened && !state.qualified
     ? 'First bank requires a pair or better.'
     : !opened && state.pending < state.minimum
       ? `${formatChancePoints(state.minimum - state.pending)} more points to open.`
@@ -130,19 +133,19 @@ export function CrownChanceBoard({
 
   return <section className="chance-board" aria-label="Crown & Chance playing table">
     <header className="chance-round">
-      <span>{target}{state.finalRound && ' · Final round'}{limit > 0 && ` · ${state.scores[0]!.turns}/${limit} turns`}</span>
+      <span>{target}{finished && state.winners.length > 0 && ' · Match complete'}{limit > 0 && ` · ${scores[0]!.turns}/${limit} turns`}</span>
       <strong role="status">{turnTitle}</strong>
       {connection && <span className="fd-connection" data-healthy={connection !== 'Offline'}>{connection}</span>}
     </header>
 
     <div className="chance-scoreboard">
       <div className="chance-scores chance-player-scores" aria-label="Banked player scores">
-        {state.players.map((seat, index) => <article key={seat.id} data-turn={!finished && index === state.turn}>
+        {state.players.map((seat, index) => <article key={seat.id} data-turn={!finished && index === activeSeat}>
           <span>{seat.bot ? 'Computer' : mySeat === index || state.players.length === 1 ? 'You' : `Player ${index + 1}`}</span>
           <strong title={seat.name}>{seat.name}</strong>
-          <b>{formatChancePoints(state.scores[index]!.points)}</b>
-          <small>{state.scores[index]!.turns} turns · {state.scores[index]!.busts} busts</small>
-          <small>{state.scores[index]!.hot} Hot Dice · best bank {formatChancePoints(state.scores[index]!.best)}</small>
+          <b>{formatChancePoints(scores[index]!.points)}</b>
+          <small>{scores[index]!.turns} turns · {scores[index]!.busts} busts</small>
+          <small>{scores[index]!.hot} Hot Dice · best bank {formatChancePoints(scores[index]!.best)}</small>
           <button type="button" className="fk-score-record-link" aria-label={`Score record for ${seat.name}`} onClick={onMoves}>Record</button>
         </article>)}
       </div>
@@ -157,11 +160,12 @@ export function CrownChanceBoard({
         {hot && !hotClaim && <b className="fk-final">Hot Dice</b>}
       </div>
       <div className="chance-feedback" role="status" aria-live="polite">
-        {bust ? <div className="fk-farkle-callout" key={bust.id}>
+        {rolling ? <><strong>{player.name} is rolling…</strong><span>Watch the dice settle.</span></> : bust ? <div className="fk-farkle-callout" key={bust.id}>
           <strong>Bust</strong><span>{state.players[bust.seat]?.name} lost {formatChancePoints(bust.lost!)} unbanked points.</span>
         </div> : hotClaim ? <HotDiceCallout key={frame.id} player={player.name}/> : frame?.kind === 'roll' ? <>
           <strong>{player.name} rolled</strong><span>{frame.dice.filter((_, index) => frame.rolled[index]).map(value => rank[value - 1]).join(' · ')}</span>
-        </> : frame?.kind === 'claim' ? <strong>{player.name} claimed {frame.hand} · +{formatChancePoints(frame.points)}</strong> : <>
+        </> : frame?.kind === 'claim' ? <strong>{player.name} claimed {frame.hand} · +{formatChancePoints(frame.points)}</strong>
+          : frame?.kind === 'bank' ? <strong>{player.name} banked {formatChancePoints(frame.points)} points.</strong> : <>
           <strong>{selected ? `${selected.name} · +${formatChancePoints(selected.points)}`
             : mask ? nextMask ? 'Add a glowing die to complete your hand.' : 'This selection doesn’t score.'
               : hot ? 'Hot Dice!' : notice}</strong>
@@ -178,7 +182,7 @@ export function CrownChanceBoard({
           <button type="button" disabled={!canSelect || !hands.length} onClick={() => hands[0] && onPick(hands[0].mask)}>Hint</button>
         </header>
         {choices.length ? <ChanceHandOptions hands={choices.slice(0, 4)} dice={state.dice} mask={mask} onPick={onPick} disabled={!canSelect}/>
-          : <p>{hot ? 'Bank or roll all six dice again.' : locked ? 'Checking the latest move…' : !canPlay ? `Waiting for ${player.name}.` : 'Roll, then tap glowing dice or pick a scoring hand.'}</p>}
+          : <p>{frame ? `Watching ${player.name}’s ${rolling ? 'roll' : frame.kind === 'claim' ? 'scoring hand' : frame.kind === 'bank' ? 'bank' : 'dice'}.` : hot ? 'Bank or roll all six dice again.' : locked ? 'Checking the latest move…' : !canPlay ? `Waiting for ${player.name}.` : 'Roll, then tap glowing dice or pick a scoring hand.'}</p>}
       </section>
 
       <div className="chance-dock">
@@ -189,21 +193,21 @@ export function CrownChanceBoard({
             const picked = Boolean(mask & bit);
             const scores = Boolean(playableMask & bit);
             const completes = Boolean((frame?.kind === 'roll' ? playableMask : nextMask) & bit);
-            const label = claimed ? 'Claimed' : picked ? 'Selected' : completes ? 'Can score' : value ? 'In play' : 'Ready';
+            const tumbling = rolling && frame?.kind === 'roll' && frame.rolled[index];
+            const label = tumbling ? 'Rolling' : claimed ? 'Claimed' : picked ? 'Selected' : completes ? 'Can score' : value ? 'In play' : 'Ready';
             return <button key={index} type="button" aria-pressed={picked} data-claimed={claimed}
               data-scores={scores} data-completes={completes} disabled={!canSelect || !value || claimed}
-              aria-label={`Die ${index + 1}: ${value ? rankName[value - 1] : 'ready'}${value ? `, ${label.toLowerCase()}` : ''}`}
+              aria-label={`Die ${index + 1}: ${tumbling ? 'rolling' : value ? `${rankName[value - 1]}, ${label.toLowerCase()}` : 'ready'}`}
               onClick={() => onToggle(index)}>
-              <span className="chance-die-face" key={last?.kind === 'roll' && last.rolled[index] && (Boolean(frame) || !bust) ? last.id : 'settled'}
-                data-roll={last?.kind === 'roll' && last.rolled[index] && (Boolean(frame) || !bust)}>
-                <PokerDieFace value={value || index + 1} ghost={!value} held={claimed || picked} design={design}/>
+              <span className="chance-die-face" key={last?.kind === 'roll' ? last.id : 'settled'} data-roll={tumbling}>
+                <PokerDieFace value={value || index + 1} ghost={!value || Boolean(tumbling)} held={claimed || picked} design={design}/>
               </span>
               <span className="chance-die-label">{label}</span>
             </button>;
           })}
         </div>
         <div className="chance-play-actions">
-          <button type="button" className="fk-bank" disabled={!canPlay || !chanceCanBank(state)} onClick={() => onMove({ t: 'bank' })}>Bank {formatChancePoints(state.pending)}</button>
+          <button type="button" className="fk-bank" disabled={!canPlay || !chanceCanBank(state)} onClick={() => onMove({ t: 'bank' })}>Bank {formatChancePoints(frame ? replayPoints : state.pending)}</button>
           <button type="button" className="fd-primary" disabled={!canPlay || !selected} onClick={() => selected && onMove({ t: 'claim', mask: selected.mask })}>
             {selected ? `Claim +${formatChancePoints(selected.points)}` : 'Claim hand'}
           </button>
@@ -230,8 +234,8 @@ function eventLabel(event: ChanceActivity) {
     : { move: event.hot ? 'Hot Dice roll' : 'Roll', detail: '' };
 }
 
-export function ChanceMoveHistory({ state }: { state?: CrownChanceState | null }) {
-  const activity = state?.activity ?? [];
+export function ChanceMoveHistory({ state, through }: { state?: CrownChanceState | null; through?: number }) {
+  const activity = (state?.activity ?? []).filter(event => through === undefined || event.id <= through);
   if (!activity.length) return <p>Rolls, claims, banks, and busts will appear here as you play.</p>;
   return <ol className="fk-history chance-history" reversed>
     {activity.slice().reverse().map(event => {

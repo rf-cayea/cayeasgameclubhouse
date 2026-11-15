@@ -39,7 +39,7 @@ describe('painted playing-card decks', () => {
   });
   it('provides 52 unique French-suited faces and two jokers for each shared deck', () => {
     expect(PLAYING_CARDS).toHaveLength(52); expect(new Set(PLAYING_CARDS_WITH_JOKERS).size).toBe(54);
-    expect(SHARED_DECKS).toHaveLength(12);
+    expect(SHARED_DECKS).toHaveLength(14);
     for (const deck of SHARED_DECKS) {
       expect(deck.price).toBe(450);
       for (const card of PLAYING_CARDS_WITH_JOKERS) {

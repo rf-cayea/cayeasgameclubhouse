@@ -35,7 +35,7 @@ describe.each(['node','d1'] as const)('domino and shared card crates on %s',back
   const results=await Promise.all([1,2].map(()=>store.command(actor,{operation:'open_reward_crate',collection:'dominoes',crateId})));expect(results.map(r=>r.receipt.alreadyApplied).sort()).toEqual([false,true]);const data=await store.read(actor);expect(data.wallet.points).toBe(20);expect(data.rewardCrates?.dominoes.unopened).toBe(0);expect(Object.values(data.rewardCrates!.dominoes.fragments)).toEqual([1]);
  });
  it('includes all matching domino designs and all shared decks, honors purchases, and keeps spare fragments',async()=>{
-  const wanted=REWARD_CRATE_POOLS.dominoes.find(d=>d.id.endsWith('material-water'))!;expect(wanted).toBeDefined();expect(REWARD_CRATE_POOLS.dominoes).toHaveLength(66);expect(REWARD_CRATE_POOLS.cards).toHaveLength(12);
+  const wanted=REWARD_CRATE_POOLS.dominoes.find(d=>d.id.endsWith('material-water'))!;expect(wanted).toBeDefined();expect(REWARD_CRATE_POOLS.dominoes).toHaveLength(68);expect(REWARD_CRATE_POOLS.cards).toHaveLength(14);
   const{store,win}=await setup(backend,()=>0,REWARD_CRATE_POOLS.dominoes.filter(d=>d.id!==wanted.id).map(d=>d.id));
   for(let n=1;n<=4;n++){const crateId=await win('dominoes'),data=await store.command(actor,{operation:'open_reward_crate',collection:'dominoes',crateId});if(n<=3)expect(data.receipt.crate).toMatchObject({itemId:wanted.id,fragments:n,unlocked:n===3});else expect(data.receipt.crate?.spare).toBe(true);}
  });

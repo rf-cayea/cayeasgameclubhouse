@@ -1,7 +1,7 @@
 export type CardStars=1|2|3|4;
 export const SEASON_ID='harvest-hearth-01';
 export const SEASON_NAME='Harvest & Hearth';
-export const JACKPOT_CASH=1000;
+export const JACKPOT_CASH=4000;
 export const CARD_RARITIES={1:'Common',2:'Uncommon',3:'Rare',4:'Ultra-rare'} as const;
 export const DUPLICATE_PRICES={1:5,2:10,3:20,4:40} as const;
 export const BOOSTER_PRICES={1:25,2:50,3:94,4:157} as const;

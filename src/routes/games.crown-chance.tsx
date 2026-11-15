@@ -1,3 +1,4 @@
+import {useWinnerCelebration} from '@/lib/winner-celebration';
 import { useCrownChancePresentation } from '@/lib/crown-chance-presentation';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
@@ -60,8 +61,9 @@ function CrownChancePage() {
     rolled: last.kind === 'roll' ? last.rolled : [],
     bust: last.kind === 'roll' && last.lost !== undefined,
     hot: last.kind === 'claim' && last.hot,
-  } : null, null, { bustDelay: 360, effectsOnly: true });
+  } : null, null, { bustDelay: 850, effectsOnly: true });
 
+  useWinnerCelebration({game:'Crown & Chance',scope:local?'local':room?.code,finished:state?.phase==='finished',ready:!presentation.busy,names:state?.winners.map(i=>state.players[i]!.name)??[],persist:!local,muted:audio.settings.muted||!audio.settings.effects||audio.settings.effectsVolume===0});
   useEffect(() => { setMask(0); }, [room?.code, room?.revision]);
 
   function pickHand(handMask: number) {
@@ -127,7 +129,7 @@ function CrownChancePage() {
     </GameHeader>
     <main className="chance-main">
       {(network.error || network.uncertain) && <p className="fd-network" role="alert">{network.error || 'This action still needs confirmation.'} {network.uncertain ? <button disabled={network.pending} onClick={()=>void network.retry()}>Retry same action</button> : <button onClick={()=>void network.refresh()}>Refresh table</button>}</p>}
-      {!state && !room ? <section className="chance-setup">
+      {!state && !room ? <section className="chance-setup clubhouse-setup">
         <div className="chance-intro"><h2>Crown &amp; Chance</h2><p>Original game by Richard Cayea</p><PokerSetArtwork design={design}/><p>Build poker hands with six dice. Bank the points or risk the next roll.</p></div>
         <div className="chance-setup-fields">
           <p role="status">{!ready ? 'Checking your Clubhouse sign-in…' : user ? 'Signed in to the Clubhouse.' : accountError ? 'Could not verify your Clubhouse sign-in.' : 'Playing as a guest.'}</p>
@@ -155,10 +157,10 @@ function CrownChancePage() {
         {room.owner&&<button className="btn-gold" disabled={busy||!room.players.every(player=>player.ready)} onClick={()=>void network.command({operation:'start',code:room.code,revision:room.revision})}>Start match</button>}
         <button className="btn-ghost-gold" disabled={busy} onClick={()=>void leave()}>Leave table</button></div>
       </section> : state && room?.status !== 'abandoned' ? <CrownChanceBoard
-        state={state} frame={presentation.frame} design={design} mask={mask} hands={hands} choices={choices} selected={selected}
+        state={state} frame={presentation.frame} rolling={presentation.rolling} design={design} mask={mask} hands={hands} choices={choices} selected={selected}
         canPlay={mine && !busy} locked={busy} mySeat={room?.mySeat}
         connection={room ? network.live ? 'Live' : network.healthy ? 'Connected' : 'Offline' : undefined}
-        record={record} reward={room?.reward.message}
+        record={record} reward={presentation.busy ? undefined : room?.reward.message}
         onToggle={index=>setMask(previous=>previous ^ (1 << index))}
         onPick={pickHand} onAllHands={()=>setPanel('hands')} onMoves={()=>setPanel('moves')}
         onMove={action=>void move(action)}
@@ -167,7 +169,7 @@ function CrownChancePage() {
     </main>
     {panel&&<GamePanel title={{help:'Crown & Chance rules',dice:'Shared poker dice',rewards:'Poker dice rewards',leave:'Leave this game?',hands:'Scoring hands in this roll',moves:'Rolls and score record',audio:'Dice sounds'}[panel]} close={()=>setPanel(null)}>
       {panel==='dice'?<PokerDiceCollection/>:panel==='rewards'?<><TableAchievementGuide game="crown-chance"/><RewardCrates collection="poker"/></>:panel==='leave'?<><p>Leaving ends the current game.</p><button className="btn-gold" onClick={()=>void leave()}>Leave game</button></>:panel==='audio'?<FarkleSoundControls audio={audio} gameName="Crown & Chance" effectsOnly/>
-        :panel==='moves'?<ChanceMoveHistory state={state}/>
+        :panel==='moves'?<ChanceMoveHistory state={state} through={presentation.frame?.id}/>
         :panel==='hands'&&state?<ChanceHandOptions hands={choices} dice={state.dice} mask={mask} onPick={pickHand} disabled={!mine||busy}/>
         :<ChanceRules/>}
     </GamePanel>}
@@ -188,7 +190,7 @@ function ChanceRules() {
     ].map(([hand,points])=><tr key={hand}><td>{hand}</td><td>{points}</td></tr>)}</tbody></table>
     <ChanceScoringGuide/>
     <p>Three of a Kind scores 500 for 9s, 550 for 10s, 600 for Jacks, 650 for Queens, 700 for Kings, and 750 for Aces.</p>
-    <p>Fast games target 4,000. Long games target 12,000. In multiplayer, reaching the target starts the final round. Finish the current round so all players have equal turns. If the leaders tie, only those players take another turn each until the tie breaks.</p>
+    <p>Fast games target 4,000. Long games target 12,000. The first player to bank at or above the target wins immediately. The match ends on that bank; other players and computers do not get another turn. This applies to computer, online and pass-and-play matches.</p>
     <p>Solo Target Sprint lets you choose Casual (15 turns), Standard (10), Expert (7), or unlimited Marathon. Score Attack measures your score after exactly 10 turns. A bust counts as a turn.</p>
     <p>Verified wins against computers or signed-in online players count toward account achievements and shared poker dice crates. Solo and pass-and-play results stay separate.</p>
   </div>;

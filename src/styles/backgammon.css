@@ -56,3 +56,14 @@
 .bg-felt-die[data-playable=true] {
   filter: drop-shadow(0 0 2px #d4ffc8) drop-shadow(0 0 6px #7cff73) drop-shadow(0 0 8px #7cff73);
 }
+/* Keep purchase and play labels readable: generic gold text must not override
+   the dark lettering of a gold-filled primary button. */
+.bg-collection,.bg-collection-grid article { color:#f0e8d5; }
+.bg-collection :is(h3,.store-purchase-controls>p:first-child) { color:#f3d99e; }
+.bg-collection button,.bg-actions>button,.bg-move-choices button { background:#17382d; color:#f6e6bf; }
+.bg-collection .bg-tabs button[aria-pressed=true],.bg-collection button.btn-gold,.bg-actions>button.btn-gold { background:#e9c77d; color:#18291f; border-color:#f1d69c; }
+.bg-collection button.btn-gold:hover,.bg-actions>button.btn-gold:hover { background:#f5d99e; color:#18291f; }
+.bg-collection button:not(.btn-gold):hover,.bg-actions>button:not(.btn-gold):hover { background:#284b3c; color:#fff1ca; }
+.bg-collection button:disabled,.bg-actions>button:disabled,.bg-move-choices button:disabled { opacity:1; color:#d8d7ca; background:#354239; border-color:#7d8b7e; }
+.bg-collection-grid p { color:#d9e1ce; }
+.bg-collection .store-purchase-controls dialog { color:#f2e7cb; background:#172e26; }

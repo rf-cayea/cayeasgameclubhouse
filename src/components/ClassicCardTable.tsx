@@ -1,3 +1,4 @@
+import {useWinnerCelebration} from '@/lib/winner-celebration';
 import { GameEffectsButton } from '@/components/GameEffectsButton';
 import { useGameCue } from '@/lib/game-cues';
 import { ownsCardTable } from '@/lib/card-table-themes';
@@ -49,7 +50,7 @@ export function ClassicCardTable({ kind }: { kind: ClassicKind }) {
     <main className={`classic-cards-main ${playing || online ? 'classic-cards-main-play' : ''}`}>
       {online ? ready ? <OnlineLobby key={user?.id ?? 'guest'} kind={kind} userId={user?.id ?? null} deck={deck} jokers={jokers}/> : <p role="status">Opening the lobby…</p>
       : playing ? hearts ? <HeartsTable deck={matchDeck} jokers={jokers}/> : <EightsTable deck={matchDeck}/> :
-        <section className="classic-cards-setup">
+        <section className="classic-cards-setup clubhouse-setup">
           <div className="classic-cards-intro">
             <h2>{title}</h2>
             <p>{hearts ? 'Follow suit, dodge the Queen of Spades, and finish with the lowest score.' : 'Match rank or suit, change the suit with a wild, and be the first to empty your hand.'}</p>
@@ -131,6 +132,7 @@ function EightsTable({ deck }: { deck: PlayingDeck }) {
     return () => window.clearTimeout(timer);
   }, [game]);
   const legal = game.turn === 0 && !game.winners.length ? game.hands[0]!.filter(card => eightsLegal(game, card)) : [];
+  useWinnerCelebration({game:'Crazy 8’s',scope:'local',finished:game.winners.length>0,names:game.winners.map(seatName),persist:false});
   const top = game.pile.at(-1)!;
   useGameCue('eights',`${top}:${game.stock.length}:${game.turn}:${game.winners.length}`,game.winners.length?'win':'card');
   return <section className="classic-cards-board" aria-label="Crazy 8’s table">
@@ -165,6 +167,7 @@ function HeartsTable({ deck, jokers }: { deck: PlayingDeck; jokers: boolean }) {
   const passing = game.phase === 'pass';
   const legal = passing ? hand : game.turn === 0 ? heartsLegal(game) : [];
   const winners = game.totals.flatMap((score, seat) => score === Math.min(...game.totals) ? [seat] : []);
+  useWinnerCelebration({game:'Hearts',scope:'local',finished:game.phase==='match',names:winners.map(seatName),persist:false});
   return <section className="classic-cards-board" aria-label="Hearts table">
     <p className="classic-cards-round">Hand {game.round + 1} · {jokers ? 'Clubhouse Jokers' : 'Classic Hearts'} · Lowest score wins at 100</p>
     <Seats hands={game.hands} turn={game.phase === 'play' && game.trick.length < 4 ? game.turn : -1} taken={game.taken} totals={game.totals}/>
@@ -233,7 +236,7 @@ function OnlineLobby({ kind, userId, deck, jokers }: { kind: ClassicKind; userId
             operation: 'ready', code: room.code, revision: room.revision, ready: !room.players.find(player => player.seat === room.seat)?.ready,
           })}>{room.players.find(player => player.seat === room.seat)?.ready ? 'Unready' : 'Ready'}</button>}
       </section> : network.code ? <p role="status">Reopening table {network.code}…</p> :
-      <section className="classic-cards-setup" aria-label={`${title} online lobby`}>
+      <section className="classic-cards-setup clubhouse-setup" aria-label={`${title} online lobby`}>
         <div className="classic-cards-intro"><h2>Online lobby</h2><p>Join a public table or share a private table link with friends.</p></div>
         {!userId && <div className="classic-cards-options"><label>Player name<input autoComplete="nickname" maxLength={24} value={name} onChange={event => setName(event.target.value)} placeholder="Your table name"/></label></div>}
         <div className="classic-cards-lobby-grid">
@@ -292,6 +295,7 @@ function OnlineMatch({ room, deck, playable, send }: {
   const ended = isHearts ? game.phase === 'match' : game.winners.length > 0;
   const active = isHearts ? game.phase === 'play' : !ended;
   const winners = isHearts ? game.totals.flatMap((score, seat) => score === Math.min(...game.totals) ? [seat] : []) : game.winners;
+  useWinnerCelebration({game:game.kind==='hearts'?'Hearts':'Crazy 8’s',scope:room.code,persist:false,finished:ended,names:winners.map(seat=>room.players.find(player=>player.seat===seat)?.name??`Player ${seat+1}`)});
   return <section className="classic-cards-board" aria-label="Online card table">
     <p className="classic-cards-round">Table {room.code}{isHearts && ` · Hand ${game.round + 1} · ${game.jokers ? 'Clubhouse Jokers' : 'Classic Hearts'}`}</p>
     <ul className="classic-cards-seats" aria-label="Players">{room.counts.map((count, seat) =>

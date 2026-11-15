@@ -1,3 +1,4 @@
+import {useWinnerCelebration} from '@/lib/winner-celebration';
 import { PokerDiceCollection } from '@/components/PokerDiceCollection';
 import { RewardCrates } from '@/components/DiceCrateRewards';
 import { equippedPokerDice } from '@/lib/poker-dice-sets';
@@ -32,6 +33,7 @@ function CrownCourtPage() {
   const [joinCode, setJoinCode] = useState(incoming ?? ''), [panel, setPanel] = useState<Panel | null>(null), [leaving, setLeaving] = useState(false), [notice, setNotice] = useState(''), [resultSeen, setResultSeen] = useState('');
   const [section, setSection] = useState<CourtSection>('A'), [selected, setSelected] = useState<CrownCourtCategory | null>(null);
   const room = net.room, state = room?.state, presentation = useCrownCourtPresentation(room), action = presentation.frame, audio = useCrownCourtAudio(room, action);
+  useWinnerCelebration({game:'Crown & Court',scope:room?.code,finished:room?.status==='finished',ready:!presentation.busy,names:state?.winners.map(i=>state.players[i]!.name)??[],muted:audio.settings.muted||!audio.settings.effects||audio.settings.effectsVolume===0});
   const visibleCards = useMemo(() => state ? crownCourtPresentationCards(state, action) : [], [state, action]);
   const locked = net.pending || Boolean(net.uncertain) || !net.healthy || presentation.busy;
   const myTurn = Boolean(room && state && room.status === 'playing' && state.turn === room.mySeat && !presentation.busy);
@@ -54,7 +56,7 @@ function CrownCourtPage() {
   return <div className="game-viewport fd-scene cc-scene"><GameHeader title="Crown & Court"><button onClick={() => setPanel('dice')}>Dice</button><button onClick={() => setPanel('rewards')}>Rewards</button><button aria-label="Crown & Court rules" onClick={() => setPanel('help')}>Help</button>{room && <button onClick={() => setPanel('moves')}>Moves</button>}<button onClick={() => setPanel(room ? 'table' : 'join')}>{room ? 'Table' : 'Join'}</button><button className="fd-audio-button" aria-label="Audio settings" onClick={() => setPanel('audio')}><FarkleAudioIcon muted={audio.silent}/></button></GameHeader>
     <main className="cc-main">
       {(net.error || net.uncertain) && <div className="fd-network" role="alert"><span>{net.error || 'An action needs confirmation.'}</span>{net.uncertain ? <button disabled={net.pending} onClick={() => void net.retry()}>Retry same action</button> : <button onClick={() => void net.refresh()}>Reconnect</button>}</div>}
-      {!ready || !net.initialized || net.code && !room ? <div className="fd-resuming"><h2>Opening your royal scorecard…</h2><p>{net.error || 'Checking your saved table.'}</p></div> : !room ? <section className="cc-setup" aria-label="Crown & Court setup">
+      {!ready || !net.initialized || net.code && !room ? <div className="fd-resuming"><h2>Opening your royal scorecard…</h2><p>{net.error || 'Checking your saved table.'}</p></div> : !room ? <section className="cc-setup clubhouse-setup" aria-label="Crown & Court setup">
         <div className="cc-intro"><CourtCrown className="cc-crest"/><p className="fd-eyebrow">CAYEA’S GAME CLUBHOUSE ORIGINAL</p><h2>Crown <em>&amp;</em> Court</h2><p className="cc-tagline">A little luck.<br/>A royal amount of strategy.</p><div className="cc-rank-key">{COURT_RANKS.map((rank, i) => <span key={rank}><PokerDieFace value={i + 1} design={design}/><small>{rank} = {i + 1}</small></span>)}</div><p className="cc-intro-note">Five poker dice · Three rolls · Your choice of score</p></div>
         <div className="cc-setup-controls"><div className="fd-mode-switch" aria-label="Opponent"><button aria-pressed={options.mode === 'bot'} onClick={() => setOptions({ ...options, mode: 'bot', seats: 2 })}>Vs computer</button><button aria-pressed={options.mode === 'online'} onClick={() => setOptions({ ...options, mode: 'online' })}>Online friends</button></div>
           <fieldset className="cc-lengths"><legend>Choose your scorecard</legend>{(Object.keys(COURT_LENGTHS) as CourtLength[]).map(length => <button key={length} type="button" aria-pressed={options.length === length} onClick={() => setOptions({ ...options, length })}><strong>{COURT_LENGTHS[length].label}</strong><span>{COURT_LENGTHS[length].turns} turns</span><small>{COURT_LENGTHS[length].sections.join(' + ')}</small></button>)}</fieldset>

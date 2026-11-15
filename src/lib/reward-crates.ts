@@ -3,9 +3,9 @@ import {CARROM_COLLECTIBLES,CARROM_BOARD_SLOT} from './carrom-sets';
 import {BG_COLLECTIBLES} from './backgammon-sets';
 import {D6_DICE_SETS} from './d6-dice';
 import {DOMINO_SKINS} from './dominoes-skins';
-import {SHARED_DECKS} from './playing-decks';
+import {SHARED_DECKS,CROSS_GAME_DECKS} from './playing-decks';
 export type RewardCrateCollection='dice'|'dominoes'|'cards'|'backgammon'|'carrom'|'poker';
-export const REWARD_CRATE_POOLS={poker:POKER_DICE_SETS,backgammon:BG_COLLECTIBLES,dice:D6_DICE_SETS,dominoes:DOMINO_SKINS,cards:SHARED_DECKS,carrom:CARROM_COLLECTIBLES};
+export const REWARD_CRATE_POOLS={poker:[...POKER_DICE_SETS,...CROSS_GAME_DECKS],backgammon:[...BG_COLLECTIBLES,...CROSS_GAME_DECKS],dice:[...D6_DICE_SETS,...CROSS_GAME_DECKS],dominoes:[...DOMINO_SKINS,...CROSS_GAME_DECKS],cards:SHARED_DECKS,carrom:[...CARROM_COLLECTIBLES,...CROSS_GAME_DECKS]};
 export const REWARD_CRATE_META={
  poker:{name:'Poker dice',games:'Crown & Court + Crown & Chance',item:'poker dice set',included:'Ivory Club',slot:POKER_DICE_SLOT,earned:'poker-crate-earned:',opened:'poker-crate-open:'},
  carrom:{name:'Carrom',games:'Carrom + Disc Pool',item:'board, puck set or striker',included:'Classic Maple, Pucks and Jade Striker',slot:CARROM_BOARD_SLOT,earned:'carrom-crate-earned:',opened:'carrom-crate-open:'},

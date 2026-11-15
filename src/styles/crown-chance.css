@@ -199,7 +199,7 @@
 }
 .chance-live-dice button[data-completes=true] .chance-die-label { color: #c5f5b7; }
 .chance-live-dice button[aria-pressed=true] .chance-die-label { color: #ffe19b; }
-.chance-die-face[data-roll=true] { animation: chance-roll-in .34s ease-out both; }
+.chance-die-face[data-roll=true] { animation: chance-roll-in .85s ease-out both; }
 @keyframes chance-roll-in {
   from { rotate: -15deg; scale: .82; opacity: .65; }
   55% { rotate: 7deg; scale: 1.04; opacity: 1; }

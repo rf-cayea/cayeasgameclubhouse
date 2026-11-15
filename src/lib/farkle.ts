@@ -30,7 +30,6 @@ export function scoreFarkleDice(dice: readonly number[]): { score: number; label
     if (counts.slice(1).every(count => count === 1)) candidates.push({ score: 1500, label: 'Straight · 1–6' });
     if (counts.filter(count => count === 2).length === 3) candidates.push({ score: 1500, label: 'Three pairs' });
     if (counts.filter(count => count === 3).length === 2) candidates.push({ score: 2500, label: 'Two triplets' });
-    if (counts.includes(4) && counts.includes(2)) candidates.push({ score: 1500, label: 'Four of a kind + a pair' });
   }
   let total = 0, valid = true; const labels: string[] = [];
   for (let face = 1; face <= 6; face++) {
@@ -51,6 +50,10 @@ export function farklePlays(dice: readonly number[], kept: readonly boolean[] = 
     if (scored) result.push({ dice: indices, ...scored });
   }
   return result.sort((a, b) => b.score - a.score || b.dice.length - a.dice.length || a.dice.join('').localeCompare(b.dice.join('')));
+}
+/** One coherent suggested play, compatible with every currently selected die. */
+export function farkleHintPlay(dice:readonly number[],kept:readonly boolean[],selected:readonly number[]=[]):FarklePlay|null {
+  return farklePlays(dice,kept).find(play=>selected.every(index=>play.dice.includes(index)))??null;
 }
 export function newFarkle(players: FarklePlayer[], target = FARKLE_TARGET): FarkleState {
   if (players.length < 2 || players.length > 4 || !Number.isSafeInteger(target) || target < 1000 || target > 100_000) throw new Error('Invalid Farkle table.');

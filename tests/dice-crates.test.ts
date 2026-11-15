@@ -1,3 +1,4 @@
+import {REWARD_CRATE_POOLS} from '../src/lib/reward-crates';
 import {afterEach,describe,it,expect} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import {TestD1} from './helpers/d1';
@@ -60,8 +61,8 @@ describe.each(['node','d1'] as const)('shared dice reward crates on %s',backend=
  });
  it('keeps all paid designs eligible, prevents owned duplicates until complete and preserves spare fragments afterward',async()=>{
   const wanted=DICE_CRATE_DESIGNS.find(d=>d.id.includes('material-water'))!;
-  const{store,win}=await setup(backend,()=>0,DICE_CRATE_DESIGNS.filter(d=>d.id!==wanted.id).map(d=>d.id));
-  for(let n=1;n<=4;n++){const{crateId}=await win('five-dice');const data=await store.command(actor,{operation:'open_dice_crate',crateId});if(n<=3){expect(data.receipt.crate).toMatchObject({itemId:wanted.id,fragments:n,unlocked:n===3,spare:false});}else{expect(data.receipt.crate?.spare).toBe(true);expect(data.receipt.crate?.cash).toBe(3);expect(data.wallet.owned).toHaveLength(DICE_CRATE_DESIGNS.length);}}
+  const{store,win}=await setup(backend,()=>0,REWARD_CRATE_POOLS.dice.filter(d=>d.id!==wanted.id).map(d=>d.id));
+  for(let n=1;n<=4;n++){const{crateId}=await win('five-dice');const data=await store.command(actor,{operation:'open_dice_crate',crateId});if(n<=3){expect(data.receipt.crate).toMatchObject({itemId:wanted.id,fragments:n,unlocked:n===3,spare:false});}else{expect(data.receipt.crate?.spare).toBe(true);expect(data.receipt.crate?.cash).toBe(3);expect(data.wallet.owned).toHaveLength(REWARD_CRATE_POOLS.dice.length);}}
  });
  it('rolls back the full opening if a wallet limit prevents the Cash credit',async()=>{
   const{store,win}=await setup(backend,()=>0,[],2000000000);const{crateId}=await win('farkle');await expect(store.command(actor,{operation:'open_dice_crate',crateId})).rejects.toMatchObject({code:'wallet_limit'});const data=await store.read(actor);expect(data.diceCrates).toMatchObject({unopened:1,fragments:{},recent:[]});

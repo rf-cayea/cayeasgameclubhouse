@@ -1,4 +1,4 @@
-import { nauticalBundle } from '@/lib/nautical-sets';
+import { collectionBundle } from '@/lib/collection-bundles';
 import { isSharedDeck } from '@/lib/playing-decks';
 import { ownsCardTable } from '@/lib/card-table-themes';
 import { useClubhouse } from '@/lib/clubhouse';
@@ -20,7 +20,8 @@ export function StorePurchaseControls({ itemId, userId, wallet, owned = false, p
   useEffect(() => { const node = dialog.current; if (payment) node?.showModal(); return () => node?.close(); }, [payment]);
   if (!item) return null;
   const sources = storePointSources(item);
-  const collected = owned || Boolean(wallet && (isSharedTable(item) ? ownsCardTable(wallet.owned, itemId) : wallet.owned.includes(itemId))) || Boolean(userId && purchasedBy === userId);
+  const bundle = collectionBundle(itemId);
+  const collected = Boolean(bundle && wallet && bundle.items.every(id=>wallet.owned.includes(id))) || owned || Boolean(wallet && (isSharedTable(item) ? ownsCardTable(wallet.owned, itemId) : wallet.owned.includes(itemId))) || Boolean(userId && purchasedBy === userId);
   const gameCurrency = sources.length ? POINT_FIELDS[pointGame] : item.currency;
   const currency = payment === 'cash' ? 'points' : gameCurrency, price = payment === 'cash' ? item.cashPrice : item.price;
   async function buy() {
@@ -44,6 +45,6 @@ export function StorePurchaseControls({ itemId, userId, wallet, owned = false, p
     {!collected && userId && wallet && wallet.points < item.cashPrice && (item.currency === 'points' || wallet[gameCurrency] < item.price) &&
       <p className="mt-2 text-sm text-muted-foreground">Your balance is too low for this purchase.</p>}
     {error && !payment && <p role="alert" className="mt-3 text-destructive">{error}</p>}
-    {payment && <dialog ref={dialog} className="spades-dialog" aria-labelledby={id} onCancel={event => { if (busy) event.preventDefault(); else setPayment(null); }}><h2 id={id} className="font-display text-2xl text-gold">Collect {item.name}?</h2><p className="mt-4">Spend {price} {labels[currency]} for a permanent unlock.</p>{nauticalBundle(item.id) && <p className="mt-2 text-sm">Unlocks all four nautical sets for this game. Bundle price is fixed, including when you already own some of the sets.</p>}{isSharedDeck(item.id) && <p className="mt-2 text-sm">Buy once for all compatible 52-card games, including Rummy+ and Spades. Includes two joker faces; game rules decide when jokers are used.</p>}<p className="mt-2 text-sm">Balance after purchase: {(wallet?.[currency] ?? 0) - price} {labels[currency]}.</p><div className="mt-5 flex flex-wrap gap-3"><button type="button" className="btn-gold" disabled={busy || !wallet || wallet[currency] < price} onClick={() => void buy()}>{busy ? 'Collecting…' : 'Confirm purchase'}</button><button type="button" className="btn-ghost-gold" disabled={busy} onClick={() => setPayment(null)}>Cancel</button></div>{error && <p role="alert" className="mt-3 text-destructive">{error}</p>}</dialog>}
+    {payment && <dialog ref={dialog} className="spades-dialog" aria-labelledby={id} onCancel={event => { if (busy) event.preventDefault(); else setPayment(null); }}><h2 id={id} className="font-display text-2xl text-gold">Collect {item.name}?</h2><p className="mt-4">Spend {price} {labels[currency]} for a permanent unlock.</p>{collectionBundle(item.id) && <p className="mt-2 text-sm">Unlocks all {bundle?.items.length} matching pieces. Bundle price is fixed, including when you already own some of the sets.</p>}{isSharedDeck(item.id) && <p className="mt-2 text-sm">Buy once for all compatible 52-card games, including Rummy+ and Spades. Includes two joker faces; game rules decide when jokers are used.</p>}<p className="mt-2 text-sm">Balance after purchase: {(wallet?.[currency] ?? 0) - price} {labels[currency]}.</p><div className="mt-5 flex flex-wrap gap-3"><button type="button" className="btn-gold" disabled={busy || !wallet || wallet[currency] < price} onClick={() => void buy()}>{busy ? 'Collecting…' : 'Confirm purchase'}</button><button type="button" className="btn-ghost-gold" disabled={busy} onClick={() => setPayment(null)}>Cancel</button></div>{error && <p role="alert" className="mt-3 text-destructive">{error}</p>}</dialog>}
   </div>;
 }

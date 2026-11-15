@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyFarkleMove, canBankFarkle, farkleBotMove, farklePlays, newFarkle, parseFarkleMove, scoreFarkleDice, type FarkleState, type FarkleMove } from '../src/lib/farkle';
+import { applyFarkleMove, canBankFarkle, farkleBotMove, farklePlays, farkleHintPlay, newFarkle, parseFarkleMove, scoreFarkleDice, type FarkleState, type FarkleMove } from '../src/lib/farkle';
 const players = [{ id: 'a', name: 'Alice', bot: false }, { id: 'b', name: 'Computer', bot: true }];
 const roll = (state: FarkleState, faces: number[]) => { let index = 0; return applyFarkleMove(state, state.turn, { t: 'roll' }, () => (faces[index++]! - .5) / 6)!; };
 const ready = (turnPoints: number, scores = [0, 0]): FarkleState => ({ ...newFarkle(players), turnPoints, rolls: 1, scores });
@@ -13,7 +13,7 @@ describe('classic six-dice Farkle scoring', () => {
   });
   it.each([
     [[1,2,3,4,5,6],1500], [[2,2,3,3,4,4],1500], [[2,2,2,3,3,3],2500],
-    [[4,4,4,4,6,6],1500], [[1,1,1,1,5,5],2100], [[1,1,5],250], [[6,6,6,1,5],750],
+    [[1,1,1,1,5,5],2100], [[1,1,5],250], [[6,6,6,1,5],750],
   ] as const)('finds the best complete score for %j', (dice, score) => expect(scoreFarkleDice(dice)?.score).toBe(score));
   it.each([[],[0,0,0,0,0,0],[7],[1,2],[2,2],[1,1,2],[1,2,3,4,5],[1,1,1,1,1,1,1]].map(dice => ({dice})))('refuses incomplete or invalid scoring selections $dice', ({dice}) => expect(scoreFarkleDice(dice)).toBeNull());
   it('finds every scoring subset, only in the current unkept dice, without changing results', () => {
@@ -24,6 +24,41 @@ describe('classic six-dice Farkle scoring', () => {
     expect(farklePlays([2,2,3,3,4,6])).toEqual([]);
     expect(farklePlays(dice, [true,true,false,false,false,false])[0]).toMatchObject({ score:300, dice:[2,3,4] });
     expect(dice).toEqual(snapshot);
+  });
+});
+describe('Farkle pair rules stay separate from poker-dice rules',()=>{
+  it.each([2,3,4,6])('rejects an ordinary pair of %is in scoring, hints and moves',face=>{
+    expect(scoreFarkleDice([face,face])).toBeNull();
+    const state=roll(newFarkle(players),[face,face,1,3,4,6]);
+    expect(farklePlays(state.dice).some(play=>play.dice.length===2&&play.dice[0]===0&&play.dice[1]===1)).toBe(false);
+    expect(applyFarkleMove(state,0,{t:'keep',dice:[0,1]})).toBeNull();
+    expect(applyFarkleMove(state,0,{t:'bank',dice:[0,1]})).toBeNull();
+  });
+  it.each([[1,200],[5,100]])('scores two %is as individual scoring dice for %i', (face,score)=>{
+    expect(scoreFarkleDice([face!,face!])).toMatchObject({score});
+  });
+  it('scores every combination of three distinct pairs from a single roll',()=>{
+    for(let a=1;a<=4;a++)for(let b=a+1;b<=5;b++)for(let c=b+1;c<=6;c++){
+      const dice=[a,b,c,a,b,c];
+      expect(scoreFarkleDice(dice)).toMatchObject({score:1500,label:'Three pairs'});
+      expect(farklePlays(dice).find(play=>play.dice.length===6)).toMatchObject({score:1500});
+      const state=roll(newFarkle(players),dice),kept=applyFarkleMove(state,0,{t:'keep',dice:[0,1,2,3,4,5]})!;
+      expect(kept.turnPoints).toBe(1500);expect(kept.hotDice[0]).toBe(1);
+    }
+  });
+  it('does not treat four of a kind plus an ordinary pair as three distinct pairs',()=>{
+    expect(scoreFarkleDice([4,4,4,4,6,6])).toBeNull();
+    const state=roll(newFarkle(players),[4,4,4,4,6,6]);
+    expect(farklePlays(state.dice)[0]).toMatchObject({score:800,dice:[0,1,2,3]});
+    expect(applyFarkleMove(state,0,{t:'keep',dice:[0,1,2,3,4,5]})).toBeNull();
+    expect(scoreFarkleDice([4,4,4,4,5,5])?.score).toBe(900);
+  });
+  it('cannot reuse dice kept on an earlier roll to make three pairs',()=>{
+    const first=roll(newFarkle(players),[1,1,2,3,4,6]);
+    const kept=applyFarkleMove(first,0,{t:'keep',dice:[0,1]})!;
+    const second=roll(kept,[2,2,3,3]);
+    expect(second.activity.at(-1)?.bust).toBe(true);
+    expect(second.turnPoints).toBe(0);expect(second.turn).toBe(1);
   });
 });
 describe('turns, hot dice, banking and immediate wins', () => {
@@ -102,4 +137,28 @@ describe('turns, hot dice, banking and immediate wins', () => {
       expect(state.phase).toBe('finished');expect(Math.max(...state.scores)).toBeGreaterThanOrEqual(10000);expect(state.finalTurns).toEqual([]);
     }
   });
+});
+
+describe('Farkle hint glow',()=>{
+ it('suggests one complete scoring play rather than merging incompatible alternatives',()=>{
+  const dice=[1,2,3,4,5,6],kept=Array(6).fill(false);
+  const hint=farkleHintPlay(dice,kept)!;expect(scoreFarkleDice(hint.dice.map(i=>dice[i]!))?.score).toBe(hint.score);
+  expect(farkleHintPlay([4,4,4,4,6,6],kept)?.dice).toEqual([0,1,2,3]);
+  expect(farkleHintPlay([2,2,3,3,4,6],kept)).toBeNull();
+ });
+ it('only highlights complete legal extensions of the current selection',()=>{
+  const dice=[1,1,2,2,3,3],kept=Array(6).fill(false);
+  for(let mask=0;mask<64;mask++){
+   const selected=dice.flatMap((_,i)=>mask&(1<<i)?[i]:[]),hint=farkleHintPlay(dice,kept,selected);
+   if(hint){expect(selected.every(i=>hint.dice.includes(i))).toBe(true);expect(scoreFarkleDice(hint.dice.map(i=>dice[i]!))?.score).toBe(hint.score);}
+  }
+  expect(farkleHintPlay([1,2,3,4,6,2],kept,[1])).toBeNull();
+ });
+ it('uses only visible, unkept dice, including during an earlier replay frame',()=>{
+  const earlier=[1,5,2,3,4,2],later=[2,2,3,3,4,4],kept=Array(6).fill(false);
+  expect(farkleHintPlay(earlier,kept)?.dice).toEqual([0,1]);
+  expect(farkleHintPlay(later,kept)?.dice).toEqual([0,1,2,3,4,5]);
+  expect(farkleHintPlay(later,[true,true,false,false,false,false])).toBeNull();
+  expect(farkleHintPlay(earlier,[true,false,false,false,false,false],[0])).toBeNull();
+ });
 });

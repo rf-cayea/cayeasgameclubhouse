@@ -69,18 +69,31 @@ describe('Crown & Chance rulebook',()=>{
     expect(banked.turn).toBe(1);
   });
 
-  it('finishes equal turns and then gives only tied leaders extra turns',()=>{
-    let state = make(3);
-    for (const points of [4000,4000,200]) {
-      state = {...state, pending:points, qualified:true};
-      state = act(state,{t:'bank'});
-    }
-    expect(state.phase).toBe('play');
-    expect(state.order).toEqual([0,1]);
-    state = act({...state,pending:50},{t:'bank'});
-    state = act({...state,pending:100},{t:'bank'});
-    expect(state.winners).toEqual([1]);
-    expect(state.scores.map(score=>score.turns)).toEqual([2,2,1]);
+  for (const length of ['fast','long'] as const) for (const seats of [2,3,4]) for(let winner=0;winner<seats;winner++) {
+    it(`ends ${length} immediately for seat ${winner+1} of ${seats}, without a reply turn`,()=>{
+      const target=length==='fast'?4000:12000;
+      const table=Array.from({length:seats},(_,i)=>({id:`p${i}`,name:`Player ${i}`,bot:i===winner}));
+      const before=newCrownChance(table,length);
+      before.turn=winner;before.pending=100;before.qualified=true;
+      before.scores.forEach(score=>score.points=target-100);
+      const won=applyCrownChanceMove(before,winner,{t:'bank'})!;
+      expect(won).toMatchObject({phase:'finished',winners:[winner],turn:winner,finalRound:false,pending:0});
+      expect(won.scores.map(score=>score.points)).toEqual(table.map((_,i)=>i===winner?target:target-100));
+      expect(won.scores.map(score=>score.turns)).toEqual(table.map((_,i)=>Number(i===winner)));
+      expect(won.activity?.at(-1)).toMatchObject({kind:'bank',seat:winner,total:target});
+      for(let seat=0;seat<seats;seat++)for(const move of [{t:'roll'},{t:'bank'},{t:'claim',mask:1}] as CrownChanceMove[])
+        expect(applyCrownChanceMove(won,seat,move)).toBeNull();
+    });
+  }
+
+  it('requires banking the target rather than merely claiming enough unbanked points',()=>{
+    let state=make(2);state.scores[0]!.points=3900;
+    state=act(state,{t:'roll'},[6,6,2,3,4,5]);
+    state=act(state,{t:'claim',mask:3});
+    expect(state.phase).toBe('play');expect(state.scores[0]!.points).toBe(3900);
+    state=act(state,{t:'bank'});
+    expect(state).toMatchObject({phase:'finished',winners:[0]});
+    expect(state.scores[0]!.points).toBe(4150);
   });
 
   it('ends Score Attack after exactly ten turns even after passing the target',()=>{

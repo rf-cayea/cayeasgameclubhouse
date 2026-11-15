@@ -1,0 +1,24 @@
+.winner-celebration { position:fixed; inset:0; margin:auto; width:100vw; height:100dvh; max-width:none; max-height:none; border:0; padding:24px; overflow:hidden; color:#fff4ca; background:radial-gradient(ellipse at 50% 42%,#55401ced,#16152cf7 55%,#090e19fc); }
+.winner-celebration::backdrop { background:#050912cf; }
+.winner-content { position:relative; z-index:1; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; }
+.winner-eyebrow { font:600 11px/1.5 system-ui,sans-serif; letter-spacing:.24em; color:#efdbac; }
+.winner-crown { width:90px; height:64px; fill:#f3cc68; stroke:#fff1b2; stroke-width:3; filter:drop-shadow(0 0 18px #ffd870aa); }
+.winner-title { font:900 clamp(64px,16vw,190px)/1.1 Georgia,serif; letter-spacing:-.06em; color:#fff7bd; text-shadow:0 0 6px #fff,0 0 22px #ffce56,0 0 65px #f9af1680,0 7px 0 #7d4b20; animation:winner-arrive .7s cubic-bezier(.15,.9,.25,1.25) both,winner-glow 2s .7s ease-in-out 2; }
+.winner-name { min-height:88px; max-width:min(90vw,850px); display:grid; align-content:center; gap:8px; overflow-wrap:anywhere; }
+.winner-name p { font:700 clamp(23px,5vw,42px)/1.25 Georgia,serif; color:#fff5d9; }
+.winner-name small { color:#dcd6c8; font-size:14px; }
+.winner-name[data-revealed=true] { animation:winner-name .55s both; }
+.winner-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:12px; }
+.winner-actions button { border:1px solid #c8ac6c88; border-radius:24px; padding:10px 18px; min-height:44px; color:#f5e5bf; font-size:13px; background:#17172d; }
+.winner-actions .winner-continue { min-width:140px; font-weight:750; color:#2d2413; background:linear-gradient(#ffe4a0,#d4a94e); box-shadow:0 3px 20px #dca93d22; }
+.winner-burst { position:absolute; inset:0; pointer-events:none; }
+.winner-burst>i { position:absolute; inset:15%; border:1px solid #ffd87555; border-radius:50%; animation:winner-ring 3s ease-out both; }
+.winner-burst>i:nth-child(2) { animation-delay:.2s; }.winner-burst>i:nth-child(3){animation-delay:.4s;}
+.winner-burst>span { position:absolute; left:var(--x); top:var(--y); font-size:var(--size); color:#ffeac2; text-shadow:0 0 14px #ffd251; animation:winner-sparkle 2s var(--delay) ease-in-out 2 both; }
+@keyframes winner-arrive { from{transform:scale(.35) translateY(30px);opacity:0}to{transform:scale(1);opacity:1} }
+@keyframes winner-glow { 50%{text-shadow:0 0 12px #fff,0 0 40px #ffdd79,0 0 90px #ffc53dcc,0 7px 0 #7d4b20} }
+@keyframes winner-ring { from{transform:scale(.2);opacity:0}30%{opacity:.6}to{transform:scale(2.5);opacity:0} }
+@keyframes winner-sparkle { from,to{opacity:0;transform:scale(.3) rotate(var(--rotation))}50%{opacity:.9;transform:scale(1.2) rotate(calc(var(--rotation) + 90deg))} }
+@keyframes winner-name { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none} }
+@media(max-height:420px){.winner-content{gap:5px}.winner-crown{height:36px}.winner-title{font-size:70px}.winner-name{min-height:54px}.winner-actions{margin-top:0}.winner-eyebrow{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.winner-celebration *{animation:none!important}.winner-burst>span{opacity:.45}.winner-burst>i{display:none}}

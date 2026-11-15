@@ -6,3 +6,22 @@
 .carrom-item-discs { display:block; width:min(100%,140px); margin-inline:auto; }
 .carrom-collection-links { display:flex; flex-wrap:wrap; gap:14px; }
 .carrom-collection-links a { color:#efd08b; text-decoration:underline; }
+
+.carrom-mandala-intro { padding:12px 16px; border:1px solid #bca16c66; border-radius:12px; background:linear-gradient(110deg,#214c45,#34264f); }
+.carrom-mandala-description { color:#d3c8b4; font-size:.8rem; line-height:1.5; }
+.carrom-mandala-bundle { display:grid; grid-template-columns:minmax(0,1fr) minmax(180px,.75fr); gap:20px; padding:18px; border:1px solid #c5a970; border-radius:16px; background:linear-gradient(120deg,#254239,#242339); }
+.carrom-mandala-bundle h3 { color:#f4d69e; font:600 1.35rem Georgia,serif; margin-bottom:8px; }
+.carrom-mandala-bundle label { display:grid; gap:6px; margin-block:12px; }
+.carrom-mandala-bundle select { max-width:100%; }
+.carrom-mandala-bundle-preview { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; align-items:center; }
+.carrom-mandala-bundle-preview .carrom-item-board { width:100%; }
+.carrom-mandala-bundle-preview .carrom-item-discs { width:100%; }
+@media(max-width:600px) { .carrom-mandala-bundle { grid-template-columns:minmax(0,1fr); } .carrom-mandala-bundle-preview { order:-1; max-height:220px; overflow:auto; } }
+.carrom-collection > .dice-crate-category-tabs { display:flex; flex-wrap:wrap; gap:8px; }
+.carrom-collection > .dice-crate-category-tabs button { padding:9px 14px; border:1px solid #bea37366; border-radius:9px; background:#142a25; color:#ead9b5; }
+.carrom-collection > .dice-crate-category-tabs button[aria-pressed="true"] { border-color:#e5c483; background:#4a452c; color:#fff0c8; }
+.carrom-collection > .dice-fragment-pages { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.carrom-collection > .dice-fragment-pages button { padding:8px 12px; border:1px solid #bea37366; border-radius:8px; }
+.carrom-collection > .dice-fragment-pages button:disabled { opacity:.4; }
+.carrom-collection-grid .carrom-item-board { width:min(100%,210px); }
+.carrom-collection-grid .carrom-item-discs { width:min(100%,190px); }

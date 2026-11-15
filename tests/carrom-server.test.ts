@@ -29,8 +29,8 @@ describe.each(['node','d1']as const)('authoritative Carrom on %s',backend=>{
   const economy=new EconomyStore(db,Date.now,()=>0);
   const wins=mode==='online'?6:9;
   const board=CARROM_BOARDS[0]!,pucks=CARROM_PUCKS[0]!,striker=CARROM_STRIKERS[0]!;
-  expect([CARROM_BOARDS.length,CARROM_PUCKS.length,CARROM_STRIKERS.length]).toEqual([16,D6_DICE_SETS.length,20]);
-  expect(CARROM_PUCKS.map(item=>item.id)).toEqual(D6_DICE_SETS.map(die=>die.id.replace('farkle-dice-','carrom-pucks-')));
+  expect([CARROM_BOARDS.length,CARROM_PUCKS.length,CARROM_STRIKERS.length]).toEqual([22,D6_DICE_SETS.length+6,26]);
+  expect(CARROM_PUCKS.filter(item=>item.mandala===undefined).map(item=>item.id)).toEqual(D6_DICE_SETS.map(die=>die.id.replace('farkle-dice-','carrom-pucks-')));
   let crateId='';
   for(let i=0;i<wins;i++){
    const match_id=randomUUID();

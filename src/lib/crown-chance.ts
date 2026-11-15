@@ -26,11 +26,16 @@ type ChanceEvent =
   | { kind: 'roll'; dice: number[]; rolled: boolean[]; hot: boolean; lost?: number }
   | { kind: 'claim'; dice: number[]; hand: string; points: number; hot: boolean }
   | { kind: 'bank'; points: number; total: number };
-export type ChanceActivity = ChanceEvent & { id: number; seat: number };
+export type ChanceActivity = ChanceEvent & {
+  id: number; seat: number;
+  scores?: CrownChanceState['scores'];
+  claimed?: boolean[];
+};
 
 function recordActivity(state: CrownChanceState, seat: number, event: ChanceEvent) {
   const activity = state.activity ?? [];
-  state.activity = [...activity.slice(-119), { ...event, seat, id: (activity.at(-1)?.id ?? 0) + 1 }];
+  state.activity = [...activity.slice(-119), { ...event, seat, id: (activity.at(-1)?.id ?? 0) + 1,
+    scores: state.scores.map(score => ({ ...score })), claimed: [...state.claimed] }];
 }
 
 function scoreHand(values: number[]): Pick<ChanceHand, 'name' | 'points'> | null {
@@ -100,18 +105,16 @@ function endTurn(state: CrownChanceState, bust: boolean) {
     }
     return;
   }
-  state.finalRound ||= score.points >= target;
-  const next = state.order.indexOf(state.turn) + 1;
-  if (next < state.order.length) { state.turn = state.order[next]!; return; }
-  if (!state.finalRound) { state.turn = state.order[0]!; return; }
-  const high = Math.max(...state.order.map(seat => state.scores[seat]!.points));
-  const leaders = state.order.filter(seat => state.scores[seat]!.points === high);
-  if (leaders.length === 1) {
-    state.phase = 'finished'; state.winners = leaders; return;
+  // The winning bank closes the match before the room can advance or run a bot.
+  // Retain the old saved-state field, but never schedule a final round.
+  state.finalRound = false;
+  if (score.points >= target) {
+    state.phase = 'finished';
+    state.winners = [state.turn];
+    state.notice += ` ${state.players[state.turn]!.name} wins!`;
+    return;
   }
-  state.order = leaders;
-  state.turn = leaders[0]!;
-  state.notice += ' Tied leaders take another turn each.';
+  state.turn = state.order[(state.order.indexOf(state.turn) + 1) % state.order.length]!;
 }
 
 export function parseCrownChanceMove(input: unknown): CrownChanceMove | null {
@@ -141,8 +144,9 @@ export function applyCrownChanceMove(previous: CrownChanceState, seat: number, m
     state.available = false;
     state.notice = 'Claim a scoring hand before rolling again.';
     const lost = chanceHands(state).length ? undefined : state.pending;
-    recordActivity(state, seat, { kind: 'roll', dice: state.dice, rolled, hot, ...(lost !== undefined && { lost }) });
+    const dice = state.dice;
     if (lost !== undefined) endTurn(state, true);
+    recordActivity(state, seat, { kind: 'roll', dice, rolled, hot, ...(lost !== undefined && { lost }) });
     return state;
   }
   const hand = chanceHands(state).find(hand => hand.mask === move.mask);
@@ -153,12 +157,12 @@ export function applyCrownChanceMove(previous: CrownChanceState, seat: number, m
   state.available = true;
   state.notice = `${hand.name} · +${hand.points.toLocaleString()}`;
   const hot = state.claimed.every(Boolean);
+  if (hot) state.scores[seat]!.hot++;
   recordActivity(state, seat, {
     kind: 'claim', hand: hand.name, points: hand.points, hot,
     dice: state.dice.filter((_, i) => Boolean(hand.mask & (1 << i))),
   });
   if (hot) {
-    state.scores[seat]!.hot++;
     state.notice += ' · Hot Dice!';
   }
   return state;

@@ -1,3 +1,5 @@
+import {GameHeader} from '@/components/GameChrome';
+import {useWinnerCelebration} from '@/lib/winner-celebration';
 import { playGameCue } from '@/lib/game-cues';
 import { GameEffectsButton } from '@/components/GameEffectsButton';
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -50,6 +52,7 @@ function Faith3Page() {
   const skin = equippedFaithSkin(wallet);
   const [practice, dispatch] = useReducer(practiceReducer, 1, newPractice);
   const { level, play, notice } = practice;
+  useWinnerCelebration({game:'Faith 3 Tile Match',scope:String(level),finished:play.status==='won',names:['You'],persist:false,detail:`Level ${level} complete`});
   const currentPractice = useRef(practice); currentPractice.current = practice;
   const rewards = usePuzzleRewards(user?.id ?? null, "faith-3");
   useEffect(() => {
@@ -88,11 +91,7 @@ function Faith3Page() {
 
   return (
     <div className="faith-scene" style={{ "--faith-accent": FAITH_PALETTES[collection] } as CSSProperties}>
-      <header className="faith-play-header">
-        <Link to="/" className="faith-hub-link" aria-label="Back to the Clubhouse">← <span>Clubhouse</span></Link>
-        <h1>Faith 3 <em>Tile Match</em></h1>
-        <div><GameEffectsButton/><button aria-label="Tiles & settings" onClick={() => setPanel("tiles")}>Tiles</button><button aria-label="How to play" onClick={() => setPanel("help")}>Help</button></div>
-      </header>
+      <GameHeader title="Faith 3 Tile Match" music={false}><GameEffectsButton/><button aria-label="Tiles & settings" onClick={()=>setPanel('tiles')}>Tiles &amp; settings</button><button aria-label="How to play" onClick={()=>setPanel('help')}>How to play</button></GameHeader>
       <main className="faith-shell">
         <div className="faith-controls">
           <div className="faith-level-summary">

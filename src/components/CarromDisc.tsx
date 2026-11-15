@@ -1,3 +1,4 @@
+import {CarromMandalaArtwork} from './CarromMandalaArtwork';
 import {DiceFinishArtwork} from './DiceFinishArtwork';
 import {useId} from 'react';
 import type {DiscKind} from '@/lib/carrom';
@@ -23,6 +24,7 @@ export function CarromDisc({kind,radius,pucks=CLASSIC_CARROM_PUCKS,striker=CLASS
     kind==='white'?[pucks.light,pucks.white,pucks.rim,'#624832']:
     kind==='black'?[pucks.darkLight,pucks.dark,'#11191b','#fff3d5']:
     ['#ffba8c','#c33d42','#75182e','#ffe9b0'];
+  const mandala=kind==='striker'?striker.mandala:(kind==='white'||kind==='black')?pucks.mandala:undefined;
   const finish=kind==='white'||kind==='black'?pucks.finish:undefined;
   return <>
     <defs><radialGradient id={id} cx=".32" cy=".25"><stop stopColor={light}/><stop offset=".58" stopColor={face}/><stop offset="1" stopColor={edge}/></radialGradient></defs>
@@ -36,9 +38,13 @@ export function CarromDisc({kind,radius,pucks=CLASSIC_CARROM_PUCKS,striker=CLASS
         </g>
       </g>
     </>}
+    {mandala!==undefined&&<>
+      <CarromMandalaArtwork art={mandala} x={-radius+4} y={-radius+4} size={(radius-4)*2} opacity={kind==='black'?.5:1}/>
+      <circle r={radius-3} fill="none" stroke={kind==='black'?'#fff0c7':ring} strokeWidth="1.6"/>
+    </>}
     {(kind==='white'||kind==='black')&&pucks.accent&&<circle r={radius-2.5} fill="none" stroke={pucks.accent} strokeWidth="1.25"/>}
     <circle r={radius-5} fill="none" stroke={ring} strokeOpacity=".63" strokeWidth="1.5"/>
     {kind==='queen'&&<path d="m-9-3 5 3 4-7 4 7 5-3-2 10H-7Z" fill={ring}/>}
-    {kind==='striker'&&<path d={engravings[striker.engraving]} fill="none" stroke={ring} strokeWidth="1.8" strokeLinejoin="round"/>}
+    {kind==='striker'&&mandala===undefined&&<path d={engravings[striker.engraving]} fill="none" stroke={ring} strokeWidth="1.8" strokeLinejoin="round"/>}
   </>;
 }

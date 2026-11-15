@@ -1,3 +1,4 @@
+import { CARROM_MANDALA_BUNDLES } from './carrom-mandalas';
 import { POKER_DICE_SETS, POKER_DICE_SLOT } from './poker-dice-sets';
 import { CARROM_COLLECTIBLES } from './carrom-sets';
 import {BG_COLLECTIBLES} from './backgammon-sets';
@@ -77,6 +78,7 @@ export function fragmentPrice(item: EconomyCatalogItem, payment: StorePayment, c
 
 const primaryCatalog: Omit<EconomyCatalogItem, 'cashPrice'>[] = [
  ...POKER_DICE_SETS.map(item=>({id:item.id,name:item.name,price:item.price,slot:POKER_DICE_SLOT,currency:'dice_points' as const})),
+ ...CARROM_MANDALA_BUNDLES.map(item=>({id:item.id,name:item.name,price:item.price,currency:item.currency,slot:null})),
  ...CARROM_COLLECTIBLES.map(item=>({id:item.id,name:item.name,price:item.price,slot:item.slot,currency:'dice_points' as const})),
  ...BG_COLLECTIBLES.map(d=>({id:d.id,name:d.name,price:d.price,currency:'dice_points' as const,slot:d.slot})),
   ...NAUTICAL_BUNDLES.map(item=>({id:item.id,name:item.name,price:NAUTICAL_BUNDLE_PRICE,currency:item.currency,slot:null})),

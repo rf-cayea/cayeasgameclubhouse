@@ -1,3 +1,4 @@
+import {useWinnerCelebration} from '@/lib/winner-celebration';
 import { GameEffectsButton } from '@/components/GameEffectsButton';
 import { useGameCue } from '@/lib/game-cues';
 import {RewardCrates} from '@/components/DiceCrateRewards';
@@ -69,6 +70,7 @@ function RummyPage() {
   const network = useRummyRoom();
   const { user, wallet } = useClubhouse();
   const profile = usePlayerProfile(user?.id ?? null);
+  useWinnerCelebration({game:'Rummy+',scope:network.room?.code,finished:network.room?.status==='finished',names:network.room?.winner!==null&&network.room?.winner!==undefined?[network.room.players[network.room.winner]!.name]:[],muted:!sound.enabled});
   const collection = useRummyAppearance(user?.id ?? null, network.room?.status === 'finished' ? `${network.room.code}:${network.room.revision}` : '');
   const [appearanceOpen, setAppearanceOpen] = useState(false), [joinOpen, setJoinOpen] = useState(false);
   const ownsJokers = wallet?.owned.includes(JOKER_PERK) ?? false;
@@ -131,7 +133,7 @@ function RummyPage() {
       {network.room.status === 'waiting' ? <MultiplayerLobby game="rummy" code={network.room.code} owner={network.room.owner} capacity={network.room.capacity} players={network.room.players} pending={network.pending || !network.healthy} details={`${VARIANTS[network.room.variant].name} · ${network.room.capacity} players${network.room.jokers?' · Joker Mode':''}`} onReady={()=>void network.command({operation:'ready',code:network.room!.code,ready:!network.room!.players.find(player=>player.you)?.ready})} onStart={()=>void network.command({operation:'start',code:network.room!.code,revision:network.room!.revision})} onLeave={()=>setLeaving(true)}/> : <GameTable sound={sound} key={`${network.room.code}:${network.room.round}`} room={network.room} pending={network.pending || !network.healthy} send={async move => network.command({ operation: 'move', code: network.room!.code, revision: network.room!.revision, requestId: crypto.randomUUID(), move })} />}
       {leaving && <LeaveTableDialog pending={network.pending} active={network.room.status === 'playing'} close={() => setLeaving(false)} confirm={async () => { if (await network.command({ operation: 'leave', code: network.room!.code })) setLeaving(false); }} />}
     </> : <div className="rummy-setup-grid grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,.6fr)]">
-      <section className="rummy-table rummy-setup-table p-7 sm:p-12" aria-label="Start a Rummy game"><p className="spades-eyebrow mb-2">A good hand starts here</p><h2 className="font-display text-3xl text-gold">Take a seat</h2><p className="mt-2 text-sm">Play a full match, take turns on one device, or invite friends to a private table.</p>
+      <section className="rummy-table rummy-setup-table clubhouse-setup p-7 sm:p-12" aria-label="Start a Rummy game"><p className="spades-eyebrow mb-2">A good hand starts here</p><h2 className="font-display text-3xl text-gold">Take a seat</h2><p className="mt-2 text-sm">Play a full match, take turns on one device, or invite friends to a private table.</p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-sm">Your name<input aria-label="Your name" value={name} readOnly={Boolean(user)} onChange={event => setName(event.target.value)} maxLength={24} className="rummy-input mt-1" /></label>
           <label className="text-sm">Play mode<select aria-label="Play mode" value={mode} onChange={event => setMode(event.target.value as GameMode)} className="rummy-input mt-1"><option value="bot">Vs computer</option><option value="local">Pass and play</option><option value="online">Online with friends</option></select></label>
           <label className="text-sm">Rummy variant<select aria-label="Rummy variant" value={variant} onChange={event => setVariant(event.target.value as Variant)} className="rummy-input mt-1">{Object.entries(VARIANTS).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
