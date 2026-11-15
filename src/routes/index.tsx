@@ -1,109 +1,55 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { HubNav } from "@/components/HubNav";
-import { GAMES, HUB_NAME, useClubhouse } from "@/lib/clubhouse";
-import { AnimatedClubhouseLogo } from "@/components/ClubhouseLogo";
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState } from 'react';
+import { HubNav } from '@/components/HubNav';
+import { GAMES, useClubhouse } from '@/lib/clubhouse';
+import { GAME_LIBRARY, LIBRARY_FILTERS, filterGames, gamePath, readGameList, writeGameList, type LibraryFilter } from '@/lib/game-library';
+import { CompanyLogo } from '@/components/CompanyBrand';
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Cayea's Game Clubhouse — Play, Earn Points, Unlock Rewards" },
-      { name: "description", content: "Play Cayea's games, earn points in every game, and turn them into Clubhouse Cash for cosmetics and perks." },
-      { property: "og:title", content: "Cayea's Game Clubhouse" },
-      { property: "og:description", content: "One home for all of Cayea's games. Earn points by playing and unlock cosmetics and perks." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+export const Route = createFileRoute('/')({
+  head: () => ({ meta: [{ title: 'Cayea’s Game Clubhouse — Your next great game starts here' }, { name: 'description', content: 'Free card, dice, board and puzzle games by Card Guru III Games. Play solo or with friends, earn rewards and build your collection.' }] }),
   component: Hub,
 });
 
 function Hub() {
-  const { user, ready, wallet, error } = useClubhouse();
-  return (
-    <>
-      <HubNav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-
-        {error && <p role="alert" className="mb-6 rounded-xl border border-border p-4 text-sm text-destructive">{error}</p>}
-        <section className="grid items-center gap-8 md:grid-cols-[1.3fr_1fr]">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Welcome to</p>
-            <h1 className="mt-2 font-display text-5xl leading-tight text-gold md:text-6xl">{HUB_NAME}</h1>
-            <p className="mt-4 max-w-xl text-lg text-foreground/85">
-              One home for every game we make. Play for free, collect rewards as you go, and make every game your own. Turn eligible game points into Clubhouse Cash, or follow a 200-level journey to restore the monastery in 3 Gems of Buddhism.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/games/faith-3" className="btn-gold">Play Faith 3 Tile Match</Link>
-              {user ? (wallet ? (
-                <Link to="/store" className="chip self-center">⭐ {wallet.rummy_points} Rummy+ points · {wallet.points} Clubhouse Cash</Link>
-              ) : <span className="chip self-center" role="status">{error ? 'Balance temporarily unavailable' : 'Loading your balance…'}</span>) : ready ? (
-                <Link to="/auth" className="btn-ghost-gold">Create a free account</Link>
-              ) : null}
-            </div>
-          </div>
-          <AnimatedClubhouseLogo />
-        </section>
-
-        <p role="status" className="mt-8 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">Play Crazy 8’s or Hearts solo or online, or explore the rest of the Clubhouse. Sign in before an eligible match to earn points. Guests can play the new card games online. Signed-in players can earn card-deck crate progress.</p>
-
-        <h2 className="mt-14 font-display text-3xl text-gold">Games</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {GAMES.map((g) => (
-            <div key={g.slug} className={`card-hub ${g.status === "soon" ? "opacity-60" : ""}`}>
-              <div className="text-4xl" aria-hidden="true">{g.icon}</div>
-              <h3 className="mt-2 font-display text-2xl text-gold">{g.name}</h3>
-              <p className="text-muted-foreground">{g.tagline}</p>
-              {g.status === "live" ? (
-                g.slug === "rummy" ? (
-                  <Link to="/games/rummy" className="btn-gold mt-4 inline-block text-sm">Play Rummy+</Link>
-                ) : g.slug === 'spades' ? (
-                  <Link to="/games/spades" className="btn-gold mt-4 inline-block text-sm">Play Spades</Link>
-                ) : g.slug === 'crazy-eights' ? (
-                  <Link to="/games/crazy-eights" className="btn-gold mt-4 inline-block text-sm">Play Crazy 8’s</Link>
-                ) : g.slug === 'hearts' ? (
-                  <Link to="/games/hearts" className="btn-gold mt-4 inline-block text-sm">Play Hearts</Link>
-                ) : g.slug === 'dominoes' ? (
-                  <Link to="/games/dominoes" className="btn-gold w-full justify-center">Play Dominoes →</Link>
-                ) : g.slug === 'crown-chance' ? (
-                  <Link to="/games/crown-chance" className="btn-gold mt-4 inline-block text-sm">Play Crown &amp; Chance</Link>
-                ) : g.slug === 'crown-court' ? (
-                  <Link to="/games/crown-court" className="btn-gold mt-4 inline-block text-sm">Play Crown &amp; Court</Link>
-                ) : g.slug === 'carrom' ? (<Link to="/games/carrom" className="btn-gold mt-4 inline-block text-sm">Play Carrom &amp; Disc Pool</Link>) : g.slug === 'backgammon' ? (<Link to="/games/backgammon" className="btn-gold mt-4 inline-block text-sm">Play Backgammon</Link>) : g.slug === 'farkle' ? (
-                  <Link to="/games/farkle" className="btn-gold mt-4 inline-block text-sm">Play Farkle</Link>
-                ) : g.slug === 'five-dice' ? (
-                  <Link to="/games/quintsee" className="btn-gold mt-4 inline-block text-sm">Play Quintsee</Link>
-                ) : g.slug === '3-gems' ? (
-                  <Link to="/games/3-gems" className="btn-gold mt-4 inline-block text-sm">Play 3 Gems</Link>
-                ) : (
-                  <Link to="/games/faith-3" className="btn-gold mt-4 inline-block text-sm">Play now</Link>
-                )
-              ) : (
-                <span className="chip mt-4 inline-block text-sm">Coming soon</span>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <h2 className="mt-14 font-display text-3xl text-gold">How points work</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <div className="card-hub">
-            <div className="text-2xl" aria-hidden="true">🎮</div>
-            <h3 className="mt-1 font-display text-xl text-gold">Play</h3>
-            <p className="text-sm text-muted-foreground">Clear Faith 3 or 3 Gems levels, or win full Rummy+ and Spades matches. Achievements add game points and Clubhouse Cash bonuses.</p>
-          </div>
-          <div className="card-hub">
-            <div className="text-2xl" aria-hidden="true">🏅</div>
-            <h3 className="mt-1 font-display text-xl text-gold">Convert</h3>
-            <p className="text-sm text-muted-foreground">Exchange 13 game points for 10 Clubhouse Cash. Each Cash has 30% more buying power per unit. Converting leaves lifetime earnings unchanged.</p>
-          </div>
-          <div className="card-hub">
-            <div className="text-2xl" aria-hidden="true">🛍</div>
-            <h3 className="mt-1 font-display text-xl text-gold">Spend</h3>
-            <p className="text-sm text-muted-foreground">Shared card decks cost 563 Rummy+ or Spades points, or 434 Cash. Buy once and use them in Rummy+, Spades, Crazy 8’s and Hearts. Joker Mode and Spades Partnerships each cost 500 game points or 385 Cash.</p>
-          </div>
-        </div>
-        <section className="home-about" aria-labelledby="home-about-title"><div><h2 id="home-about-title">New to the Clubhouse?</h2><p>Get to know all {GAMES.length} games, monastery restoration, points, Clubhouse Cash, shared decks, achievements, profiles, and playing with friends.</p></div><Link to="/about" className="btn-ghost-gold">About &amp; player guide →</Link></section>
-      </main>
-    </>
-  );
+  const { user, wallet, error } = useClubhouse();
+  const [filter, setFilter] = useState<LibraryFilter>('All games');
+  const [query, setQuery] = useState('');
+  const [favorites, setFavorites] = useState(() => readGameList('clubhouse-favorites-v1'));
+  const [recent] = useState(() => readGameList('clubhouse-recent-v1'));
+  const shown = filterGames(GAMES, filter, query, favorites);
+  const last = recent[0] && GAME_LIBRARY[recent[0]];
+  function favorite(slug: string) {
+    setFavorites(current => { const next = current.includes(slug) ? current.filter(x => x !== slug) : [...current, slug]; writeGameList('clubhouse-favorites-v1', next); return next; });
+  }
+  return <><HubNav /><main className="gaming-home">
+    {error && <p className="library-alert" role="alert">{error}</p>}
+    <section className="club-hero" aria-labelledby="club-hero-title">
+      <div className="hero-copy"><div className="gaming-eyebrow"><span className="status-dot" /> CARD GURU III GAMES PRESENTS</div>
+        <h1 id="club-hero-title">Your clubhouse.<br />Your games.<br /><span>Your next great play.</span></h1>
+        <p>Pull up a seat. Chase a new high score. Find your people. A whole world of cards, dice and discovery is right here.</p>
+        <div className="hero-actions"><a href="#game-library" className="neon-button">Explore the games <span aria-hidden="true">→</span></a><Link to="/matchmaking" className="secondary-button">Find a table <span aria-hidden="true">→</span></Link></div>
+        <div className="hero-meta"><span><i /> Free to play</span><span>Solo &amp; multiplayer</span><span>One shared account</span></div>
+      </div>
+      <div className="hero-company-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><CompanyLogo className="hero-guru"/><div className="hero-art-caption"><span className="status-dot"/> THE HOME OF YOUR NEXT FAVORITE</div></div>
+      <div className="hero-bottom"><span>CONCEPTS &amp; VIBE CODING BY <strong>RICHARD CAYEA</strong></span><a href="/about#credits">Meet the makers <span aria-hidden="true">→</span></a></div>
+    </section>
+    <section className="club-quicklinks" aria-label="Your clubhouse">
+      <a href={last ? gamePath(recent[0]) : '#game-library'}><span className="quick-icon">▷</span><span><small>{last ? 'RECENTLY OPENED' : 'READY WHEN YOU ARE'}</small><strong>{last ? last.label : 'Find your next game'}</strong></span><span aria-hidden="true">→</span></a>
+      <Link to="/rewards"><span className="quick-icon">✧</span><span><small>{user ? 'YOUR CLUBHOUSE CASH' : 'PLAY. EARN. MAKE IT YOURS.'}</small><strong>{user && wallet ? `${wallet.points.toLocaleString()} Cash` : 'Rewards worth playing for'}</strong></span><span aria-hidden="true">→</span></Link>
+      <Link to="/collectibles"><span className="quick-icon">▱</span><span><small>HARVEST &amp; HEARTH</small><strong>Build your card collection</strong></span><span aria-hidden="true">→</span></Link>
+    </section>
+    <section id="game-library" className="game-library" aria-labelledby="library-title">
+      <header className="library-heading"><div><p className="gaming-eyebrow">PICK YOUR NEXT ADVENTURE</p><h2 id="library-title">The game room<span>.</span></h2></div><label className="library-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search games</span><input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search your next favorite…" /></label></header>
+      <div className="library-toolbar"><div className="library-filters" role="group" aria-label="Filter games">{LIBRARY_FILTERS.map(item => <button key={item} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item === 'Favorites' ? `♡ Favorites${favorites.length ? ` (${favorites.length})` : ''}` : item}</button>)}</div><span className="library-count" role="status">{shown.length} {shown.length === 1 ? 'game' : 'games'}</span></div>
+      <div className="neon-game-grid">{shown.map(g => { const info = GAME_LIBRARY[g.slug]; return <article key={g.slug} className={`neon-game-card game-${info.color}`}>
+        <a className={`game-card-art art-${info.art}`} href={gamePath(g.slug)} aria-label={`Play ${info.label}`}><div className="game-art-grid"/><div className="game-art-object" aria-hidden="true"><span>{info.symbol}</span><span>{info.art === 'cards' ? 'A' : info.art === 'poker' ? 'K' : info.symbol}</span><span>{info.art === 'cards' ? info.symbol : info.art === 'dice' ? '⚂' : info.symbol}</span></div><span className="game-category">{info.category}</span>{['crown-chance','crown-court'].includes(g.slug) && <span className="original-tag">CLUBHOUSE ORIGINAL</span>}</a>
+        <button className="game-favorite" aria-pressed={favorites.includes(g.slug)} aria-label={`${favorites.includes(g.slug) ? 'Remove' : 'Add'} ${info.label} ${favorites.includes(g.slug) ? 'from' : 'to'} favorites`} onClick={() => favorite(g.slug)}>{favorites.includes(g.slug) ? '♥' : '♡'}</button>
+        <div className="game-card-copy"><p className="game-mode"><span className="status-dot"/>{info.mode}</p><h3><a href={gamePath(g.slug)}>{info.label}</a></h3><p className="game-description">{g.tagline}</p><a href={gamePath(g.slug)} className="game-play-link">Play now <span aria-hidden="true">→</span></a></div>
+      </article>; })}</div>
+      {!shown.length && <div className="library-empty"><h3>{filter === 'Favorites' && !favorites.length ? 'Make room for your favorites.' : 'No games found.'}</h3><p>{filter === 'Favorites' && !favorites.length ? 'Tap the heart on any game to keep it close. Favorites are saved on this device.' : 'Try another search or explore the full game room.'}</p><button className="secondary-button" onClick={() => { setFilter('All games'); setQuery(''); }}>Show all games</button></div>}
+      <p className="library-device-note">Favorites and recently opened games stay on this device. Sign in to keep verified game progress, rewards and collections with your shared account.</p>
+    </section>
+    <section className="club-feature-row" aria-label="More from the clubhouse"><div className="collectible-feature"><div><p className="gaming-eyebrow">MORE THAN A WIN</p><h2>Play it.<br/>Earn it. Own your style.</h2><p>Turn game points into Clubhouse Cash. Unlock decks, dice and table designs. Every collection tells your story.</p><Link to="/store" className="secondary-button">Explore the store →</Link></div><div className="feature-card-stack" aria-hidden="true"><img src="/collectible-art/hh-93.webp" alt="" loading="lazy"/><img src="/collectible-art/hh-65.webp" alt="" loading="lazy"/></div></div><div className="friends-feature"><span className="friends-symbol" aria-hidden="true">♧</span><p className="gaming-eyebrow">GOOD GAMES. GREAT COMPANY.</p><h2>Bring a friend.<br/>Make a rival.</h2><p>Find a table, share an invitation and make your next match a little more personal.</p><Link to="/friends" className="secondary-button">Your friends &amp; invitations →</Link></div></section>
+    <section className="clubhouse-support"><div><p className="gaming-eyebrow">FREE TO PLAY. MADE WITH PERSONALITY.</p><h2>Welcome to Richard’s corner of the gaming world.</h2><p>Original ideas by Richard Cayea. Built with AI-assisted coding and art. Presented by Cayea Digital’s Card Guru III Games.</p></div><Link to="/about" className="secondary-button">About &amp; player guide →</Link></section>
+  </main></>;
 }

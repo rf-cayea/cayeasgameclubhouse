@@ -66,17 +66,17 @@ function AboutPage() {
         <details className="about-faq"><summary>How do I confirm my email or reset my password?</summary><p>Use the confirmation email after creating an account. To reset a forgotten password, open Sign in and use the password-reset option, then follow the newest email link back to the Clubhouse. If a link has expired, request a fresh one. Confirm that you return to this Clubhouse site before completing the account action.</p><Link to="/auth" className="about-link">Open account sign-in →</Link></details>
         <details className="about-faq"><summary>How can I help with testing or report a game problem?</summary><p>Share the game name, mode or level, your device and browser, and the steps that led to the issue with Cayea through the Clubhouse’s posts or chat. Include any visible error message and a room code if relevant. Avoid posting passwords or private sign-in links. Reports about another player belong in the player-report tools.</p></details>
       </section>
-      <section id="source" aria-labelledby="about-source"><p className="about-eyebrow">11 · THE CURRENT CLUBHOUSE</p><h2 id="about-source">Play here. Find the project on GitHub.</h2><p>Play the latest published Clubhouse on this Site. Find the project’s source code and setup guides in the GitHub repository.</p><a className="about-link" href="https://github.com/rf-cayea/cayeasgameclubhouse/tree/clubhouse-ready-to-run" target="_blank" rel="noreferrer">Clubhouse source &amp; setup guides on GitHub →</a></section>
+      <section id="source" aria-labelledby="about-source"><p className="about-eyebrow">11 · THE CURRENT CLUBHOUSE</p><h2 id="about-source">Play here. Find the project on GitHub.</h2><p>Play the latest published Clubhouse on this Site. Find the project’s source code and setup guides in the GitHub repository.</p><a className="about-link" href="https://github.com/rf-cayea/cayeasgameclubhouse/tree/clubhouse2.0" target="_blank" rel="noreferrer">Clubhouse source &amp; setup guides on GitHub →</a></section>
       <section id="credits" aria-labelledby="about-credits">
         <h2 id="about-credits">Credits</h2>
-        <p>A Card Guru III Games project.</p>
+        <div className="credits-studios"><img src="/branding/card-guru-color.webp" alt="Card Guru III Games" width="160" height="160" loading="lazy"/><img src="/branding/cayea-digital.webp" alt="Cayea Digital" width="120" height="120" loading="lazy"/></div><p>Cayea Digital’s Card Guru III Games. Cayea’s Game Clubhouse is created and directed by Richard Cayea.</p>
         <dl className="grid gap-1">
           <dt className="font-semibold">Original concepts</dt>
-          <dd>Richard F. Cayea</dd>
+          <dd>Richard Cayea</dd>
           <dt className="mt-3 font-semibold">Development</dt>
-          <dd>Richard F. Cayea of Card Guru III Games, vibe coded with OpenAI Codex.</dd>
+          <dd>Concepts, creative direction and vibe coding by Richard Cayea. AI-assisted coding with ChatGPT and OpenAI Codex.</dd>
           <dt className="mt-3 font-semibold">Image generation</dt>
-          <dd>Selected artwork generated with OpenAI, including the 40 illustrations in the Harvest &amp; Hearth expansion.</dd>
+          <dd>AI-generated artwork created with OpenAI tools, guided and selected by Richard Cayea. Company logos supplied by Richard Cayea.</dd>
         </dl>
       </section>
       <div className="about-closing"><h2>Your next good game is waiting.</h2><p>A thoughtful puzzle, a friendly table, or a monastery waiting to be restored.</p><Link to="/" className="btn-gold">Explore the games</Link><a href="#" className="about-link">Back to top ↑</a></div>

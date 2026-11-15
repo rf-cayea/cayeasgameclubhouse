@@ -1,4 +1,4 @@
-import { ClubhouseLogo } from "./ClubhouseLogo";
+import { CompanyLogo } from "./CompanyBrand";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HUB_NAME, useClubhouseAccount } from "@/lib/clubhouse";
@@ -30,10 +30,10 @@ export function HubNav() {
   }
 
   return (
-    <header className="border-b border-border bg-background/95">
-      <nav aria-label="Main navigation" className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-5">
-        <Link to="/" className="clubhouse-nav-brand font-display text-xl text-gold"><ClubhouseLogo decorative/><span>{HUB_NAME}</span></Link>
-        <div className="flex flex-wrap items-center gap-4 text-sm">
+    <header className="hub-neon-nav">
+      <nav aria-label="Main navigation" className="hub-neon-nav-inner">
+        <Link to="/" className="clubhouse-nav-brand font-display text-xl text-gold"><CompanyLogo className="clubhouse-logo"/><span><small>CARD GURU III GAMES</small>{HUB_NAME}</span></Link>
+        <div className="hub-neon-nav-links">
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-gold underline" }}>Games</Link>
           <Link to="/about" activeProps={{ className: "text-gold underline" }}>About</Link>
           <Link to="/clubhouse" activeProps={{ className: "text-gold underline" }}>Clubhouse</Link>
