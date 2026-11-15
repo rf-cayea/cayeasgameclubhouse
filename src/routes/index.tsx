@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { HubNav } from '@/components/HubNav';
 import { GAMES, useClubhouse } from '@/lib/clubhouse';
 import { GAME_LIBRARY, LIBRARY_FILTERS, filterGames, gamePath, readGameList, writeGameList, type LibraryFilter } from '@/lib/game-library';
-import { CompanyLogo } from '@/components/CompanyBrand';
+import { ClubhouseLogo } from '@/components/ClubhouseLogo';
 
 export const Route = createFileRoute('/')({
   head: () => ({ meta: [{ title: 'Cayea’s Game Clubhouse — Your next great game starts here' }, { name: 'description', content: 'Free card, dice, board and puzzle games by Card Guru III Games. Play solo or with friends, earn rewards and build your collection.' }] }),
@@ -30,7 +30,7 @@ function Hub() {
         <div className="hero-actions"><a href="#game-library" className="neon-button">Explore the games <span aria-hidden="true">→</span></a><Link to="/matchmaking" className="secondary-button">Find a table <span aria-hidden="true">→</span></Link></div>
         <div className="hero-meta"><span><i /> Free to play</span><span>Solo &amp; multiplayer</span><span>One shared account</span></div>
       </div>
-      <div className="hero-company-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><CompanyLogo className="hero-guru"/><div className="hero-art-caption"><span className="status-dot"/> THE HOME OF YOUR NEXT FAVORITE</div></div>
+      <div className="hero-company-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><ClubhouseLogo className="hero-guru"/><div className="hero-art-caption"><span className="status-dot"/> THE HOME OF YOUR NEXT FAVORITE</div></div>
       <div className="hero-bottom"><span>CONCEPTS &amp; VIBE CODING BY <strong>RICHARD CAYEA</strong></span><a href="/about#credits">Meet the makers <span aria-hidden="true">→</span></a></div>
     </section>
     <section className="club-quicklinks" aria-label="Your clubhouse">

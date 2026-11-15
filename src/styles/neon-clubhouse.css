@@ -5,3 +5,75 @@ html{scroll-behavior:smooth;scroll-padding-top:24px}body{font-family:Inter,Arial
 @media(max-width:800px){.gaming-home{padding:22px 20px 0}.hub-neon-nav-inner{padding:14px 20px}.hub-neon-nav-links{flex-wrap:nowrap;width:100%;overflow:auto;padding-bottom:6px;gap:22px;white-space:nowrap}.hub-neon-nav-links>a{min-height:36px;display:inline-flex;align-items:center}.club-hero{grid-template-columns:1fr 0.8fr}.hero-copy{padding:30px 0 30px 24px}.hero-copy h1{font-size:36px}.hero-copy>p{font-size:12px}.hero-company-art{padding:0}.hero-guru{width:100%}.hero-art-caption{display:none}.hero-orbit{width:280px;height:280px}.orbit-two{width:320px;height:320px}.hero-bottom{padding:14px 22px;font-size:7px}.hero-meta{font-size:8px;gap:9px}.hero-actions{gap:8px}.hero-actions>a{font-size:10px;padding:10px 12px;gap:10px}.club-quicklinks{gap:8px;margin-bottom:35px}.club-quicklinks>a{padding:14px 12px;gap:9px}.club-quicklinks strong{font-size:10px}.club-quicklinks small{font-size:6px}.quick-icon{width:29px;height:32px;font-size:18px}.library-heading h2{font-size:30px}.library-search{min-width:240px}.neon-game-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.club-feature-row{grid-template-columns:1fr;gap:14px;margin:35px 0}.collectible-feature{grid-template-columns:1.3fr 1fr}.feature-card-stack{width:210px;justify-self:center}.feature-card-stack img{width:120px;height:170px}.feature-card-stack img:last-child{left:70px}.friends-feature h2{font-size:28px}.friends-symbol{right:30px;font-size:200px}.clubhouse-support{align-items:flex-start;flex-direction:column}.studio-footer{padding:24px 20px}.studio-footer-bottom{align-items:flex-start}}
 @media(max-width:520px){.gaming-home{padding:16px 14px 0}.clubhouse-nav-brand{font-size:16px}.clubhouse-nav-brand small{font-size:8px}.hub-neon-nav-inner{padding:12px 14px}.club-hero{display:flex;flex-direction:column;border-radius:16px}.hero-company-art{order:-1;height:235px;padding-top:12px}.hero-guru{height:225px;width:225px;border-radius:12px}.hero-orbit{width:215px;height:215px}.orbit-two{width:250px;height:250px}.hero-copy{padding:16px 24px 25px}.hero-copy h1{font-size:38px;margin:15px 0}.hero-copy>p{font-size:13px}.gaming-eyebrow{font-size:8px;letter-spacing:.15em}.hero-actions>a{font-size:11px;padding:12px 14px}.hero-bottom{font-size:7px;line-height:1.7;padding:12px 20px;align-items:center}.hero-bottom>span{max-width:180px}.hero-meta{font-size:9px;gap:12px;margin-top:18px}.club-quicklinks{grid-template-columns:1fr;margin:14px 0 32px}.club-quicklinks>a{padding:12px 16px;gap:12px}.club-quicklinks small{font-size:7px}.club-quicklinks strong{font-size:11px}.quick-icon{height:34px;width:34px}.library-heading{align-items:stretch;flex-direction:column;gap:16px}.library-heading h2{font-size:30px}.library-search{min-width:0;padding:9px 12px}.library-toolbar{margin:17px 0;gap:8px;align-items:start}.library-filters{gap:3px}.library-filters button{font-size:9px;padding:8px 9px}.library-count{font-size:9px;padding-top:12px}.neon-game-grid{gap:10px}.game-card-art{height:136px}.game-art-object{transform:scale(.78);padding-top:22px}.art-board .game-art-object{width:134px;height:88px;transform:perspective(300px) rotateX(25deg) rotateZ(-10deg)}.game-category{font-size:6px;left:8px;top:9px;padding:3px 5px}.game-favorite{width:30px;height:30px;right:7px;top:7px;font-size:19px}.original-tag{font-size:5px;left:8px;bottom:8px;letter-spacing:.07em}.game-card-copy{padding:12px}.game-card-copy h3{font-size:14px;margin-bottom:7px}.game-description{font-size:10px;line-height:1.65;margin-bottom:14px}.game-mode{font-size:7px;gap:5px;margin-bottom:8px}.game-play-link{font-size:10px;padding-top:10px}.game-play-link span{font-size:14px}.library-device-note{font-size:9px}.collectible-feature,.friends-feature{padding:24px}.collectible-feature{grid-template-columns:1fr}.feature-card-stack{height:155px;width:200px;margin-top:4px}.feature-card-stack img{height:135px;width:96px;left:15px}.feature-card-stack img:last-child{left:90px;top:18px}.club-feature-row h2{font-size:27px}.studio-footer-top{gap:22px}.studio-brand strong{font-size:12px}.studio-brand small{font-size:8px}.studio-footer-links{gap:18px;flex-wrap:wrap}.studio-footer-bottom{flex-direction:column;gap:14px;font-size:8px;line-height:1.8}.credits-studios img{max-width:40%;height:auto}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.brand-loading-line:after{animation:none;transform:scaleX(.65)}.neon-game-card,.neon-button{transition:none}.neon-game-card:hover,.neon-button:hover{transform:none}}
+
+/* Touch-first navigation and readable phone layouts. */
+.hub-menu-toggle { display: none; }
+@media (max-width: 800px) {
+  .hub-neon-nav-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .clubhouse-nav-brand { min-width: 0; white-space: normal; width: fit-content; }
+  .clubhouse-nav-brand > span { min-width: 0; }
+  .hub-menu-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 72px; min-height: 44px; padding: 9px 12px; border: 1px solid #41465f; border-radius: 9px; background: #191e2f; color: #edf0fb; font-size: 13px; }
+  .hub-neon-nav-links { grid-column: 1 / -1; display: none; overflow: visible; white-space: normal; padding: 8px 0 0; border-top: 1px solid #282d40; }
+  .hub-neon-nav-links[data-open="true"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .hub-neon-nav-links > a, .hub-neon-nav-links > button { min-height: 44px; padding: 10px 12px; border-radius: 7px; background: #151a28; font-size: 14px; }
+  .hub-neon-nav-links > a[aria-current="page"] { background: #29213f; }
+  .library-search input { font-size: 16px; min-height: 30px; }
+  .library-filters button { min-height: 44px; font-size: 12px; padding: 10px 12px; }
+  .game-favorite { width: 44px; height: 44px; font-size: 24px; }
+  .game-category { max-width: calc(100% - 72px); }
+  .game-play-link { min-height: 44px; font-size: 13px; }
+  .game-description { font-size: 13px; }
+  .game-mode { font-size: 11px; }
+  .studio-footer-links a, .install-button { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
+  .studio-footer-links { gap: 6px 20px; }
+  .library-device-note { font-size: 12px; line-height: 1.7; }
+  .clubhouse-support p:not(.gaming-eyebrow), .club-feature-row p:not(.gaming-eyebrow) { font-size: 14px; }
+}
+@media (max-width: 520px) {
+  .hub-neon-nav-inner { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .clubhouse-nav-brand { font-size: 14px; gap: 8px; }
+  .clubhouse-nav-brand .clubhouse-logo { width: 38px; height: 38px; }
+  .clubhouse-nav-brand small { font-size: 7px; letter-spacing: .12em; }
+  .hub-menu-toggle { min-width: 66px; font-size: 12px; padding-inline: 9px; }
+  .hero-company-art { height: 185px; }
+  .hero-guru { width: 175px; height: 175px; }
+  .hero-copy { padding: 14px 20px 24px; }
+  .hero-copy h1 { font-size: clamp(30px, 8.5vw, 40px); line-height: 1.12; }
+  .hero-copy > p { font-size: 15px; }
+  .hero-meta { font-size: 11px; gap: 10px 16px; }
+  .hero-actions > a { min-height: 46px; font-size: 13px; }
+  .hero-bottom { flex-wrap: wrap; font-size: 10px; padding: 12px 20px; }
+  .hero-bottom > span { max-width: none; }
+  .hero-bottom > a { min-height: 36px; display: inline-flex; align-items: center; }
+  .gaming-eyebrow { font-size: 10px; }
+  .club-quicklinks small { font-size: 9px; }
+  .club-quicklinks strong { font-size: 13px; }
+  .club-quicklinks > a { min-height: 68px; }
+  .library-count { font-size: 12px; }
+  .library-toolbar { align-items: flex-start; }
+  .library-filters { gap: 5px; }
+  .library-filters button { font-size: 12px; padding: 9px 11px; }
+  .game-card-copy h3 { font-size: 18px; }
+  .game-card-copy { padding: 16px; }
+  .original-tag { font-size: 8px; }
+  .game-category { font-size: 10px; }
+  .game-description { margin-bottom: 13px; }
+  .studio-footer { padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+  .studio-footer-bottom { font-size: 11px; }
+  .studio-brand strong { font-size: 14px; }
+  .studio-brand small { font-size: 11px; line-height: 1.6; }
+  .secondary-button { font-size: 13px; min-height: 44px; }
+  .install-clubhouse { max-width: 100%; }
+  .install-note { font-size: 13px; }
+}
+@media (max-width: 420px) {
+  .neon-game-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .game-card-art { height: 170px; }
+  .game-art-object { transform: scale(.95); }
+  .art-board .game-art-object { width: 180px; height: 110px; }
+  .original-tag { left: 14px; bottom: 12px; }
+  .game-category { left: 12px; top: 12px; }
+  .game-favorite { top: 10px; right: 10px; }
+}
+.studio-brand > .clubhouse-logo { width: 56px; height: 56px; border-radius: 8px; }
+@media (max-width: 800px) { body { min-width: 0; } }
