@@ -1,6 +1,6 @@
 import { ClubhouseLogo } from "./ClubhouseLogo";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { HUB_NAME, useClubhouseAccount } from "@/lib/clubhouse";
 import { supabase } from "@/integrations/supabase/client";
 import { useModerationRole } from "@/lib/moderation-api";
@@ -12,6 +12,8 @@ export function HubNav() {
   const moderation = useModerationRole(user?.id);
   const friends = useSocialResource<FriendsView>('/api/social/friends', user?.id ?? null), invitations = useSocialResource<InvitesView>('/api/social/invites', user?.id ?? null);
   const pendingFriends = (friends.data?.incoming.length ?? 0) + (invitations.data?.incoming.filter(invite => invite.status === 'pending' && invite.available).length ?? 0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,10 +32,11 @@ export function HubNav() {
   }
 
   return (
-    <header className="border-b border-border bg-background/95">
-      <nav aria-label="Main navigation" className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-5">
-        <Link to="/" className="clubhouse-nav-brand font-display text-xl text-gold"><ClubhouseLogo decorative/><span>{HUB_NAME}</span></Link>
-        <div className="flex flex-wrap items-center gap-4 text-sm">
+    <header className="hub-neon-nav" onKeyDown={event => { if (event.key === 'Escape' && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}>
+      <nav aria-label="Main navigation" className="hub-neon-nav-inner">
+        <Link to="/" className="clubhouse-nav-brand font-display text-xl text-gold"><ClubhouseLogo decorative/><span><small>CARD GURU III GAMES</small>{HUB_NAME}</span></Link>
+        <button ref={menuButton} type="button" className="hub-menu-toggle" aria-expanded={menuOpen} aria-controls="clubhouse-main-links" onClick={() => setMenuOpen(open => !open)}>{menuOpen ? 'Close ✕' : 'Menu ☰'}</button>
+        <div id="clubhouse-main-links" className="hub-neon-nav-links" data-open={menuOpen} onClick={event => { if ((event.target as HTMLElement).closest('a, button')) setMenuOpen(false); }}>
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-gold underline" }}>Games</Link>
           <Link to="/about" activeProps={{ className: "text-gold underline" }}>About</Link>
           <Link to="/clubhouse" activeProps={{ className: "text-gold underline" }}>Clubhouse</Link>

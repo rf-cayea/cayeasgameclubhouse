@@ -4,6 +4,8 @@ import { createRouter, ErrorComponent, RouterProvider } from '@tanstack/react-ro
 import { routeTree } from './routeTree.gen';
 import { parseClubhouseSearch } from './lib/router-search';
 import './styles.css';
+import './styles/neon-clubhouse.css';
+import { BrandLoading } from './components/CompanyBrand';
 
 function RouteLoadError({ error }: { error: unknown }) {
   const staleAssets = /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|unable to preload css|loading chunk .* failed/i.test(error instanceof Error ? error.message : String(error));
@@ -24,7 +26,7 @@ function RouteLoadError({ error }: { error: unknown }) {
   </main> : <ErrorComponent error={error} />;
 }
 
-const router = createRouter({ routeTree, defaultErrorComponent: RouteLoadError, parseSearch: parseClubhouseSearch, defaultPreload: 'intent', defaultPreloadDelay: 180, scrollRestoration: true });
+const router = createRouter({ routeTree, defaultErrorComponent: RouteLoadError, defaultPendingComponent: BrandLoading, defaultPendingMs: 250, defaultPendingMinMs: 100, parseSearch: parseClubhouseSearch, defaultPreload: 'intent', defaultPreloadDelay: 180, scrollRestoration: true });
 declare module '@tanstack/react-router' {
   interface Register { router: typeof router }
 }

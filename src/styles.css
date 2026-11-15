@@ -10,21 +10,21 @@
 @import "./styles/store.css";
 
 @theme {
-  --color-background: #101e1c;
-  --color-foreground: #f3eee2;
-  --color-muted-foreground: #b9c5bb;
-  --color-gold: #e9c77d;
-  --color-border: #3d5148;
-  --color-secondary: #23372f;
+  --color-background: #080b14;
+  --color-foreground: #edf0fb;
+  --color-muted-foreground: #a8b0c4;
+  --color-gold: #9befd9;
+  --color-border: #2a3043;
+  --color-secondary: #191e30;
   --color-primary: #e9c77d;
   --color-primary-foreground: #18291f;
   --color-destructive: #ffb2ab;
-  --font-display: Georgia, 'Times New Roman', serif;
+  --font-display: 'Trebuchet MS', system-ui, sans-serif;
 }
 
 @layer base {
   html { color-scheme: dark; }
-  body { margin: 0; min-width: 320px; background: radial-gradient(ellipse at 90% 5%, #253c32 0, transparent 45%), var(--color-background); color: var(--color-foreground); font-family: 'Trebuchet MS', system-ui, sans-serif; line-height: 1.6; }
+  body { margin: 0; min-width: 320px; background: radial-gradient(ellipse at 90% 5%, #201636 0, transparent 45%), var(--color-background); color: var(--color-foreground); font-family: 'Trebuchet MS', system-ui, sans-serif; line-height: 1.6; }
   button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   button { cursor: pointer; }
   button:disabled { cursor: not-allowed; opacity: .55; }
